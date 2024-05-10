@@ -1,0 +1,54 @@
+@import "https://code.highcharts.com/10.3.3/css/highcharts.css";
+@import "chart-style.css";
+
+/* body{
+	background: url(https://fews.net/sites/all/themes/f1omega/f1ux/images/element_bground_30percent.png) repeat 0 0;
+	font-family: "Noto Sans", sans-serif;
+}
+
+h1{
+	font-family: "Noto Sans", sans-serif;
+	color: black;
+	text-align: center;
+}
+
+h2{
+	font-family: "Noto Sans", sans-serif;
+	color: white;
+	text-align: center;
+	background: #808080;
+}
+
+h3{
+	font-family: "Noto Sans", sans-serif;
+	color: black;
+	text-align: center;
+	width: 80%;
+}
+
+footer{
+	text-align: left;
+	color: white;
+	background: linear-gradient(to right, #191970 40%, #ffffff 100%);
+	font-family: "Noto Sans", sans-serif;
+	font-size: 2em;
+}
+
+.flex-container{
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.container{
+	min-width: 800px;
+	width: 45%;
+	height: 400px;
+	padding: 16px;
+}
+
+.map-container{
+	width: 90%;
+	max-width: 1000px;
+       	height: 400px;
+} */

@@ -1,0 +1,384 @@
+<!-- About page of the dashboard -->
+<html>
+
+<!-- HEAD -->
+{% include "base/head.html" %}
+
+<!-- Body of the webpage -->
+
+<body class="d-flex flex-column">
+
+    <!-- HEADER -->
+    <header>
+        {% include "base/navbar.html" %}
+    </header>
+
+    <div class="flex-fill justify-content-center">
+        <div class="container">
+            <div class="mt-4 mb-4">
+
+                <h3 class="fews-text mb-4 text-capitalize">About</h3>
+                <p>
+                    The periodic country analyses elaborated by FEWS NET have enabled the creation of a comprehensive
+                    historical database comprising consistent triannual reporting on over two dozen countries. The
+                    longitudinal breadth of this dataset has the potential to provide information and insights into
+                    long-term trends regarding shocks over time, coping capacity, and livelihoods.
+                </p>
+                <p>
+                    Systematically assessing this documentation from a historical perspective not only provides a
+                    comprehensive overview of food insecurity in FEWS NET covered countries, but also provides an
+                    additional evidence-base to support analysis.
+                </p>
+                <p>
+                    Machine-driven content analysis techniques stand as effective approaches to make sense of all the
+                    data available, as extracting knowledge from extensive text-based sources through conventional
+                    approaches is a challenge. In particular, text mining seeks to automate the retrieval of
+                    high-quality information from text by finding patterns and trends through machine learning,
+                    statistics and linguistics. The aim of this technique is to enable the analysis of large amounts of
+                    unstructured text.
+                </p>
+                <p>
+                    Using publicly available reports from the FEWS NET website, this interactive dashboard presents
+                    results from an integrated machine learning model that systematically analyzes textual documents to
+                    derive insights.
+                </p>
+                <p>
+                    The analytical model employs supervised and unsupervised text mining to selected FEWS NET
+                    documentation. A custom analytical framework was developed considering the dimensions of FEWS NET’s
+                    framework for food insecurity, from which analysis detects historical trends, associations, and
+                    thematic dynamics, as represented in the documents.
+                </p>
+                <p>
+                    The main questions this dashboad intends to explore are:
+                <ol class="list-group-numbered">
+                    <li class="list-group-item">What historical trends (or anomalies) can be identified regarding the
+                        prevalence of various dimensions from the FEWS NET framework for food insecurity?</li>
+                    <li class="list-group-item">How do trends compare by region and type of indicators?</li>
+                    <li class="list-group-item">How are the dynamics, such as the interactions within and between the
+                        different dimensions, represented? How do these representations transform in time and space?
+                    </li>
+                </ol>
+                </p>
+                <p>
+                    With data since 2000, the dashboard is integrated with FEWS NET's reporting system to update as new
+                    documentation is published.
+                </p>
+            </div>
+            <div class="mt-4 mb-4">
+
+                <h3 class="fews-text mb-4 text-capitalize">Framework</h3>
+                <ul class="nav nav-pills justify-content-center grid gap-3 mb-3" id="themeTab" role="tablist">
+                    {% for theme_key, theme_val in framework.items() %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link food_security_ind {% if loop.index0 == 0 %}active{% endif %}"
+                            id="pills-{{ theme_key }}-tab" data-bs-toggle="pill" data-bs-target="#pills-{{ theme_key }}"
+                            type="button" role="tab" aria-controls="pills-{{ theme_key }}"
+                            aria-selected="{% if index0 == 0 %}true{% else %}false{% endif %}">{{ theme_val.name
+                            }}</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="tab-content" id="theme-pills-TabContent">
+                    <div class="tab-pane fade show active"
+                        id="pills-hazards" role="tabpanel" aria-labelledby="pills-hazards-tab"
+                        tabindex="0">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Conflict</th>
+                                    <th scope="col">Markets</th>
+                                    <th scope="col">Diseases</th>
+                                    <th scope="col">Governance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Abductions</td>
+                                    <td>Animal prices</td>
+                                    <td>Cholera</td>
+                                    <td>Aid programs</td>
+                                </tr>
+                                <tr>
+                                    <td>Armed conflict</td>
+                                    <td>Commodity scarcity</td>
+                                    <td>Covid 19</td>
+                                    <td>Border closures</td>
+                                </tr>
+                                <tr>
+                                    <td>Civil conflict</td>
+                                    <td>Exchange rate</td>
+                                    <td>Diarrhea</td>
+                                    <td>Corruption</td>
+                                </tr>
+                                <tr>
+                                    <td>Conflict</td>
+                                    <td>Food exports</td>
+                                    <td>Disease</td>
+                                    <td>Trade barriers</td>
+                                </tr>
+                                <tr>
+                                    <td>Coup</td>
+                                    <td>Food imports</td>
+                                    <td>Ebola</td>
+                                    <td>Trade policies</td>
+                                </tr>
+                                <tr>
+                                    <td>Dispute</td>
+                                    <td>Food prices</td>
+                                    <td>HIV</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Ethnic conflict </td>
+                                    <td>Food shortages</td>
+                                    <td>Malaria</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Farmer herder conflict</td>
+                                    <td>Grain prices</td>
+                                    <td>Tuberculosis</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Gangs</td>
+                                    <td>Inflation</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Guerilla</td>
+                                    <td>Market failure</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Insurgency</td>
+                                    <td>Market prices</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Land conflict</td>
+                                    <td>Price volatility</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Political violence</td>
+                                    <td>Transport</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Riot</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Sectarian violence</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Social unrest</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Terrorism </td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Violence</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>War</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="pills-food_security_ind" role="tabpanel"
+                        aria-labelledby="pills-food_security_ind-tab" tabindex="0">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Food Availability</th>
+                                    <th scope="col">Food Access</th>
+                                    <th scope="col">Food Utilization</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Animal health</td>
+                                    <td>Animal product sales</td>
+                                    <td>Dietary diversity</td>
+                                </tr>
+                                <tr>
+                                    <td>Cereal production</td>
+                                    <td>Animal sales</td>
+                                    <td>Health services</td>
+                                </tr>
+                                <tr>
+                                    <td>Crop pests</td>
+                                    <td>Crop sales</td>
+                                    <td>Pest control</td>
+                                </tr>
+                                <tr>
+                                    <td>Farm inputs</td>
+                                    <td>Farm income</td>
+                                    <td>Sanitation</td>
+                                </tr>
+                                <tr>
+                                    <td>Food production</td>
+                                    <td>Food aid</td>
+                                    <td>Vaccinations</td>
+                                </tr>
+                                <tr>
+                                    <td>Food stocks</td>
+                                    <td>Food assistance</td>
+                                    <td>Water quality</td>
+                                </tr>
+                                <tr>
+                                    <td>Grazing land rights </td>
+                                    <td>Household assets</td>
+                                    <td>Water levels</td>
+                                </tr>
+                                <tr>
+                                    <td>Harvest outcome</td>
+                                    <td>Household income</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Irrigation</td>
+                                    <td>Income transfers</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Labor supply</td>
+                                    <td>Land tenure</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Water rights</td>
+                                    <td>Nonfarm income</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Water availability</td>
+                                    <td>Seasonal labor</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Remittances </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Social safety nets</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Terms of trade</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Unemployment</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Wage labor opportunities</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade" id="pills-food_outcomes" role="tabpanel"
+                        aria-labelledby="pills-food_outcomes-tab" tabindex="0">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Food Security Status</th>
+                                    <th scope="col">Health and Nutrition</th>
+                                    <th scope="col">Livlihoods</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Famine</td>
+                                    <td>Caloric intake</td>
+                                    <td>Coping capacity</td>
+                                </tr>
+                                <tr>
+                                    <td>Food insecurity</td>
+                                    <td>Food intake</td>
+                                    <td>Displacement</td>
+                                </tr>
+                                <tr>
+                                    <td>Hunger</td>
+                                    <td>Malnutrition</td>
+                                    <td>Humanitarian assistance</td>
+                                </tr>
+                                <tr>
+                                    <td>Starvation</td>
+                                    <td>Morbidity</td>
+                                    <td>IDP</td>
+                                </tr>
+                                <tr>
+                                    <td>Vulnerability</td>
+                                    <td>Mortality</td>
+                                    <td>Livelihod diversification</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Nutrient deficiencies</td>
+                                    <td>Livelihood viability</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td>Nutrient intake</td>
+                                    <td>Migrant labor</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>Migration</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>Refugees</td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td>Resilience</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    {% include "base/footer.html" %}
+
+</body>
+
+<script src="{{ url_for('static', path='/js/theme/main.js' ) }}"></script>
+
+</html>

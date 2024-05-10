@@ -1,0 +1,78 @@
+<html>
+
+<head>
+    <title>FEWSNET Awesome Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Added mutliple options just because I am viewing in many differnt tools -->
+    <link href="/Users/matthewvanhoutte/src/LaBaffa/fewsboard/fewsboard/static/css/theme/theme.css" rel="stylesheet">
+    <link href="{{ url_for('static', path='/css/theme/theme.css') }}" rel="stylesheet">
+    <link href="/fewsboard/static/css/theme/theme.css" rel="stylesheet">
+    
+    <!-- Some extract styling for the text rather than just black. -->
+    <style>
+        body {
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+
+        p {
+            color: #2d2d2d;
+        }
+    </style>
+
+</head>
+
+<body>
+    <main>
+        <!-- Tooltip HTML - dont worry too much about the classes for now just
+        wanted to make it work quickly for the demonstration. Also there 
+        is a lot of styling happening on elements this will go as well.
+        This is what we will need to insert into highcharts somehow.... -->
+        <div class="p-3" style="background-color: #f7f7f7; max-width:364px">
+            <div class="row">
+                <h2>Kenya</h2>
+            </div>
+            <div class="row mt-3" style="margin: 0">
+                <p class="h6 border-bottom" style="padding: 0">Trending Topics</p>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <span class="badge rounded-pill bg-primary">Frost</span>
+                    <span class="badge rounded-pill bg-secondary">Commodity Scarcity</span>
+                    <span class="badge rounded-pill bg-success">Rainfall</span>
+                </div>
+            </div>
+            <div class="row mt-3" style="margin: 0">
+                <p class="h6 border-bottom" style="padding: 0">Trending Terms</p>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <span class="badge rounded-pill bg-primary">Frost</span>
+                    <span class="badge rounded-pill bg-secondary">Commodity Scarcity</span>
+                    <span class="badge rounded-pill bg-success">Rainfall</span>
+                </div>
+            </div>
+            <div class="row mt-3" style="margin: 0">
+                <p class="h6 border-bottom" style="padding: 0">Sentiment</p>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <span style="font-weight: 600;">0.09</span>&nbsp;&nbsp;<span style="color: #689F38;">+0.2 from previous report</span>
+                </div>
+            </div>
+            <div class="row mt-3" style="margin: 0">
+                <p class="h6 border-bottom" style="padding: 0">Document Comparison</p>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <p>
+                        <span style="font-weight: 600;">0.74</span>&nbsp;&nbsp;<span style="color: #6D4140;">-0.02 from previous report</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

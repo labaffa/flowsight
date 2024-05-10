@@ -1,0 +1,68 @@
+<html>
+<!-- Head details stored in head.html -->
+<head>
+    {% include "base/head.html" %}
+</head>
+
+<body class="d-flex flex-column">
+    
+    <!-- Header content - for us a navbar -->
+    <header>
+        {% include "base/navbar.html" %}
+    </header>
+
+    <!-- This area contains our main content -->
+    {% include "base/main.html" %}
+
+    {% include "base/footer.html" %}
+
+    <!-- Scripts that are required to make things run. Maybe we need a spinner whilst things are loading? -->
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/map.js"></script>
+    <script src="static/js/charts/sentiment-map/sentiment-map-chart.js"></script>
+    <script src="{{ url_for('static', path='/js/theme/main.js' ) }}"></script>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"
+    integrity="sha384-7+zCNj/IqJ95wo16oMtfsKbZ9ccEh31eOz1HGyDuCQ6wgnyJNSYdrPa03rtR1zdB"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>    
+<script>
+    function formatDate(date) {
+        var monthNames = [
+            "Jan", "Feb", "Mar",
+            "Apr", "May", "Jun", "Jul",
+            "Aug", "Sep", "Oct",
+            "Nov", "Dec"
+        ];
+
+        var monthIndex = date.getMonth();
+        var year = date.getFullYear();
+
+        return monthNames[monthIndex] + ' ' + year;
+    }
+
+    $(function () {
+        $("#period-selector-range").slider({
+            range: true,
+            min: new Date('2013-01-01T00:00:00').getTime(),
+            max: new Date('2023-01-01T00:00:00').getTime(),
+            step: 86400000,
+            values: [new Date('2013-01-01T00:00:00').getTime(), new Date('2023-01-01T00:00:00').getTime()],
+            slide: function (event, ui) {
+                $("#period-selector").val(formatDate(new Date(ui.values[0])) + ' - ' + formatDate(new Date(ui.values[1])));
+            }
+        });
+        $("#period-selector").val(formatDate((new Date($("#period-selector-range").slider("values", 0)))) +
+            " - " + formatDate((new Date($("#period-selector-range").slider("values", 1)))));
+
+    });
+
+</script>
+</body>
+
+</html>

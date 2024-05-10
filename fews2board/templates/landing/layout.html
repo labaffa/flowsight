@@ -1,0 +1,84 @@
+<!-- Lanidng page content in the results section -->
+
+{% extends "base/main.html" %}
+
+{% block content %}
+<div id="domains">
+  <div class="accordion accordion-flush" id="domainsAcc">
+    {% for domain_id, domain in domains.items() %}
+      {% set heading_id = "f-head" + domain_id|string %}
+      {% set collapse_id = "f-coll" + domain_id|string %}      
+      <div class="accordion-item">
+        <h2 class="accordion-header" id={{heading_id}}>
+          <button  class="accordion-button collapsed phase2-text-menu" type="button" data-bs-toggle="collapse" data-bs-target={{"#" + collapse_id}} aria-expanded="false" aria-controls={{collapse_id}}>
+            {{domain}}
+          </button>
+        </h2>
+        <div domain_id={{domain_id}} id={{collapse_id}} class="accordion-collapse collapse phase2-text-menu-reverse" aria-labelledby={{heading_id}} data-bs-parent="#domainsAcc">
+          <div class="accordion-body">Description of the domain {{domain_id}}: {{domain}}</div>
+        </div>
+      </div>
+    {% endfor %}
+    
+  </div>
+</div>
+<div id="ham-filter">
+
+  <div 
+  class="p-3"
+  >
+      <div class="row" id="tt-header">
+        <h2>Filters</h2>
+      </div>
+      <div class="row mt-3" style="margin: 0">
+        <p class="h6 border-bottom" style="padding: 0">Data Streams</p>
+      </div>
+      <!-- <div class="row">
+        <div class="col">
+          <span class="badge rounded-pill badge-theme-0"> Media Monitoring</span>
+          <span class="badge rounded-pill badge-theme-1"> Social Listening</span>
+          
+        </div>
+      </div> -->
+      <div class="form-check form-check-inline">
+        <input class="form-check-input stream" type="checkbox" value="" id="flexCheckDefault" data-stream="mc" checked>
+        <label class="form-check-label" for="flexCheckDefault">
+          Media Monitoring
+        </label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input stream" type="checkbox" value="" id="flexCheckChecked" data-stream="tg" checked>
+        <label class="form-check-label" for="flexCheckChecked">
+          Social Listening
+        </label>
+      </div>
+      <div class="row mt-3" style="margin: 0">
+        <p class="h6 border-bottom" style="padding: 0"> Layers </p>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input a-layer" type="radio" name="flexRadioDefault" id="flexRadioDefault2" layer="sentiment" checked>
+        <label class="form-check-label" for="flexRadioDefault2">
+          Sentiment
+        </label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input a-layer" type="radio" name="flexRadioDefault" id="flexRadioDefault1" layer="attention">
+        <label class="form-check-label" for="flexRadioDefault1">
+          Attention
+        </label>
+      </div>
+      
+      
+  </div>
+
+
+  
+</div>
+<div class="d-flex flex-column flex-fill justify-content-center pg-content" style="background-color: #dbdbdb; width: 0;">
+    <div 
+      class="d-flex flex-fill justify-content-center align-items-center hcs" 
+      
+      id="sentiment-map" style="background-color: #fff; overflow: hidden;" >
+    </div>
+</div>
+{% endblock content %}

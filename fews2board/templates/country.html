@@ -1,0 +1,59 @@
+<!-- Country specific page of the dashboard -->
+<!doctype html>
+<html>
+
+<!-- HEAD -->
+<head>
+{% include "base/head.html" %}
+</head>
+
+<!-- Body of the webpage -->
+<body class="d-flex flex-column">
+
+    <!-- HEADER -->
+    <header>
+        {% include "base/navbar.html" %}
+    </header>
+
+    <!-- MODAL for documents table  -->
+
+    <!-- CONTENT -->
+    {% include "country/layout.html" %}
+
+    <!-- FOOTER -->
+    {% include "base/footer.html" %}
+
+
+    <!-- JAVASCRIPT -->
+    <script>
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+    <script src="https://cdn.datatables.net/1.11.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="{{ url_for('static', path='/js/virtual-select.min.js') }}"></script>
+    
+    <!-- Highcharts -->
+    <script src="https://code.highcharts.com/stock/10.3.3/highstock.js"></script>
+    <!-- <script src="https://code.highcharts.com/10.3.3/highcharts.js"></script> -->
+    <!-- <script src="https://code.highcharts.com/10.3.3/highcharts-more.js"></script>
+    <script src="https://code.highcharts.com/10.3.3/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/10.3.3/modules/export-data.js"></script>       
+    <script src="https://code.highcharts.com/10.3.3/modules/sankey.js"></script>
+    <script src="https://code.highcharts.com/10.3.3/modules/solid-gauge.js"></script>
+    <script src="https://code.highcharts.com/10.3.3/modules/sunburst.js"></script>
+    <script src="https://code.highcharts.com/10.3.3/modules/wordcloud.js"></script>
+    <script src="https://code.highcharts.com/10.3.3/modules/dependency-wheel.js"></script>
+    <script src="https://code.highcharts.com/10.3.3/modules/networkgraph.js"></script>
+    <script src="https://code.highcharts.com/10.3.3/modules/accessibility.js"></script>
+     -->
+    
+
+    <script src="{{ url_for('static', path='/js/theme/main.js' ) }}"></script>
+    <script src="{{ url_for('static', path='/js/country.min.js').include_query_params(version='2') }}"></script>
+</body>
+
+</html>

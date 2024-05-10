@@ -1,0 +1,6 @@
+[path]
+data_dir = "data"
+tmp_dir = "data/tmp"
+sample_dir = "data/sample"
+countries = "data/sample/countries.json"
+topic_categories = "data/sample/categories.csv"

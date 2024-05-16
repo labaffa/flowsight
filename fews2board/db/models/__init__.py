@@ -20,4 +20,5 @@ from fews2board.db.models.framework import Topic, Date, Country, Domain
 from fews2board.db.models.facts import TopicIdDayAggTg, TopicIdDayDomainAggTg, \
     TgSentimentDayAgg, TgSentimentDayDomainAgg, MCSentimentDayAgg, MCSentimentDayDomainAgg, \
     MCTopicIdDayAgg, MCTopicIdDayDomainAgg, TgTopicIdCountDayAgg, \
-    TgTopicIdCountDayDomainAgg
+    TgTopicIdCountDayDomainAgg, TgLatestUpdates, MCLatestUpdates, \
+    MCTopicIdCountDayAgg, MCTopicIdCountDayDomainAgg, DateRanges

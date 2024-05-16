@@ -5,12 +5,12 @@
 {% block content %}
 
 <div class="d-flex flex-column flex-fill justify-content-center pg-content" style="width: 0;">
-    <div class="d-flex flex-row justify-content-center border-bottom border-secondary" style="background-color: #fff; ">
-        <h2 class="fews-country">{{country}}</h2>
+    <div class="d-flex flex-row justify-content-center border-bottom border-secondary country-header">
+        <h2 class="fews-country">{{country_name}}</h2>
     </div>
-    <div class="row justify-content-center remove-margin">
+    <div class="row justify-content-center remove-margin fews-tab-content">
         <div style="max-width: 1600px;">
-
+            {% include "base/country-filter-bar.html" %}
             {% include "base/toggler.html" %}
             <!-- TAB CONTENT -->
             <div class="tab-content flex-grow-1" id="pills-tabContent">

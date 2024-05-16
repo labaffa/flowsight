@@ -1,6 +1,5 @@
 import fastapi
 from fastapi.templating import Jinja2Templates
-from fews2board.db.db_setup import get_async_db, get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 import datetime as dt
 from sqlalchemy import text

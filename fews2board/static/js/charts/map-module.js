@@ -35,7 +35,9 @@ function getTooltipChangeHTML (v) {
 			</span>`);
 	}
 };
-
+function capitalizeString(s) {
+	return  s[0].toUpperCase() + s.slice(1);
+};
 
 function tooltipCallBack(){
     let toptopics = window.mapTooltipData.top_topics;
@@ -43,7 +45,7 @@ function tooltipCallBack(){
     let html = `<div class="p-3" style="background-color: #f7f7f7">
 	<div class="row">
 		<h2>${this.point.name}</h2>
-		
+		<p> ${capitalizeString(window.selectedLayer)} for ${window.streamKey}: ${parseTooltipValue(this.point.value)} <p>
 	</div>
 	<div class="row mt-3" style="margin: 0">
 		<p class="h6 border-bottom" style="padding: 0">Trending Topics</p>

@@ -1,0 +1,305 @@
+/* Font Awesome is needed to show Play/Pause button in Bar Races */
+/* @import "https://netdna.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css"; */
+
+.play-controls {
+	max-width: 1000px;
+	margin: 1em auto;
+}
+
+.play-pause-button {
+	margin-left: 10px;
+	width: 50px;
+	height: 50px;
+	cursor: pointer;
+	border: 1px solid rgba(213, 116, 47, 1);
+	border-radius: 25px;
+	color: white;
+	background-color: rgba(213, 116, 47, 1);
+	transition: background-color 250ms;
+}
+
+.play-pause-button:hover {
+	background-color: rgba(213, 116, 47, 0.5);
+}
+
+.play-range {
+	transform: translateY(2.5px);
+	width: calc(100% - 90px);
+	background: #f8f8f8;
+}
+
+/* .bar-race-container {
+	height: 500px;
+} */
+
+.highcharts-color-0 {
+	fill: #426FBC;
+	stroke: #426FBC;
+}
+
+.highcharts-color-1 {
+	fill: #319B86;
+	stroke: #319B86;
+}
+
+.highcharts-color-2 {
+	fill: #3A454C;
+	stroke: #3A454C;
+}
+
+.highcharts-color-3 {
+	fill: #BA6B55;
+	stroke: #BA6B55;
+}
+
+.highcharts-color-4 {
+	fill: #7A5A5A;
+	stroke: #7A5A5A;
+}
+
+.highcharts-color-5 {
+	fill: #55747E;
+	stroke: #55747E;
+}
+
+.highcharts-color-6 {
+	fill: #707257;
+	stroke: #707257;
+}
+
+.highcharts-color-7 {
+	fill: #A173B3;
+	stroke: #A173B3;
+}
+
+.highcharts-color-8 {
+	fill: #305088;
+	stroke: #305088;
+}
+
+.highcharts-color-9 {
+	fill: #107157;
+	stroke: #107157;
+}
+
+.highcharts-color-10 {
+	fill: #555E62;
+	stroke: #555E62;
+}
+
+/*Disabled colors not in use at the moment. Must be disabled for sunburst to work. They can be enabled in a case by case basis by prefixing with the container id.*/
+/*example: #container1 .highcharts-color-11 {*/
+/* .highcharts-color-11 { */
+/* 	fill: #B95A38; */
+/* 	stroke: #B95A38; */
+/* } */
+
+/* .highcharts-color-12 { */
+/* 	fill: #6D4140; */
+/* 	stroke: #6D4140; */
+/* } */
+
+/* .highcharts-color-13 { */
+/* 	fill: #6A8188; */
+/* 	stroke: #6A8188; */
+/* } */
+
+/* .highcharts-color-14 { */
+/* 	fill: #60613A; */
+/* 	stroke: #60613A; */
+/* } */
+
+/* .highcharts-color-15 { */
+/* 	fill: #784595; */
+/* 	stroke: #784595; */
+/* } */
+
+.highcharts-background {
+	fill: white;
+	/* stroke: #ded9d5;
+	stroke-width: 1; */
+}
+
+.highcharts-title {
+	font-family: Georgia, Tinos, serif;
+	font-weight: bold;
+	font-size: 24px;
+	color: #212721;
+}
+
+.highcharts-subtitle {
+	font-family: "Segoe UI", "Open Sans", sans-serif;
+	font-weight: bold;
+	font-size: 18px;
+	color: #3A454C;
+}
+
+.highcharts-axis-title {
+	font-family: "Segoe UI", "Open Sans", sans-serif;
+	font-weight: bold;
+	font-size: 16px;
+	color: #212721;
+}
+
+.highcharts-axis-labels {
+	font-family: "Segoe UI", "Open Sans", sans-serif;
+	font-weight: bold;
+	font-size: 14px;
+	color: #212721;
+}
+
+.highcharts-tick {
+	stroke-width: 2px;
+	stroke: #808080;
+}
+
+.highcharts-pane:nth-child(1) {
+	fill: #426FBC;
+	fill-opacity: 0.3;
+	stroke-width: 0px;
+}
+
+.highcharts-pane:nth-child(2) {
+	fill: #319B86;
+	fill-opacity: 0.3;
+	stroke-width: 0px;
+}
+
+.highcharts-solidgauge-series .highcharts-series-0 {
+	fill: #426FBC;
+}
+
+.gauge-visible-tooltip {
+	visibility: revert;
+	opacity: 1;
+}
+
+.gauge-visible-tooltip .highcharts-tooltip-box {
+	stroke-width: 0px;
+	fill-opacity: 0;
+}
+
+.gauge-average-correlation text {
+	fill: #426FBC;
+}
+
+.gauge-latest-correlation text {
+	fill: #319B86;
+}
+
+.dependencywheel-data-labels {
+	font-size: 10px;
+}
+
+.sunburst {
+	stroke: #b9e1dc;
+	stroke-width: 3px;
+}
+
+.sunburst-root {
+	fill: #ffffff;
+	stroke: #b9e1dc;
+}
+
+.sunburst-subtheme {
+	fill-opacity: 0.85;
+}
+
+.sunburst-topic {
+	fill-opacity: 0.75;
+}
+
+.hazards-shocks {
+	fill: #BA6B55;
+	stroke: #BA6B55;
+}
+
+.food-security-indicators {
+	fill: #426FBC;
+	stroke: #426FBC;
+}
+
+.food--nutrition-and-livelihood-security-outcomes {
+	fill: #319B86;
+	stroke: #319B86;
+}
+
+.sunburst-root-label {
+	color: #333333;
+	font-size: 14px;
+}
+
+.sunburst-labels {
+	font-size: 8px;
+}
+
+text.highcharts-data-label.sunburst-labels {
+	fill: #ffffff;
+}
+
+.highcharts-networkgraph-series .highcharts-data-label text {
+	fill: #ffffff;
+	stroke: #333333;
+	stroke-width: 0.7;
+	font-size: 12px;
+}
+
+.highcharts-networkgraph-series .highcharts-point-hover {
+	stroke-width: 2px;
+}
+
+.highcharts-networkgraph-series .highcharts-data-label.network-topic-nodes-big text {
+	font-size: 22px;
+}
+
+.highcharts-networkgraph-series .highcharts-data-label.network-topic-nodes-mid text {
+	font-size: 16px;
+}
+
+.highcharts-networkgraph-series .highcharts-data-label.network-topic-nodes-small text {
+	font-size: 12px;
+}
+
+.highcharts-column-series.highcharts-legend-item text {
+	text-transform: capitalize;
+}
+
+.network-date-node {
+	fill: #d3d3d3;
+	stroke: #333333;
+}
+
+.highcharts-caption {
+	/* background-color: #2d2d2d19; */
+	padding: 8px;
+	color: #107157;
+	white-space: pre-wrap;
+	border-radius: 4px;
+	/* line-height: 170%; */
+}
+
+
+.highcharts-scrollbar-track {
+    fill: #f2f2f2;
+    stroke: #f2f2f2;
+    stroke-width: 1px;
+	/* border-radius: 2px!important; */
+	border-width: 2px!important;
+	
+}
+
+.highcharts-scrollbar-thumb {
+    fill: #d5742f!important;
+    stroke: #d5742f!important;
+    stroke-width: 0px;
+	border-radius: 50%!important;
+  }
+
+.highcharts-scrollbar-rifles {
+	display: none!important;
+}
+
+/* .highcharts-scrollbar-button, .highcharts-scrollbar-arrow {
+	height: 9px!important;
+} */
+

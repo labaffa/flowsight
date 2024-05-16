@@ -760,3 +760,15 @@ footer {
 #sentiment-map .highcharts-point {
     fill: #d1d3d4 !important;
 } */
+
+.country-header {
+    background-color: var(--phase2-blue-dark);
+}
+
+.fews-tab-content {
+    background-color: var(--phase2-blue-dark);
+}
+  
+.country-chart-spinner {
+    color: var(--phase2-blue-light);
+}

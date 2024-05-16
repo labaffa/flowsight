@@ -6,13 +6,26 @@ from fews2board import ui, config, api
 from contextlib import asynccontextmanager
 from psycopg_pool import AsyncConnectionPool
 from fews2board.db.utils import get_conn_str
+from fews2board.api import utils
+from psycopg.rows import dict_row
+
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.async_pool = AsyncConnectionPool(conninfo=get_conn_str())
+    app.async_pool = AsyncConnectionPool(conninfo=get_conn_str(), open=False, min_size=20)
+    await app.async_pool.open()
+    # async with app.async_pool.connection() as conn:
+    #     app.conn = conn
+    #     async with conn.cursor(row_factory=dict_row) as cur:
+    #         app.cur = cur
+    countries_in_db = await utils.get_country_codes(app.async_pool)
+    domains_in_db = await utils.get_domains(app.async_pool)
+    app.countries = {c["alpha_2"].lower().strip(): c for c in countries_in_db}
+    app.domains = domains_in_db
     yield
     await app.async_pool.close()
+    app.countries.clear()
 
 
 app = FastAPI(
@@ -44,6 +57,7 @@ app.include_router(ui.landing.router)
 app.include_router(api.landing_router)
 app.include_router(ui.country.router)
 app.include_router(api.country_router, tags=["country"])
+app.include_router(api.misc_router, tags=["Util"])
 # app.include_router(ui.misc.router)
 # app.include_router(api.landing.router, prefix="/api")
 

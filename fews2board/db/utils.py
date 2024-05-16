@@ -1,5 +1,5 @@
 from fews2board import config
-import psycopg2
+import psycopg
 
 
 def tablename(model):
@@ -17,7 +17,7 @@ def get_connection(**kw):
         host, port = host.split(":")
     else:
         port = kw.pop("port", config.PG_PORT)
-    connection = psycopg2.connect(
+    connection = psycopg.connect(
         host=host,
         port=port,
         database=kw.pop("database", config.PG_DATABASE),

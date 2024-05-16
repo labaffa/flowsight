@@ -2,9 +2,7 @@ import fastapi
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy.ext.asyncio import AsyncSession
 from fews2board import config
-from fews2board.db.db_setup import get_async_db
 from fews2board.api import utils
 from collections import defaultdict
 import copy
@@ -23,7 +21,7 @@ def averages(d):
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def read_landing(
-    request: fastapi.Request, db: AsyncSession=fastapi.Depends(get_async_db)
+    request: fastapi.Request
 ):  
     nested_dicts = lambda: defaultdict(nested_dicts)
     map_input = nested_dicts()

@@ -251,9 +251,11 @@ export async function renderLineChartFromUrl(
    let data = await fetch(url)
    	.then(response => response.json())
 	.then(data => {
+		console.log(data)
 		data = processChartData(data, dateKey);
+		console.log(data)
 		renderLineChart(chartId, data, customOptions);
 	});
-	console.log(data);
+	
     
 };

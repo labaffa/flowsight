@@ -100,7 +100,8 @@ export async function renderMap(chartId, data, customOptions, topology) {
 			map: topology,
 			height: (9 / 16 * 100) + '%', // 16:9 ratio
 			animation: false,
-			backgroundColor: '#bcdae9'
+			backgroundColor: '#bcdae9',
+			className: 'highcharts-map'
 		},
 		title: {
 			text: '',

@@ -133,3 +133,18 @@
 	height: 300px; */
 }
 
+path.ssi-column:nth-child(1) {
+	fill: #D1D3D4;
+}
+
+path.ssi-column:nth-child(2) {
+	fill: #7C888D;
+}
+
+.highcharts-data-label text {
+	fill: #000000;
+}
+
+.highcharts-map .highcharts-background {
+	fill: #A6BFE2;
+}

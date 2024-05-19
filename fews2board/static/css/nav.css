@@ -772,3 +772,15 @@ footer {
 .country-chart-spinner {
     color: var(--phase2-blue-light);
 }
+
+.filter-bar {
+    display: flex;
+}
+
+.query-form form{
+    display: flex;
+}
+
+.condition {
+    display: flex;
+}

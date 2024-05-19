@@ -16,9 +16,11 @@ class MyBase(Base):
 from fews2board.db.models.telegram import TgMessage, TgChannel, TgSentiment, TgTopicId
 from fews2board.db.models.luigi import MarkerTable
 from fews2board.db.models.media_monitoring import MCStory, MCSentiment, MCTopicId
-from fews2board.db.models.framework import Topic, Date, Country, Domain
+from fews2board.db.models.framework import Topic, Date, Country, Domain, SSIDomain, \
+    SSIField
 from fews2board.db.models.facts import TopicIdDayAggTg, TopicIdDayDomainAggTg, \
     TgSentimentDayAgg, TgSentimentDayDomainAgg, MCSentimentDayAgg, MCSentimentDayDomainAgg, \
     MCTopicIdDayAgg, MCTopicIdDayDomainAgg, TgTopicIdCountDayAgg, \
     TgTopicIdCountDayDomainAgg, TgLatestUpdates, MCLatestUpdates, \
-    MCTopicIdCountDayAgg, MCTopicIdCountDayDomainAgg, DateRanges
+    MCTopicIdCountDayAgg, MCTopicIdCountDayDomainAgg, DateRanges, MCBigramsDayAgg, \
+    MCLocationsDayAgg, MCOrgsDayAgg, MCPersonsDayAgg, MCTrigramsDayAgg, SSIDayAgg

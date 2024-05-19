@@ -75,6 +75,20 @@ class Domain(MyBase):
     name = sa.Column(sa.String, nullable=False)
 
 
+class SSIDomain(MyBase):
+    __tablename__ = "ssi_domain"
+
+    id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    domain = sa.Column(sa.String, nullable=False)
+
+
+class SSIField(MyBase):
+    __tablename__ = "ssi_field"
+
+    id = sa.Column(sa.Integer, nullable=False, primary_key=True)
+    field = sa.Column(sa.String, nullable=False)
+    domain_id = sa.Column(sa.Integer, nullable=False)
+    is_ssi_w = sa.Column(sa.Boolean, nullable=False)
 
 
 

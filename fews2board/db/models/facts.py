@@ -135,3 +135,67 @@ class DateRanges(MyBase):
     stream = sa.Column(sa.CHAR(2), primary_key=True, nullable=True)
     min_date_id = sa.Column(sa.Integer, nullable=True)
     max_date_id = sa.Column(sa.Integer, nullable=True)
+
+
+class MCPersonsDayAgg(MyBase):
+    __tablename__ = "mc_persons_day_agg"
+
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    person_name = sa.Column(sa.String, primary_key=True, nullable=False)
+    persons_count = sa.Column(sa.Integer)
+    person_percent = sa.Column(sa.Float)
+
+
+class MCLocationsDayAgg(MyBase):
+    __tablename__ = "mc_locations_day_agg"
+
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    location_name = sa.Column(sa.String, primary_key=True, nullable=False)
+    locations_count = sa.Column(sa.Integer)
+    location_percent = sa.Column(sa.Float)
+
+
+class MCOrgsDayAgg(MyBase):
+    __tablename__ = "mc_orgs_day_agg"
+
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    org_name = sa.Column(sa.String, primary_key=True, nullable=False)
+    orgs_count = sa.Column(sa.Integer)
+    org_percent = sa.Column(sa.Float)
+
+
+class MCBigramsDayAgg(MyBase):
+    __tablename__ = "mc_bigrams_day_agg"
+
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    bigram = sa.Column(sa.String, primary_key=True, nullable=False)
+    bigrams_count = sa.Column(sa.Integer)
+    bigram_percent = sa.Column(sa.Float)
+
+
+class MCTrigramsDayAgg(MyBase):
+    __tablename__ = "mc_trigrams_day_agg"
+
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    trigram = sa.Column(sa.String, primary_key=True, nullable=False)
+    trigrams_count = sa.Column(sa.Integer)
+    trigram_percent = sa.Column(sa.Float)
+
+
+class SSIDayAgg(MyBase):
+    __tablename__ = "ssi_day_agg"
+
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    ssi_domain_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    ssi_field_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    value = sa.Column(sa.Float, nullable=True)
+    is_ssi_w = sa.Column(sa.Boolean, nullable=False)
+
+
+

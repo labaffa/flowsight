@@ -140,3 +140,51 @@ async def get_tg_domains_for_country_in_period(
         response.append(day_data)
     response = sorted(response, key=lambda x: x["date"])
     return response
+
+
+@router.get("/{alpha_2}/mc_entity_in_period")
+async def get_tg_domains_for_country_in_period(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int, 
+    entity: str,
+    limit: int=10
+):
+    if entity not in ["location", "person", "org", "bigram", "trigram"]:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f'Entity {entity} not allowed'
+        )
+    if limit < 0:
+        limit = None
+    try:
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )
+    response = await utils.mc_entity_in_period_for_country(
+        request.app.async_pool, country_id, start_date, end_date, entity, limit
+    )
+    return response
+
+
+@router.get("/{alpha_2}/ssi_series")
+async def get_ssi_series(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+):
+    try:
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )
+    response = await utils.ssi_w_series(
+        request.app.async_pool, country_id, start_date, end_date
+    )
+    return response

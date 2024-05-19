@@ -619,3 +619,68 @@ async def date_ranges_for_country(pool, country_id: int):
             await cur.execute(q)
             result = await cur.fetchall()
     return result
+
+
+async def mc_entity_in_period_for_country(
+    pool, country_id: int, start_date: int, end_date: int, entity: str, limit: int
+):
+    if entity == "bigram":
+        model = models.MCBigramsDayAgg
+    elif entity == "trigram":
+        model = models.MCTrigramsDayAgg
+    elif entity == "location":
+        model = models.MCLocationsDayAgg
+    elif entity == "person":
+        model = models.MCPersonsDayAgg
+    elif entity == "org":
+        model = models.MCOrgsDayAgg
+    if entity in ["location", "person", "org"]:
+        entity_id = entity + "_name"
+    else: 
+        entity_id = entity
+    limit_clause = f' limit {limit}' if limit is not None else ''
+    q = (
+        f'''
+        select 
+            mb.{entity_id} as {entity}
+            , avg({entity}_percent) as value
+        from {tablename(model)} mb
+        where 
+            mb.date_id >= {start_date} and mb.date_id <= {end_date}
+            and mb.country_id = {country_id}
+        group by mb.country_id, mb.{entity_id} 
+        order by avg({entity}_percent) desc
+        {limit_clause}
+        ;
+
+        '''
+        )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
+
+async def ssi_w_series(
+    pool, country_id: int, start_date: int, end_date: int
+):
+    q = (
+        f'''
+        select
+            d.date_actual as date
+            , sda.value as ssi_w
+        from {tablename(models.SSIDayAgg)} sda
+        join {tablename(models.Date)} d on sda.date_id = d.id
+        where 
+            sda.date_id >= {start_date} and sda.date_id <= {end_date}
+            and sda.country_id = {country_id}
+            and sda.is_ssi_w = TRUE
+        ;
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result

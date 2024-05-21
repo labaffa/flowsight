@@ -3,15 +3,17 @@ export var filterStructure = {
         
         "Topic": {
                 "operators": ["IS", "IS NOT"],
-                "value": []
+                "value": Object.keys(window.topicsByName)
             },
         "Sentiment": {
             "operators": ["IS", "IS NOT"],
-            "value": []
+            "value": ["negative", "positive"]
         },
         "Emotion": {
             "operators": ["IS", "IS NOT"],
-            "value": []
+            "value": ["anger", 
+            "anticipation", "disgust", "fear", "joy",
+            "sadness", "surprise", "trust"]
         },
         "Keyword": {
             "operators": ["CONTAINS", "DOES NOT CONTAIN"],
@@ -22,15 +24,17 @@ export var filterStructure = {
         
         "Topic": {
                 "operators": ["IS", "IS NOT"],
-                "value": []
+                "value": Object.keys(window.topicsByName)
             },
         "Sentiment": {
             "operators": ["IS", "IS NOT"],
-            "value": []
+            "value": ["negative", "positive"]
         },
         "Emotion": {
             "operators": ["IS", "IS NOT"],
-            "value": []
+            "value": ["anger", 
+            "anticipation", "disgust", "fear", "joy",
+            "sadness", "surprise", "trust"]
         },
         "Keyword": {
             "operators": ["CONTAINS", "DOES NOT CONTAIN"],

@@ -103,6 +103,8 @@
 	padding-left: 8px;
 	padding-right: 8px;
 	width: 100%;
+	overflow-y: auto;
+	scrollbar-width: none;
 }
 
 .tp-table caption {
@@ -110,6 +112,8 @@
 	font-weight: 600;
 	padding-top: 3px;
 	text-align: left;
+	color: white;
+	caption-side: top;
 }
 
 .tp-table td {
@@ -128,7 +132,9 @@
 .table-card {
 	background-color: #4A5975;
 	border-radius: 5px;
-	padding: 0px 10px;
+	padding: 10px 10px;
+	overflow-y: scroll;
+	max-height: 500px;
 	/* width: 400px;
 	height: 300px; */
 }

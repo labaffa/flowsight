@@ -4,8 +4,22 @@ from fews2board.db import models
 from fews2board.db.utils import tablename
 from psycopg.rows import dict_row
 import datetime as dt
+from collections import defaultdict
 
 
+SQL_GEN_MAPPING = {
+    "fields": {
+        "Topic": models.TgTopicIdPositive,
+        "Sentiment": models.MCSentiment,
+        "Emotion": models.MCSentiment
+    },
+    "operators": {
+        "IS": "=",
+        "IS NOT": "!="
+    }
+
+
+}
 async def get_framework(pool):
     q = (f'''
         SELECT 
@@ -677,6 +691,136 @@ async def ssi_w_series(
             and sda.country_id = {country_id}
             and sda.is_ssi_w = TRUE
         ;
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
+
+async def tg_messages(
+        pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10):
+    sorted_by = sorted_by.strip().lower()
+    if sorted_by not in ["date", "sentiment"]:
+        sorted_by = "date"
+    if sorted_by == "date":
+        col = "ms.timestamp"
+    elif sorted_by == "sentiment":
+        col = "ts.sentiment"
+    q = (
+        f'''
+        select 
+            ms.author_username as username
+            , ms.timestamp as timestamp
+            , ms.body as body
+        from {tablename(models.TgSentiment)} ts 
+        join {tablename(models.TgMessage)} ms on ms.unique_id  = ts.message_unique_id 
+        join {tablename(models.TgChannel)} tc on ms.channel_id = tc.channel_id
+        join {tablename(models.Country)} c on tc.country = c.name
+        join {tablename(models.Date)} d on ms."timestamp"  ::DATE = d.date_actual
+         
+        where 
+            c.country_code = {country_id} and 
+            d.id >= {start_date} and d.id <= {end_date}
+        
+        order by {col} desc 
+        limit {limit}
+        ;
+
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
+
+
+def generate_sql(conditions, start_date, end_date):
+    nested_dicts = lambda: defaultdict(nested_dicts)
+    in_clause, notin_clause = "", ""
+    topic_table = tablename(models.TgTopicIdPositive)
+
+    b = nested_dicts()
+    for cond in conditions:
+        print(cond)
+        op = b[cond["field"]][cond["operator"]]
+        if not op:
+            b[cond["field"]][cond["operator"]] = [cond["value"]]
+            
+        else:
+            b[cond["field"]][cond["operator"]].append(cond["value"])
+    q = (
+        f'''
+        -- Define the topic_ids you want to include
+        WITH included_messages AS (
+            SELECT message_unique_id
+            FROM {topic_table} ttip
+            join {tablename(models.TgMessage)} tm on tm.unique_id = message_unique_id 
+            join {tablename(models.Date)} d on tm.timestamp::DATE = d.date_actual
+            WHERE 
+                1 = 1
+                and d.id >= {start_date} and d.id <= {end_date}
+                {in_clause} -- Replace these values with your specific included topic_id values
+            GROUP BY message_unique_id
+            HAVING COUNT(DISTINCT topic_unique_id) = 2 -- Ensure the count matches the number of included topic_id values
+        ),
+
+        -- Define the topic_ids you want to exclude
+        excluded_messages AS (
+            SELECT message_unique_id
+            FROM {topic_table} ttip
+            join {tablename(models.TgMessage)} tm on tm.unique_id = message_unique_id 
+            join {tablename(models.Date)} d on tm.timestamp::DATE = d.date_actual
+            WHERE 
+                1 = 1 
+                and d.id >= {start_date} and d.id <= {end_date}
+                {notin_clause} -- Replace these values with your specific excluded topic_id values
+        )
+
+        SELECT message_unique_id
+        FROM included_messages
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM excluded_messages e
+            WHERE included_messages.message_unique_id = e.message_unique_id
+        );
+            '''
+    )
+    return q
+
+
+async def mc_stories(
+        pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10):
+    sorted_by = sorted_by.strip().lower()
+    if sorted_by not in ["date", "sentiment"]:
+        sorted_by = "date"
+    if sorted_by == "date":
+        col = "ms.publish_date"
+    elif sorted_by == "sentiment":
+        col = "ts.sentiment"
+    q = (
+        f'''
+        select 
+            ms.media_name as username
+            , ms.url as url
+            , ms.publish_date as timestamp
+            , ms.title as body
+        from {tablename(models.MCSentiment)} ts 
+        join {tablename(models.MCStory)} ms on ms.id = ts.story_id
+        join {tablename(models.Date)} d on ms.publish_date::DATE = d.date_actual
+         
+        where 
+            ms.country_id = {country_id} and 
+            d.id >= {start_date} and d.id <= {end_date}
+        
+        order by {col} desc 
+        limit {limit}
+        ;
+
         '''
     )
     async with pool.connection() as conn:

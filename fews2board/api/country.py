@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from psycopg.rows import dict_row
 from fews2board.api import utils
 from collections import defaultdict
+import json
 
 
 router = fastapi.APIRouter()
@@ -188,3 +189,70 @@ async def get_ssi_series(
         request.app.async_pool, country_id, start_date, end_date
     )
     return response
+
+
+@router.get("/{alpha_2}/tg_messages")
+async def get_telegram_messages(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    sorted_by: str="date",
+    limit: int = 10
+):
+    try:    
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )
+    response = await utils.tg_messages(
+        request.app.async_pool, country_id, start_date, end_date, sorted_by, limit
+    )
+    return response
+
+
+@router.get("/{alpha_2}/filter_attention_trends")
+async def get_telegram_messages(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    conditions
+):
+    try:    
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )
+    conditions = json.loads(conditions)
+    sql_query = utils.generate_sql(conditions)
+    return sql_query
+
+
+@router.get("/{alpha_2}/mc_stories")
+async def get_telegram_messages(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    sorted_by: str="date",
+    limit: int = 10
+):
+    try:    
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )
+    response = await utils.mc_stories(
+        request.app.async_pool, country_id, start_date, end_date, sorted_by, limit
+    )
+    return response
+
+
+

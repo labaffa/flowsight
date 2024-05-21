@@ -17,6 +17,9 @@ templates = Jinja2Templates(directory="fews2board/templates")
 async def read_landing(
     request: fastapi.Request, alpha_2: str
 ): 
+    nested_dicts = lambda: defaultdict(nested_dicts)
+    topics = await utils.get_framework(request.app.async_pool)
+    domains = {t["domain_id"]: t["domain"] for t in topics}
     try:
         alpha_2 = alpha_2.strip().lower()
         country_name = request.app.countries[alpha_2]["name"]
@@ -43,7 +46,9 @@ async def read_landing(
         "country": alpha_2, 
         "country_name": country_name,
         "latest_updates": latest_updates,
-        "date_ranges": date_ranges
+        "date_ranges": date_ranges,
+        "topics": topics, 
+        "domains": domains
         }
     return templates.TemplateResponse(
         "country.html", data

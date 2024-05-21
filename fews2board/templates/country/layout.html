@@ -13,20 +13,20 @@
             {% include "base/country-filter-bar.html" %}
             {% include "base/toggler.html" %}
             <!-- TAB CONTENT -->
-            <div class="tab-content flex-grow-1" id="pills-tabContent">
+            <div class="tab-content flex-grow-1 bs-none" id="pills-tabContent">
                 <!-- Thematic Trends -->
-                <div class="tab-pane fade show active" id="pills-thematic-trends" role="tabpanel"
+                <div class="tab-pane fade show active bs-none" id="pills-thematic-trends" role="tabpanel"
                     aria-labelledby="pills-thematic-trends">
                     {% include "country/social_listening.html" %}
                 </div>
                 <!-- Thematic Interactions -->
-                <div class="tab-pane fade" id="pills-thematic-interactions" role="tabpanel"
+                <div class="tab-pane fade bs-none" id="pills-thematic-interactions" role="tabpanel"
                     aria-labelledby="pills-thematic-interactions">
                     {% include "country/media_monitoring.html" %}
                 </div>
 
                 <!-- Emerging Trends -->
-                <div class="tab-pane fade" id="pills-emerging-trends" role="tabpanel"
+                <div class="tab-pane fade bs-none" id="pills-emerging-trends" role="tabpanel"
                     aria-labelledby="pills-emerging-trends">
                     {% include "country/search_interest.html" %}
                 </div>

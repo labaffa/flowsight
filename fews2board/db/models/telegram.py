@@ -57,6 +57,16 @@ class TgSentiment(MyBase):
 
     message_unique_id = sa.Column(sa.Integer, primary_key=True, autoincrement=False)
     sentiment = sa.Column(sa.Float, nullable=True)
+    anger = sa.Column(sa.Integer, nullable=True)
+    anticipation = sa.Column(sa.Integer, nullable=True)
+    disgust = sa.Column(sa.Integer, nullable=True)
+    fear = sa.Column(sa.Integer, nullable=True)
+    joy = sa.Column(sa.Integer, nullable=True)
+    sadness = sa.Column(sa.Integer, nullable=True)
+    surprise = sa.Column(sa.Integer, nullable=True)
+    trust = sa.Column(sa.Integer, nullable=True)
+    negative = sa.Column(sa.Integer, nullable=True)
+    positive = sa.Column(sa.Integer, nullable=True)
 
 
 class TgTopicId(MyBase):
@@ -67,8 +77,12 @@ class TgTopicId(MyBase):
     topic_norm_prevalence = sa.Column(sa.Float)
 
 
+class TgTopicIdPositive(MyBase):
+    __tablename__ = "tg_topic_id_positive"
 
-
+    message_unique_id = sa.Column(sa.Integer, primary_key=True)
+    topic_unique_id = sa.Column(sa.Integer, primary_key=True)
+    topic_norm_prevalence = sa.Column(sa.Float)
 
 
 

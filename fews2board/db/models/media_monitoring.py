@@ -20,10 +20,28 @@ class MCSentiment(MyBase):
 
     story_id = sa.Column(sa.String, primary_key=True, autoincrement=False)
     sentiment = sa.Column(sa.Float)
+    anger = sa.Column(sa.Integer, nullable=True)
+    anticipation = sa.Column(sa.Integer, nullable=True)
+    disgust = sa.Column(sa.Integer, nullable=True)
+    fear = sa.Column(sa.Integer, nullable=True)
+    joy = sa.Column(sa.Integer, nullable=True)
+    sadness = sa.Column(sa.Integer, nullable=True)
+    surprise = sa.Column(sa.Integer, nullable=True)
+    trust = sa.Column(sa.Integer, nullable=True)
+    negative = sa.Column(sa.Integer, nullable=True)
+    positive = sa.Column(sa.Integer, nullable=True)
 
 
 class MCTopicId(MyBase):
     __tablename__ = "mc_topic_id"
+
+    story_id = sa.Column(sa.String, primary_key=True)
+    topic_unique_id = sa.Column(sa.Integer, primary_key=True)
+    topic_norm_prevalence = sa.Column(sa.Float)
+
+
+class MCTopicIdPositive(MyBase):
+    __tablename__ = "mc_topic_id_positive"
 
     story_id = sa.Column(sa.String, primary_key=True)
     topic_unique_id = sa.Column(sa.Integer, primary_key=True)

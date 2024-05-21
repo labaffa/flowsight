@@ -20,6 +20,9 @@ orjson = "^3.10.3"
 aiohttp = "^3.9.5"
 
 
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.4"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

@@ -109,7 +109,7 @@ export function renderBarChartb(chartId, data, mappingKeys, customOptions) {
 
 export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 	const defaultOptions = {
-		chartHeightRatio: 7 / 16,
+		// chartHeightRatio: 7 / 16,
 		chartType: 'bar',
 		chartWidth: 400,
 		dataLabelsEnabled: true,
@@ -136,7 +136,7 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 		chart: {
 			type: opts.chartType,
 			height: (opts.chartHeightRatio * 100) + '%',
-			width: opts.chartWidth,
+			//width: opts.chartWidth,
 		},
 		title: {
 			text: opts.titleText,

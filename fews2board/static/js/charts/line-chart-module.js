@@ -116,7 +116,7 @@ export function renderLineChartb(chartId, data, customOptions) {
 }
 export function renderLineChart(chartId, data, customOptions) {
 	const defaultOptions = {
-		chartHeightRatio: 7 / 16,
+		// chartHeightRatio: 7 / 16,
 		chartType: 'line',
 		chartWidth: 600,
 		dataLabelsEnabled: true,
@@ -135,9 +135,9 @@ export function renderLineChart(chartId, data, customOptions) {
 
 	const chartOptions = {
 		chart: {
-			height: (opts.chartHeightRatio * 100) + '%',
+			// height: (opts.chartHeightRatio * 100) + '%',
 			type: opts.chartType,
-			width: opts.chartWidth,
+			// width: opts.chartWidth,
 			zoomType: 'x',
 			marginLeft: 150,
 		},
@@ -235,7 +235,7 @@ function processChartData(data, dateKey) {
 		};
 		for (const item of data) {
 			const dateParts = item[dateKey].split('-').map(part => parseInt(part));
-			const date = Date.UTC(dateParts[0], dateParts[1], dateParts[2]);
+			const date = Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]);
 			
 			const value = parseFloat(item[topic]) ? item[topic] : 0;
 			series.data.push([date, value]);
@@ -253,7 +253,7 @@ export async function renderLineChartFromUrl(
 	.then(data => {
 		console.log(data)
 		data = processChartData(data, dateKey);
-		console.log(data)
+		console.log("mctrend", data)
 		renderLineChart(chartId, data, customOptions);
 	});
 	

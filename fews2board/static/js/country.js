@@ -4,10 +4,17 @@ import { renderHTMLTableFromUrl } from "./charts/html-table.js";
 import { renderHTMLTable } from "./charts/html-table.js";
 import { filterStructure } from "./menu-module.js";
 
+window.dateRanges["si"] = [20111227, 20231231];
+
 window.tgStartDate = window.latestUpdates.tg - 7;
 window.tgEndDate = window.latestUpdates.tg;
 window.mcStartDate = window.latestUpdates.mc - 7;
 window.mcEndDate = window.latestUpdates.mc;
+
+window.mcStartDate = 20240101;
+window.mcEndDate = 20240108;
+window.siStartDate = window.dateRanges.si[1] - 7;
+window.siEndDate = window.dateRanges.si[1];
 
 window.conditionCounter = {
     "tg": 0, "mc": 0, "si": 0
@@ -44,19 +51,22 @@ Highcharts.setOptions({
 async function DomainRanking(containerId, stream) {
     let hashContainerId = '#' + containerId;
     $(hashContainerId).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    let startD, endD; 
+    endD = stream == "mc" ? window.mcEndDate : window.tgEndDate;
+    startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
 
     let base_endpoint = `/${window.country}/domain_ranking`;
     let queryParams = $.param(
         {
-            start_date: window.tgStartDate,
-            end_date: window.tgEndDate,
+            start_date: startD,
+            end_date: endD,
             stream: stream
         },
         true
-    );
+    ); 
     let mappingKeys = {'categoryKey': 'domain', 'valueKey': 'frequency'};
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {};
+    let customOptions = {titleText: 'Hot Topics'};
 
     await renderBarChartFromUrl(
         containerId, url, mappingKeys, customOptions);
@@ -64,18 +74,21 @@ async function DomainRanking(containerId, stream) {
 
 async function AttentionTrends(containerId, stream) {
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-    
+    let startD, endD;
+    startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
+    endD = stream == "mc" ? window.mcEndDate : window.tgEndDate;
+
     let base_endpoint = `/${window.country}/attention_trends`;
     let queryParams = $.param(
         {
-            start_date: window.tgStartDate,
-            end_date: window.tgEndDate,
+            start_date: startD,
+            end_date: endD,
             stream: stream
         },
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {}
+    let customOptions = {titleText: 'Attention'}
     await renderLineChartFromUrl(
         containerId, url, customOptions, 'date'
     )
@@ -87,14 +100,14 @@ async function SSITimeline(containerId){
     let base_endpoint = `/${window.country}/ssi_series`;
     let queryParams = $.param(
         {
-            start_date: window.tgStartDate,
-            end_date: window.tgEndDate,
+            start_date: window.siStartDate,
+            end_date: window.siEndDate,
             // here goes domain_id: some int
         },
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {}
+    let customOptions = {titleText: 'Food Insecurity SSI'}
     await renderLineChartFromUrl(
         containerId, url, customOptions, 'date'
     )
@@ -104,16 +117,20 @@ async function SSITimeline(containerId){
 async function TalkingPoints(containerId, stream){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let base_endpoint = `/${window.country}/talking_points`;
+    let startD, endD;
+    startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
+    endD = stream == "mc" ? window.mcEndDate : window.tgEndDate;
+
     let queryParams = $.param(
         {
-            start_date: window.tgStartDate,
-            end_date: window.tgEndDate,
+            start_date: startD,
+            end_date: endD,
             stream: stream
         },
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {};
+    let customOptions = {titleText: "Talking Points"};
     await fetch(url).then(
         response => response.json()
     ).then(data => {
@@ -133,9 +150,10 @@ async function TalkingPoints(containerId, stream){
             }
             let delta = ((i.latest_value - i.prev_value)/i.latest_value)*100
             i.prev_value = (i.prev_value) ? i.prev_value : '';
+            let color = delta >= 0 ? 'green' : 'red'
             latest_value = `<span class="tp-latest">${i.latest_value.toFixed(3)}</span>`;
-            prev_value = `<span class="tp-delta">${delta}%</span>`
-            r[i.domain][layer] = `${latest_value} ${prev_value}`;
+            prev_value = `<span class="tp-delta" style="color: ${color}">${delta}%</span>`
+            r[i.domain][layer] = `${latest_value} -- ${prev_value}`;
         });
 
         var out = [];
@@ -161,15 +179,15 @@ async function MCPersons(tableId) {
     let base_endpoint = `/${window.country}/mc_entity_in_period`;
     let queryParams = $.param(
         {
-            start_date: window.tgStartDate,
-            end_date: window.tgEndDate,
+            start_date: window.mcStartDate,
+            end_date: window.mcEndDate,
             entity: 'person',
             limit: 10
         },
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {};
+    let customOptions = {titleText: "People"};
     await fetch(url).then(
         response => response.json()
     ).then(data => {
@@ -192,15 +210,15 @@ async function MCLocations(tableId) {
     let base_endpoint = `/${window.country}/mc_entity_in_period`;
     let queryParams = $.param(
         {
-            start_date: window.tgStartDate,
-            end_date: window.tgEndDate,
+            start_date: window.mcStartDate,
+            end_date: window.mcEndDate,
             entity: 'location',
             limit: 10
         },
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {};
+    let customOptions = {titleText: 'Places'};
     await fetch(url).then(
         response => response.json()
     ).then(data => {
@@ -224,15 +242,15 @@ async function MCOrgs(tableId) {
     let base_endpoint = `/${window.country}/mc_entity_in_period`;
     let queryParams = $.param(
         {
-            start_date: window.tgStartDate,
-            end_date: window.tgEndDate,
+            start_date: window.mcStartDate,
+            end_date: window.mcEndDate,
             entity: 'org',
             limit: 10
         },
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {};
+    let customOptions = {titleText: 'Organisations'};
     await fetch(url).then(
         response => response.json()
     ).then(data => {
@@ -259,54 +277,45 @@ function initPicker(pickerId, stream) {
     } else if (stream === 'mc') {
         start = window.dateRanges.mc[0].toString();
         end = window.dateRanges.mc[1].toString();
+    } else if (stream === 'si') {
+        start = window.dateRanges.si[0].toString();
+        end = window.dateRanges.si[1].toString();
     }
-    console.log(stream, start, end)
+    start = moment(start)
+    end = moment(end)
+    let startDate = end.subtract(7, 'date');
+    let endDate = end;
     function cb(start, end) {
         $(`#${pickerId} span`).html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
     }
     $(`#${pickerId}`).daterangepicker({
-        startDate: moment(end).subtract(7, 'days'),
-        endDate: moment(end),
-        minDate: moment(start),
-        maxDate: moment(end),
+        startDate: startDate,
+        endDate: endDate,
+        minDate: start,
+        maxDate: end,
         linkedCalendars: false,
         showDropdowns: true,
         autoApply: true
     }, cb);
+    // cb(startDate, endDate);
 };
 
-function addConditionBkp() {
-    var d = document.createElement("div");
-    d.setAttribute("id", `condition-${conditionCounter}`);
-    d.innerHTML =
-        `<select id="column-${conditionCounter}"></select> <select id="compare-${conditionCounter}"></select> <input type="text" id="value-${conditionCounter}" />`
-    document.getElementById("conditions").appendChild(d);
 
-    var structure = tableStructure[activeTable]["structure"]
-    for (var column in structure) {
-        createTableOption(column, column, `column-${conditionCounter}`)
-    }
-
-    createTableOption("=", "is", `compare-${conditionCounter}`)
-    createTableOption("<>", "is not", `compare-${conditionCounter}`)
-
-    window.conditionCounter += 1
-}
-
-function conditionTemplate(index, stream){
+function conditionTemplate(index, stream, logicDiv){
     return `<div class="condition" id="${stream}-condition-${index}">
-        <div class="field-condition">
+        ${logicDiv}
+        <div class="field-condition sub-condition">
             <label for="${stream}-field-select-${index}">Field:</label><br>
             <select id="${stream}-field-select-${index}" class="field-select">
             </select>
         </div>
-        <div class="operator-condition">
+        <div class="operator-condition sub-condition">
             <label for="${stream}-operator-select-${index}">Operator:</label><br>
             <select id="${stream}-operator-select-${index}">
                 
             </select>
         </div>
-        <div class="value-condition">
+        <div class="value-condition sub-condition">
             <label for="${stream}-value-select-${index}">Value:</label><br>
             <select id="${stream}-value-select-${index}">
         
@@ -325,7 +334,7 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     DomainRanking('tg-domains-bar-chart', 'tg');
     AttentionTrends('tg-attention-trends', 'tg');
     TalkingPoints('tg-talking-points', 'tg');
-
+    TgMessageWidget();
 });
 
 $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
@@ -334,17 +343,31 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     DomainRanking('mc-domains-bar-chart', 'mc');
     AttentionTrends('mc-attention-trends', 'mc');
     TalkingPoints('mc-talking-points', 'mc');
-
+    MCPersons('mc-persons');
+    MCLocations('mc-locations');
+    MCOrgs('mc-orgs');
+    MCStoryWidget();
 });
+$('#si-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
+    window.siStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
+    window.siEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
+    SSITimeline('si-food-insecurity')
+});
+
+
+
 $('#tg-tab').on('show.bs.tab', function (e) {
     $('#tg-filter-bar').show();
     $('#mc-filter-bar').hide();
+    $('#si-filter-bar').hide();
 });
 $('#mc-tab').on('show.bs.tab', function (e) {
     $('#mc-filter-bar').show();
     $('#tg-filter-bar').hide();
+    $('#si-filter-bar').hide();
 });
 $('#si-tab').on('show.bs.tab', function (e) {
+    $('#si-filter-bar').show();
     $('#mc-filter-bar').hide();
     $('#tg-filter-bar').hide();
 });
@@ -383,10 +406,16 @@ function fillForm(elementId){
 
 }
 
-function addCon(formId){
+function addCon(formId, logic=null){
     let stream = formId.split("-")[0];
     let i = window.conditionCounter[stream];
-    let cond = conditionTemplate(i, stream);
+    let logicDiv;
+    if (logic){
+        logicDiv = `<hr><br><div value="${logic}" class="logic" id="${stream}-logic-${i}">  ${logic}  </div><hr><br>`;
+    } else {
+        logicDiv = '';
+    }
+    let cond = conditionTemplate(i, stream, logicDiv);
     $(`#${formId}`).append(cond);
     fillFields(stream, i);
     fillOperatorAndValue(stream, i);
@@ -394,15 +423,181 @@ function addCon(formId){
 };
 
 
+function TgAuthor(author){
+    return `
+    <div class="tg-author">${author}</div>
+    `
+}
+
+
+function TgMessage(body){
+    return `
+    <div class="tg-message">${body}</div>
+    `
+}
+
+function TgTimestamp(timestamp){
+    return `
+    <div class="tg-timestamp">${timestamp}</div>
+    `
+}
+
+function TgMessageCard(author, body, timestamp){
+    return `
+    <div class='tg-card'>
+        <div class="tg-author">${author}</div>
+        <br>
+        <div class="tg-message">${body}</div>
+        <br>
+        <div class="tg-timestamp">${timestamp}</div>
+    </div>
+    `
+}
+
+function MCAuthor(author){
+    return `
+    <div class="mc-author">${author}</div>
+    `
+}
+
+
+function MCStory(body){
+    return `
+    <div class="mc-story">${body}</div>
+    `
+}
+
+function MCTimestamp(timestamp){
+    return `
+    <div class="mc-timestamp">${timestamp}</div>
+    `
+}
+function truncate(str, n){
+    return (str.length > n) ? str.slice(0, n-1) + '&hellip;' : str;
+  };
+
+function MCStoryCard(author, storyUrl, body, timestamp){
+    return `
+    <div class='mc-card'>
+        <div class="mc-author">
+            <a href="${storyUrl}" class="link" target="_blank" rel="noopener noreferrer">${author}</a>
+        </div>
+        <br>
+        <div class="mc-message">${body}</div>
+        <br>
+        <div class="mc-timestamp">${timestamp}</div>
+        
+    </div>
+    `
+
+
+}
+
+async function MCStoryWidget(){
+    let MAX_LEN = 300;
+    $(`#mc-stories`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+
+    let base_endpoint = `/${window.country}/mc_stories`;
+    let queryParams = $.param(
+        {
+            start_date: window.mcStartDate,
+            end_date: window.mcEndDate,
+            
+            sorted_by: 'date',
+            limit: 10
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {};
+    await fetch(url).then(
+        response => response.json()
+    ).then(data => {
+
+        $(`#mc-stories`).html('');
+        $('#mc-stories').append(
+            `<div class="widget-title">News Stories</div>
+            <br>
+            <br>
+            `
+        )
+        data.forEach(function(d) {
+            let author_username = d.username ? d.username : '';
+            let body = d.body ? d.body : '';
+            let url = d.url ? d.url : '';
+            
+            $('#mc-stories').append(
+                MCStoryCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
+
+            )
+            $('#mc-stories').append(
+                '<div class="cards-separator"></div>'
+            )
+           
+        });
+        
+    })    
+
+};
+
+
+async function TgMessageWidget(){
+    let MAX_LEN = 300;
+    $(`#tg-messages`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+
+    let base_endpoint = `/${window.country}/tg_messages`;
+    let queryParams = $.param(
+        {
+            start_date: window.tgStartDate,
+            end_date: window.tgEndDate,
+            entity: 'location',
+            sorted_by: 'date',
+            limit: 10
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {};
+    await fetch(url).then(
+        response => response.json()
+    ).then(data => {
+
+        $(`#tg-messages`).html('');
+        $('#tg-messages').append(
+            `<div class="widget-title">Conversations</div>
+            <br>
+            <br>
+            `
+        )
+        data.forEach(function(d) {
+            let author_username = d.author_username ? d.author_username : '';
+            let body = d.body ? d.body : '';
+            
+            $('#tg-messages').append(
+                TgMessageCard(author_username, truncate(body, MAX_LEN), d.timestamp)
+            );
+            $('#tg-messages').append(
+                '<div class="cards-separator"></div>'
+            );
+           
+        });
+        
+    })
+};
+
+
+
 $(document).ready(function (){
     $('#tg-filter-bar').show();
     $('#mc-filter-bar').hide();
+    $('#si-filter-bar').hide();
     // fillForm('tg-query-form');
     // fillForm('mc-query-form');
     addCon('tg-query-form');
     addCon('mc-query-form');
     initPicker('tg-filter-bar .datepicker', 'tg');
     initPicker('mc-filter-bar .datepicker', 'mc');
+    initPicker('si-filter-bar .datepicker', 'si')
     DomainRanking('tg-domains-bar-chart', 'tg');
     AttentionTrends('tg-attention-trends', 'tg');
     TalkingPoints('tg-talking-points', 'tg');
@@ -413,8 +608,9 @@ $(document).ready(function (){
     MCPersons('mc-persons');
     MCOrgs('mc-orgs');
     SSITimeline('si-food-insecurity');
-
-    $('.field-select').on('change', function (e) {
+    TgMessageWidget();
+    MCStoryWidget();
+    $(document).on('change', '.field-select', function (e) {
         let parts = $(this).attr('id').split('-');
         let stream = parts[0];
         let index = parts[parts.length - 1];
@@ -426,13 +622,70 @@ $(document).ready(function (){
         let parts = $(this).attr('id').split('-');
         let stream = parts[0];
         let index = parts[parts.length - 1];
-        console.log(logic)
         if (logic == 'remove'){
-            console.log(stream, index)
-            $(`#${stream}-condition-${index}`).remove();
+            let conditionNumber = $(`#${stream}-query-form .condition`).length;
+            if (!(conditionNumber == 1)){
+
+                $(`#${stream}-condition-${index}`).remove();
+            } 
+            if ($(`#${stream}-query-form .condition`).length == 1){
+                $(`#${stream}-query-form .condition .logic`).remove();
+            };
         } else { 
-            addCon(`${stream}-query-form`);
-            //$(`#${stream}-condition-${window.conditionCounter}`).prepend(`<hr><div>${logic}</div><hr>`);
+            addCon(`${stream}-query-form`, logic);
+            
         }
     });
-});
+    $('.query-button').on('click', async function (){
+        // ALARM:  aggiungere la country!!!
+        let parts = $(this).attr('id').split('-');
+        let stream = parts[0];
+        let conditions = $(`#${stream}-query-form .condition`);
+        let start_date = $(`#${stream}-filter-bar .datepicker`).data(
+            'daterangepicker').startDate.format('YYYYMMDD')
+
+        let end_date = $(`#${stream}-filter-bar .datepicker`).data(
+                'daterangepicker').endDate.format('YYYYMMDD')
+        start_date = parseInt(start_date);
+        end_date = parseInt(end_date);   
+        let payload = [];
+        conditions.each(function() {
+            let field = $($(this).find('.field-condition select')[0]).val();
+            let operator = $($(this).find('.operator-condition select')[0]).val();
+            let value = $($(this).find('.value-condition select')[0]).val();
+            if (field == "Topic") {
+                value = window.topicsByName[value]
+            };
+            let logic = $(this).find('.logic');
+            logic = logic.length > 0 ? $(logic).attr('value') : "";
+            console.log(field, operator, value, logic)
+            payload.push(
+                {
+                    
+                    "field": field,
+                    "operator": operator,
+                    "value": value,
+                    "logic": logic
+                }
+            )
+        })
+        console.log(payload)
+        let base_endpoint = `/${window.country}/filter_attention_trends`;
+        let queryParams = $.param(
+            {
+                start_date: window.tgStartDate,
+                end_date: window.tgEndDate,
+                conditions: JSON.stringify(payload)
+            },
+            true
+        );
+        let url = base_endpoint + '?' + queryParams;
+        let customOptions = {};
+        await fetch(url).then(
+            response => response.json()
+        ).then((data) => {
+            console.log(data)
+        })
+        
+    });
+})

@@ -1,21 +1,50 @@
+<div id="modal-overlay"></div>
 <div class="d-flex flex-row p-4">
-    <div id="tg-filter-bar" class="filter-bar" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-        <div id="tg-query-form" class="query-form">
+    
+    <div id="tg-filter-bar" class="filter-bar" style="cursor: pointer;">
+        <div class="filter-top">
+            <div class="form-open">
+                <div class="icon">
+                    <img src="{{ url_for('static', path='img/plus-sign.svg') }}" alt="">
+                </div>
+                <input type="text" class="search-bar" placeholder="Build a query...">
+            </div>
+            <div class="datepicker">
+                <i class="fa fa-calendar"></i>&nbsp;
+                <span></span> <i class="fa fa-caret-down"></i>
+            </div>
         </div>
-        <input type="button" id="tg-generate-query-button" class="query-button" value="Generate Query"/>
-        <div class="datepicker">
-            <i class="fa fa-calendar"></i>&nbsp;
-            <span></span> <i class="fa fa-caret-down"></i>
+        <div class="builder-container">
+            <div class="query-builder">
+                <div id="tg-query-form" class="query-form">
+                </div>
+                <input type="button" id="tg-generate-query-button" class="query-button" value="Generate Query"/>
+            </div>
         </div>
+        
+
     </div>
-    <div id="mc-filter-bar" class="filter-bar" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-        <div id="mc-query-form" class="query-form">
+    <div id="mc-filter-bar" class="filter-bar" style="cursor: pointer;">
+        <div class="filter-top">
+            <div class="form-open">
+                <span class="icon">
+                    <img src="{{ url_for('static', path='img/plus-sign.svg') }}" alt="">
+                </span>
+                <input type="text" class="search-bar" placeholder="Build a query...">
+            </div>
+            <div class="datepicker">
+                <i class="fa fa-calendar"></i>&nbsp;
+                <span></span> <i class="fa fa-caret-down"></i>
+            </div>
         </div>
-        <input type="button" id="mc-generate-query-button" class="query-button" value="Generate Query"/>
-        <div class="datepicker right">
-            <i class="fa fa-calendar"></i>&nbsp;
-            <span></span> <i class="fa fa-caret-down"></i>
+        <div class="builder-container">
+            <div class="query-builder">
+                <div id="mc-query-form" class="query-form">
+                </div>
+                <input type="button" id="mc-generate-query-button" class="query-button" value="Generate Query"/>
+            </div>
         </div>
+        
         
     </div>
     <div id="si-filter-bar" class="filter-bar" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">

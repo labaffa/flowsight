@@ -6,7 +6,7 @@
         <div class="p-2 rounded w-100" >
             <!-- SIGNIFICANT TERMS CHART -->
             <div 
-                class="d-flex flex-fill justify-content-center  hcs"
+                class="d-flex flex-fill justify-content-center hcs"
                 style="min-height: 400px; height: 100%" 
                 id="tg-domains-bar-chart"
             >
@@ -31,10 +31,11 @@
         <div class="p-2 rounded w-100" >
             
             <div 
-                class="d-flex flex-fill justify-content-center align-items-center hcs" 
+                class="d-flex flex-fill justify-content-center align-items-center hcs tp-table table-card" 
                 style="min-height: 400px;"
                 id="tg-top-terms"
             >
+                <h3>Top Terms (wordcloud)</h3>
             </div>
             
         </div>
@@ -42,23 +43,36 @@
 </div>
 
 <!-- ROW -->
-<div class="row m-2 align-items-stretch column-gap-2">
+<div class="row m-2 align-items-stretch column-gap-2" style="max-height: 500px;">
 
     <!-- COLUMN -->
-    <div class="col-12 col-xl-4 my-2 d-flex">
+    <div class="col-12 col-xl-3 my-2 d-flex">
         <div class="p-2 rounded w-100">
             
             <div 
                 class="justify-content-center  tp-table table-card"
-                style="min-height: 400px;" 
+                style="min-height: 400px; max-height: 450px;" 
                 id="tg-messages"
             >
             </div>
             
         </div>
     </div>
+    <div class="col-12 col-xl-3 my-2 d-flex">
+        <div class="p-2 rounded w-100" >
+            
+            <div 
+                class="d-flex flex-fill justify-content-center align-items-center hcs tp-table table-card" 
+                style="min-height: 400px; max-height: 450px;"
+                id="tg-pictures"
+            >
+                <h3>Picture viewer</h3>
+            </div>
+            
+        </div>
+    </div>
     <!-- COLUMN -->
-    <div class="col-12 col-xl-8 my-2 d-flex">
+    <div class="col-12 col-xl-6 my-2 d-flex">
         <div class="p-2 rounded w-100">
             <!-- DOCUMENT COMPARISON CHART -->
             <div 

@@ -19,7 +19,9 @@ window.siEndDate = window.dateRanges.si[1];
 window.conditionCounter = {
     "tg": 0, "mc": 0, "si": 0
 };
-
+window.countryConditions = {
+    "tg": [], "mc": []
+}
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -27,6 +29,7 @@ Highcharts.setOptions({
 	chart: {
 		styledMode: true,
 		borderRadius: 5,
+        //height: '100%'
 	},
 	credits: {
 		text: '',
@@ -95,14 +98,14 @@ async function AttentionTrends(containerId, stream) {
 };
 
 
-async function SSITimeline(containerId){
+async function SSITimeline(containerId, domainId){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let base_endpoint = `/${window.country}/ssi_series`;
     let queryParams = $.param(
         {
             start_date: window.siStartDate,
             end_date: window.siEndDate,
-            // here goes domain_id: some int
+            domain_id: domainId
         },
         true
     );
@@ -113,6 +116,26 @@ async function SSITimeline(containerId){
     )
 
 };
+
+async function SSIFieldsTimeline(containerId, domainId){
+    $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    let base_endpoint = `/${window.country}/ssi_fields_series`;
+    let queryParams = $.param(
+        {
+            start_date: window.siStartDate,
+            end_date: window.siEndDate,
+            domain_id: domainId
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {titleText: 'Food Insecurity SSI by topic'}
+    await renderLineChartFromUrl(
+        containerId, url, customOptions, 'date'
+    )
+
+};
+
 
 async function TalkingPoints(containerId, stream){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
@@ -134,25 +157,34 @@ async function TalkingPoints(containerId, stream){
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-
+        
+        let dataCopy = [...data]
         var r = {};
         
-        data.forEach(function(i) {
+        dataCopy.forEach(function(i) {
+            
             var layer = i.layer;
-            let latest_value, prev_value;
+            let latest_value, prev_value, delta, percentSign;
 
             if (!r[i.domain]) {
                 r[i.domain] = {};
             }
             if (layer === "attention"){
-                i.latest_value = i.latest_value * 1000;
-                i.prev_value = i.prev_value ? i.prev_value*1000 : i.prev_value;
+                i.latest_value = i.latest_value;
+                i.prev_value = i.prev_value ? i.prev_value: i.prev_value;
+                delta = ((i.latest_value - i.prev_value)/i.prev_value)*100
+                percentSign = ' %'
+            } else {
+                
+                delta = i.latest_value - i.prev_value;
+                percentSign = '';
             }
-            let delta = ((i.latest_value - i.prev_value)/i.latest_value)*100
+            
+            console.log(stream, i.latest_value, i.prev_value, delta)
             i.prev_value = (i.prev_value) ? i.prev_value : '';
             let color = delta >= 0 ? 'green' : 'red'
             latest_value = `<span class="tp-latest">${i.latest_value.toFixed(3)}</span>`;
-            prev_value = `<span class="tp-delta" style="color: ${color}">${delta}%</span>`
+            prev_value = `<span class="tp-delta" style="color: ${color}">${delta.toFixed(1)}${percentSign}</span>`
             r[i.domain][layer] = `${latest_value} -- ${prev_value}`;
         });
 
@@ -283,8 +315,9 @@ function initPicker(pickerId, stream) {
     }
     start = moment(start)
     end = moment(end)
-    let startDate = end.subtract(7, 'date');
-    let endDate = end;
+    let endDate = moment(end);
+    let startDate = moment(end.subtract(7, 'days'));
+    console.log(start, end, startDate, endDate)
     function cb(start, end) {
         $(`#${pickerId} span`).html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
     }
@@ -297,33 +330,35 @@ function initPicker(pickerId, stream) {
         showDropdowns: true,
         autoApply: true
     }, cb);
-    // cb(startDate, endDate);
+    cb(startDate, endDate);
 };
 
 
 function conditionTemplate(index, stream, logicDiv){
     return `<div class="condition" id="${stream}-condition-${index}">
         ${logicDiv}
-        <div class="field-condition sub-condition">
-            <label for="${stream}-field-select-${index}">Field:</label><br>
-            <select id="${stream}-field-select-${index}" class="field-select">
-            </select>
+        <div class="d-flex">
+            <div class="field-condition sub-condition">
+                <label for="${stream}-field-select-${index}">Field:</label><br>
+                <select id="${stream}-field-select-${index}" class="field-select">
+                </select>
+            </div>
+            <div class="operator-condition sub-condition">
+                <label for="${stream}-operator-select-${index}">Operator:</label><br>
+                <select id="${stream}-operator-select-${index}">
+                    
+                </select>
+            </div>
+            <div class="value-condition sub-condition">
+                <label for="${stream}-value-select-${index}">Value:</label><br>
+                <select id="${stream}-value-select-${index}">
+            
+                </select>
+            </div>
+            <input type="button" id="${stream}-remove-condition-${index}" class="condition-mod discard" /><br>
+            <input type="button" id="${stream}-and-condition-${index}" class="condition-mod add-filter" value="and"/><br>
+            
         </div>
-        <div class="operator-condition sub-condition">
-            <label for="${stream}-operator-select-${index}">Operator:</label><br>
-            <select id="${stream}-operator-select-${index}">
-                
-            </select>
-        </div>
-        <div class="value-condition sub-condition">
-            <label for="${stream}-value-select-${index}">Value:</label><br>
-            <select id="${stream}-value-select-${index}">
-        
-            </select>
-        </div>
-        <input type="button" id="${stream}-remove-condition-${index}" class="condition-mod" value="remove"/><br>
-        <input type="button" id="${stream}-and-condition-${index}" class="condition-mod" value="and"/><br>
-        <input type="button" id="${stream}-or-condition-${index}" class="condition-mod" value="or"/><br>
     </div> 
     `
 
@@ -351,7 +386,8 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
 $('#si-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
     window.siStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
     window.siEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
-    SSITimeline('si-food-insecurity')
+    SSITimeline('si-food-insecurity', 3);
+    SSIFieldsTimeline('si-food-insecurity-fields', 3);
 });
 
 
@@ -411,7 +447,7 @@ function addCon(formId, logic=null){
     let i = window.conditionCounter[stream];
     let logicDiv;
     if (logic){
-        logicDiv = `<hr><br><div value="${logic}" class="logic" id="${stream}-logic-${i}">  ${logic}  </div><hr><br>`;
+        logicDiv = `<hr style="margin: 1px;"><div value="${logic}" class="logic" id="${stream}-logic-${i}">  ${logic}  </div><hr style="margin: 1px">`;
     } else {
         logicDiv = '';
     }
@@ -502,7 +538,7 @@ async function MCStoryWidget(){
         {
             start_date: window.mcStartDate,
             end_date: window.mcEndDate,
-            
+            conditions: JSON.stringify(window.countryConditions["mc"]),
             sorted_by: 'date',
             limit: 10
         },
@@ -550,12 +586,14 @@ async function TgMessageWidget(){
         {
             start_date: window.tgStartDate,
             end_date: window.tgEndDate,
+            conditions: JSON.stringify(window.countryConditions["tg"]),
             entity: 'location',
             sorted_by: 'date',
             limit: 10
         },
         true
     );
+    
     let url = base_endpoint + '?' + queryParams;
     let customOptions = {};
     await fetch(url).then(
@@ -587,29 +625,52 @@ async function TgMessageWidget(){
 
 
 
-$(document).ready(function (){
+$(document).ready(async function (){
     $('#tg-filter-bar').show();
     $('#mc-filter-bar').hide();
     $('#si-filter-bar').hide();
-    // fillForm('tg-query-form');
-    // fillForm('mc-query-form');
-    addCon('tg-query-form');
-    addCon('mc-query-form');
-    initPicker('tg-filter-bar .datepicker', 'tg');
-    initPicker('mc-filter-bar .datepicker', 'mc');
-    initPicker('si-filter-bar .datepicker', 'si')
-    DomainRanking('tg-domains-bar-chart', 'tg');
-    AttentionTrends('tg-attention-trends', 'tg');
-    TalkingPoints('tg-talking-points', 'tg');
-    DomainRanking('mc-domains-bar-chart', 'mc');
-    AttentionTrends('mc-attention-trends', 'mc');
-    TalkingPoints('mc-talking-points', 'mc');
-    MCLocations('mc-locations');
-    MCPersons('mc-persons');
-    MCOrgs('mc-orgs');
-    SSITimeline('si-food-insecurity');
-    TgMessageWidget();
-    MCStoryWidget();
+    $('.form-open').on('click', function (){
+        
+        let formOpen = $(this).closest('.filter-bar');
+        let position = formOpen.position();
+        let height = formOpen.outerHeight();
+        $(this).closest('.filter-top').closest('.filter-bar').find('.builder-container')
+        .css({
+            top: position.top + height  ,
+            left: position.left ,
+            width: $(this).width()
+          })
+          .toggle();
+        
+        $('#modal-overlay').toggle();
+    });
+    $('#modal-overlay').on('click', function() {
+        $('.builder-container').hide();
+        $(this).hide();
+      });
+    async function renderElements(){
+        addCon('tg-query-form');
+        addCon('mc-query-form');
+        initPicker('tg-filter-bar .datepicker', 'tg');
+        initPicker('mc-filter-bar .datepicker', 'mc');
+        initPicker('si-filter-bar .datepicker', 'si')
+        DomainRanking('tg-domains-bar-chart', 'tg');
+        AttentionTrends('tg-attention-trends', 'tg');
+        TalkingPoints('tg-talking-points', 'tg');
+        DomainRanking('mc-domains-bar-chart', 'mc');
+        
+        AttentionTrends('mc-attention-trends', 'mc');
+        TalkingPoints('mc-talking-points', 'mc');
+        MCLocations('mc-locations');
+        MCPersons('mc-persons');
+        MCOrgs('mc-orgs');
+        SSITimeline('si-food-insecurity', 3);
+        SSIFieldsTimeline('si-food-insecurity-fields', 3);
+        TgMessageWidget();
+        MCStoryWidget();
+    };
+
+    
     $(document).on('change', '.field-select', function (e) {
         let parts = $(this).attr('id').split('-');
         let stream = parts[0];
@@ -658,7 +719,6 @@ $(document).ready(function (){
             };
             let logic = $(this).find('.logic');
             logic = logic.length > 0 ? $(logic).attr('value') : "";
-            console.log(field, operator, value, logic)
             payload.push(
                 {
                     
@@ -669,23 +729,66 @@ $(document).ready(function (){
                 }
             )
         })
-        console.log(payload)
+        window.countryConditions[stream] = payload
         let base_endpoint = `/${window.country}/filter_attention_trends`;
         let queryParams = $.param(
             {
-                start_date: window.tgStartDate,
-                end_date: window.tgEndDate,
-                conditions: JSON.stringify(payload)
+                start_date: start_date,
+                end_date: end_date,
+                conditions: JSON.stringify(payload),
+                stream: stream
             },
             true
         );
         let url = base_endpoint + '?' + queryParams;
-        let customOptions = {};
-        await fetch(url).then(
-            response => response.json()
-        ).then((data) => {
-            console.log(data)
-        })
+        let customOptions = {titleText: 'Attention'}
+        $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+        renderLineChartFromUrl(
+            `${stream}-attention-trends`, url, customOptions, 'date'
+        )
+
+        let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
+        let hotUrl = hotTopicsEndpoint + '?' + queryParams;
+        customOptions = {titleText: 'Hot Topics'};
+        let hasTopic = payload.some(obj => obj.field === 'Topic');
+        let categoryKey = hasTopic ? 'topic' : 'domain';
+        let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
+        $(`#${stream}-domains-bar-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+        renderBarChartFromUrl(
+            `${stream}-domains-bar-chart`, hotUrl, mappingKeys, customOptions);
+
         
+        let talkingPointsEndpoint = `/${window.country}/talking_points_on_conditions`;
+        let talkingUrl = talkingPointsEndpoint + '?' + queryParams;
+        // await fetch(talkingUrl).then((response) => response.json())
+        TgMessageWidget();
+        MCStoryWidget();
+
     });
+
+    await renderElements();
+    $('.hcs').each(function (){
+        let chart = jQuery(this).highcharts();
+            if (chart){
+                chart.reflow();
+            }
+    });
+    jQuery(document).on('shown.bs.tab', 'button[data-bs-toggle="pill"]', function (e) {
+        jQuery(".hcs").each(function() { 
+            let chart = jQuery(this).highcharts();
+            if (chart){
+                chart.reflow();
+            }
+        });
+    });
+    
+    jQuery(document).on('hidden.bs.collapse', function(e) {
+        jQuery(".tab-pane.show.active").find('.hcs').each(function() {
+            let chart = jQuery(this).highcharts();
+            if (chart){
+                chart.reflow();
+            }
+        });
+    });
+    
 })

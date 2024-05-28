@@ -174,8 +174,17 @@ function tooltipCallBackTemplate(){
 };
 
 function tooltipCallBack(){
-    let toptopics = window.mapTooltipData.top_topics;
-    let latest_sentiment = window.mapTooltipData.sentiment;
+    let toptopics, latest_sentiment;
+    if (window.streamKey == 'tg'){
+        toptopics = window.mapTooltipData[this.point['hc-key']]['tg']['top_topics'];
+        latest_sentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment']
+    } else if (window.streamKey == 'mc') {
+        toptopics = window.mapTooltipData[this.point['hc-key']]['mc']['top_topics'];
+        latest_sentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment'];
+    } else if (window.streamKey == 'all') {
+
+    }
+    
     html = `<div class="p-3" style="background-color: #f7f7f7">
 	<div class="row">
 		<h2>${this.point.name}</h2>
@@ -210,13 +219,16 @@ function tooltipCallBack(){
     return html
 };
 
-$('#domainsAcc').on('shown.bs.collapse', async function (event) { // Note the 'event' parameter
+$('#domainsAcc').on('shown.bs.collapse', async function (event) { 
 
     // event.target is the collapsed element
     let domainId = $(event.target).attr('domain_id');
     window.selectedDomain = parseInt(domainId);
+    $('.accordion-button').removeClass('clicked');
+    // Aggiungi l'attributo 'clicked' solo al bottone che è stato cliccato
+    $(event.target).closest('.accordion-item').find('.accordion-button').addClass('clicked');
     await updateMap();
-    });
+});
 $('.stream').on('change', async function(event){
     let activeStreams = $(".stream:checked").map(function() {
         return $(this).attr("data-stream");
@@ -233,22 +245,30 @@ $('.a-layer').on('change', function(event){
     window.selectedLayer = selLayer[0];
     updateMap();
 });
-
+function showAccordionItem(itemId) {
+    // Hide all collapse elements
+    $('.collapse').collapse('hide');
+    // Show the specified collapse element
+    $(`#${itemId}`).collapse('show');
+    $(`#${itemId}`).closest('.accordion-item').find('.accordion-button').addClass('clicked');
+  }
 $(document).ready(async function(){
     window.selectedDomain = 1;
     window.selectedStreams = ["tg", "mc"];
     window.streamKey = "all";
     window.selectedAnalysis = ["sentiment"];
     window.selectedLayer = "sentiment";
-
+    $('#ham-filter .filter-icon').on('click', function (){
+        $('#ham-filter .filter-body').toggle();
+    })
     // let mapInp = prepareMapInput()
     let countries = window.mapInput[window.selectedDomain][
         window.selectedLayer][window.streamKey]
     let mapInp =  Object.keys(countries).map(key => {
         return {'hc-key': key, 'value': countries[key]};
     });
-
-    await renderMap(
+    showAccordionItem($(`[domain_id=${selectedDomain}]`).first().attr('id'));
+     renderMap(
         'sentiment-map', mapInp, 
         mapCustomOptions,
         mapTopology)

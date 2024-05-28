@@ -371,9 +371,9 @@ function conditionTemplate(index, stream, logicDiv){
             
                 </select>
             </div>
-            <input type="button" id="${stream}-remove-condition-${index}" class="condition-mod" value="remove"/><br>
-            <input type="button" id="${stream}-and-condition-${index}" class="condition-mod add-filter" value="and"/><br>
-            
+            <input type="button" id="${stream}-remove-condition-${index}" class="condition-mod" value="Remove"/><br>
+            <input type="button" id="${stream}-and-condition-${index}" class="condition-mod add-filter" value="Add"/><br>
+            <input type="button" id="${stream}-reset-condition-${index}" class="condition-mod" value="Reset"/><br>
         </div>
     </div> 
     `
@@ -754,7 +754,7 @@ $(document).ready(async function (){
             {
                 start_date: start_date,
                 end_date: end_date,
-                conditions: JSON.stringify(payload),
+                conditions: JSON.stringify(window.countryConditions[stream]),
                 stream: stream
             },
             true
@@ -769,7 +769,7 @@ $(document).ready(async function (){
         let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
         let hotUrl = hotTopicsEndpoint + '?' + queryParams;
         customOptions = {titleText: 'Hot Topics'};
-        let hasTopic = payload.some(obj => obj.field === 'Topic');
+        let hasTopic = window.countryConditions[stream].some(obj => obj.field === 'Topic');
         let categoryKey = hasTopic ? 'topic' : 'domain';
         let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
         $(`#${stream}-domains-bar-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
@@ -784,7 +784,7 @@ $(document).ready(async function (){
         $(`#${stream}-talking-points`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');        
         TalkingPoints(
             `${stream}-talking-points`, stream, 
-            '/talking_points_on_conditions', JSON.stringify(payload))
+            '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
         TgMessageWidget();
         MCStoryWidget();
 

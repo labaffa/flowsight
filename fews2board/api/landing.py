@@ -13,6 +13,9 @@ import time
 from sqlalchemy.orm import Session
 from psycopg.rows import dict_row
 from fews2board.api import utils
+from asyncio import gather
+from fastapi.concurrency import run_in_threadpool
+from collections import defaultdict
 
 
 router = fastapi.APIRouter()
@@ -100,13 +103,27 @@ async def get_latest_sentiment_by_country(
 async def get_stats_for_map_tooltip(
     request: fastapi.Request
 ):
-    top_topics = await utils.top_topics_on_latest(request.app.async_pool)
-    delta_sentiment = await utils.latest_sentiment_with_delta(request.app.async_pool)
-    response = {
-        "top_topics": top_topics,
-        "sentiment": delta_sentiment
-    }
-    return response
+    nested_dict = lambda: defaultdict(nested_dict)
+    sql_coros = [
+        utils.top_topics_on_latest(request.app.async_pool, stream="tg"), 
+        utils.latest_sentiment_with_delta(request.app.async_pool, stream="tg"),
+        utils.top_topics_on_latest(request.app.async_pool, stream="mc"), 
+        utils.latest_sentiment_with_delta(request.app.async_pool, stream="mc")
+    ]
+    sql_responses = await gather(*sql_coros)
+    top_topics = sql_responses[0] + sql_responses[2]
+    sentiment = sql_responses[1] + sql_responses[3]
+    
+    out = nested_dict()
+    for t in top_topics:
+        if not out[t["alpha_2"].strip().lower()][t["stream"]]["top_topics"]:
+            out[t["alpha_2"].strip().lower()][t["stream"]]["top_topics"] = [t]
+        else:
+            out[t["alpha_2"].strip().lower()][t["stream"]]["top_topics"].append(t)
+    for s in sentiment:
+        out[s["alpha_2"].strip().lower()][s["stream"]]["sentiment"] = s
+    
+    return out
 
 
 

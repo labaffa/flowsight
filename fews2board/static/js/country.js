@@ -6,14 +6,15 @@ import { filterStructure } from "./menu-module.js";
 
 window.dateRanges["si"] = [20111227, 20231231];
 
-window.tgStartDate = window.latestUpdates.tg - 7;
+window.tgStartDate = parseInt(moment(window.latestUpdates.tg.toString()).subtract(7, 'days').format('YYYYMMDD'));
 window.tgEndDate = window.latestUpdates.tg;
-window.mcStartDate = window.latestUpdates.mc - 7;
+window.mcStartDate = parseInt(moment(window.latestUpdates.mc.toString()).subtract(7, 'days').format('YYYYMMDD'));
 window.mcEndDate = window.latestUpdates.mc;
 
 window.mcStartDate = 20240101;
 window.mcEndDate = 20240108;
-window.siStartDate = window.dateRanges.si[1] - 7;
+
+window.siStartDate = parseInt(moment(window.dateRanges.si[1].toString()).subtract(365, 'days').format('YYYYMMDD'));
 window.siEndDate = window.dateRanges.si[1];
 
 window.conditionCounter = {
@@ -51,6 +52,15 @@ Highcharts.setOptions({
 		},
 	},
 });
+
+function reflowCharts(){
+    $('.hcs').each(function (){
+        let chart = jQuery(this).highcharts();
+            if (chart){
+                chart.reflow();
+            }
+})};
+
 async function DomainRanking(containerId, stream) {
     let hashContainerId = '#' + containerId;
     $(hashContainerId).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
@@ -137,18 +147,19 @@ async function SSIFieldsTimeline(containerId, domainId){
 };
 
 
-async function TalkingPoints(containerId, stream){
+async function TalkingPoints(containerId, stream, endP='/talking_points', conditions=""){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-    let base_endpoint = `/${window.country}/talking_points`;
+    let base_endpoint = `/${window.country}${endP}`;
     let startD, endD;
     startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
     endD = stream == "mc" ? window.mcEndDate : window.tgEndDate;
-
+    
     let queryParams = $.param(
         {
             start_date: startD,
             end_date: endD,
-            stream: stream
+            stream: stream,
+            conditions: conditions
         },
         true
     );
@@ -202,6 +213,8 @@ async function TalkingPoints(containerId, stream){
             }
         }
         renderHTMLTable(containerId, out, customOptions);
+        reflowCharts();
+        
     })
 
 };
@@ -302,24 +315,27 @@ async function MCOrgs(tableId) {
 
 
 function initPicker(pickerId, stream) {
-    let start, end;
+    let start, end, startDate, endDate;
     if (stream === 'tg'){
-        start = window.dateRanges.tg[0].toString();
-        end = window.dateRanges.tg[1].toString();
+        start = moment(window.dateRanges.tg[0].toString());
+        end = moment(window.dateRanges.tg[1].toString());
+        startDate = moment(window.tgStartDate.toString());
+        endDate = moment(window.tgEndDate.toString());
     } else if (stream === 'mc') {
-        start = window.dateRanges.mc[0].toString();
-        end = window.dateRanges.mc[1].toString();
+        start = moment(window.dateRanges.mc[0].toString());
+        end = moment(window.dateRanges.mc[1].toString());
+        startDate = moment(window.mcStartDate.toString());
+        endDate = moment(window.mcEndDate.toString());
     } else if (stream === 'si') {
-        start = window.dateRanges.si[0].toString();
-        end = window.dateRanges.si[1].toString();
+        start = moment(window.dateRanges.si[0].toString());
+        end = moment(window.dateRanges.si[1].toString());
+        startDate = moment(window.siStartDate.toString());
+        endDate = moment(window.siEndDate.toString());
     }
-    start = moment(start)
-    end = moment(end)
-    let endDate = moment(end);
-    let startDate = moment(end.subtract(7, 'days'));
+    
     console.log(start, end, startDate, endDate)
     function cb(start, end) {
-        $(`#${pickerId} span`).html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+        $(`#${pickerId} span`).html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
     }
     $(`#${pickerId}`).daterangepicker({
         startDate: startDate,
@@ -761,20 +777,27 @@ $(document).ready(async function (){
             `${stream}-domains-bar-chart`, hotUrl, mappingKeys, customOptions);
 
         
-        let talkingPointsEndpoint = `/${window.country}/talking_points_on_conditions`;
-        let talkingUrl = talkingPointsEndpoint + '?' + queryParams;
-        // await fetch(talkingUrl).then((response) => response.json())
+        // let talkingPointsEndpoint = `/${window.country}/talking_points_on_conditions`;
+        // let talkingUrl = talkingPointsEndpoint + '?' + queryParams;
+        //     await fetch(talkingUrl).then((response) => response.json()).then(data => {console.log(data)})
+
+        $(`#${stream}-talking-points`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');        
+        TalkingPoints(
+            `${stream}-talking-points`, stream, 
+            '/talking_points_on_conditions', JSON.stringify(payload))
         TgMessageWidget();
         MCStoryWidget();
 
     });
 
-    await renderElements();
-    $('.hcs').each(function (){
-        let chart = jQuery(this).highcharts();
-            if (chart){
-                chart.reflow();
-            }
+    await renderElements().then((e) =>{
+        
+            $('.hcs').each(function (){
+                let chart = jQuery(this).highcharts();
+                    if (chart){
+                        chart.reflow();
+                    }
+        })
     });
     jQuery(document).on('shown.bs.tab', 'button[data-bs-toggle="pill"]', function (e) {
         jQuery(".hcs").each(function() { 

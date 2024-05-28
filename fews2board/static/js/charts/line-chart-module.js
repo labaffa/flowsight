@@ -37,7 +37,6 @@ export function renderLineChartb(chartId, data, customOptions) {
 	// 	data: item.data.map(dataPoint => [dataPoint.x, dataPoint.y])
 	// }));
 	let seriesData = data;
-	console.log(seriesData)
 	const chartOptions = {
 		chart: {
 			type: opts.chartType,
@@ -135,6 +134,7 @@ export function renderLineChart(chartId, data, customOptions) {
 
 	const chartOptions = {
 		chart: {
+			height: null,
 			// height: (opts.chartHeightRatio * 100) + '%',
 			type: opts.chartType,
 			// width: opts.chartWidth,
@@ -240,6 +240,7 @@ function processChartData(data, dateKey) {
 			const value = parseFloat(item[topic]) ? item[topic] : 0;
 			series.data.push([date, value]);
 		}
+		series.data = series.data.sort(function(a, b) { return a[0] - b[0]; });
 		seriesData.push(series);
 	}
 	return seriesData;
@@ -253,7 +254,6 @@ export async function renderLineChartFromUrl(
 	.then(data => {
 		console.log(data)
 		data = processChartData(data, dateKey);
-		console.log("mctrend", data)
 		renderLineChart(chartId, data, customOptions);
 	});
 	

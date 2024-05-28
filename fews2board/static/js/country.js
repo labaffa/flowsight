@@ -371,9 +371,13 @@ function conditionTemplate(index, stream, logicDiv){
             
                 </select>
             </div>
-            <input type="button" id="${stream}-remove-condition-${index}" class="condition-mod" value="Remove"/><br>
-            <input type="button" id="${stream}-and-condition-${index}" class="condition-mod add-filter" value="Add"/><br>
-            <input type="button" id="${stream}-reset-condition-${index}" class="condition-mod" value="Reset"/><br>
+            <div  id="${stream}-remove-condition-${index}" class="condition-mod icon" value="Remove"> 
+                <img src="/static/img/trash-bin.svg"  alt="">
+            </div> 
+            <div  id="${stream}-and-condition-${index}" class="condition-mod icon add-filter" value="And">
+                <img src="/static/img/plus-sign.svg"  alt="">
+            </div>
+            
         </div>
     </div> 
     `
@@ -463,7 +467,12 @@ function addCon(formId, logic=null){
     let i = window.conditionCounter[stream];
     let logicDiv;
     if (logic){
-        logicDiv = `<hr style="margin: 1px;"><div value="${logic}" class="logic" id="${stream}-logic-${i}">  ${logic}  </div><hr style="margin: 1px">`;
+        logicDiv = `
+            <div class="logic-container">
+                <hr style="margin: 1px;">
+                <div value="${logic}" class="logic" id="${stream}-logic-${i}">  ${logic}  </div>
+                <hr style="margin: 1px">
+            </div>`;
     } else {
         logicDiv = '';
     }
@@ -664,6 +673,23 @@ $(document).ready(async function (){
         $('.builder-container').hide();
         $(this).hide();
       });
+
+    function renderCharts(){
+        DomainRanking('tg-domains-bar-chart', 'tg');
+        AttentionTrends('tg-attention-trends', 'tg');
+        TalkingPoints('tg-talking-points', 'tg');
+        DomainRanking('mc-domains-bar-chart', 'mc');
+        
+        AttentionTrends('mc-attention-trends', 'mc');
+        TalkingPoints('mc-talking-points', 'mc');
+        MCLocations('mc-locations');
+        MCPersons('mc-persons');
+        MCOrgs('mc-orgs');
+        SSITimeline('si-food-insecurity', 3);
+        SSIFieldsTimeline('si-food-insecurity-fields', 3);
+        TgMessageWidget();
+        MCStoryWidget();
+    };
     async function renderElements(){
         addCon('tg-query-form');
         addCon('mc-query-form');
@@ -699,23 +725,32 @@ $(document).ready(async function (){
         let parts = $(this).attr('id').split('-');
         let stream = parts[0];
         let index = parts[parts.length - 1];
-        if (logic == 'remove'){
+        if (logic.toLowerCase() == 'remove'){
             let conditionNumber = $(`#${stream}-query-form .condition`).length;
             if (!(conditionNumber == 1)){
 
                 $(`#${stream}-condition-${index}`).remove();
             } 
             if ($(`#${stream}-query-form .condition`).length == 1){
-                $(`#${stream}-query-form .condition .logic`).remove();
+                $(`#${stream}-query-form .condition .logic-container`).remove();
             };
+            $($(`#${stream}-query-form .condition`).first()).find('.logic-container').remove()
+
         } else { 
             addCon(`${stream}-query-form`, logic);
             
         }
-        if ($(`#${stream}-query-form .condition`).length > 0) {
-            $(`#${stream}-query-form .condition`)[0].first('.logic').remove()
-        }
+        
+        
     });
+    $('.reset-button').on('click', async function (){
+        let parts = $(this).attr('id').split('-');
+        let stream = parts[0];
+        window.conditionCounter[stream] = 0;
+        window.countryConditions[stream] =  [];
+        renderCharts();
+    });
+
     $('.query-button').on('click', async function (){
         // ALARM:  aggiungere la country!!!
         let parts = $(this).attr('id').split('-');

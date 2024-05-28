@@ -355,7 +355,7 @@ function conditionTemplate(index, stream, logicDiv){
             
                 </select>
             </div>
-            <input type="button" id="${stream}-remove-condition-${index}" class="condition-mod discard" /><br>
+            <input type="button" id="${stream}-remove-condition-${index}" class="condition-mod" value="remove"/><br>
             <input type="button" id="${stream}-and-condition-${index}" class="condition-mod add-filter" value="and"/><br>
             
         </div>
@@ -695,6 +695,9 @@ $(document).ready(async function (){
         } else { 
             addCon(`${stream}-query-form`, logic);
             
+        }
+        if ($(`#${stream}-query-form .condition`).length > 0) {
+            $(`#${stream}-query-form .condition`)[0].first('.logic').remove()
         }
     });
     $('.query-button').on('click', async function (){

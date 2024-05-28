@@ -1354,4 +1354,78 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
     return result
 
 
+async def talking_points_on_conditions(pool, conditions, country_id, start_date, end_date):
+    if conditions is not None:
+        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    else:
+        topic_clause, sentiment_clause, emotion_clause = "", "", ""
+    date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
+    date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
+    day_difference = (date2 - date1).days + 1
+    prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
+    prev_end_date = start_date
 
+    q = (
+        f'''
+        with filt_prev_msg as (
+            select 
+                ttip.message_unique_id
+                ,'prev' as _type
+            from {tablename(models.TgTopicIdPositive)} ttip
+            join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
+            where  
+                ttip.date_id between {prev_start_date} and {prev_end_date}
+                and ttip.country_id = {country_id}
+                {topic_clause}
+                {sentiment_clause} 
+                {emotion_clause}
+                    
+        ),	
+        filt_latest_msg as (
+            select 
+                ttip.message_unique_id
+                , 'latest' as _type
+            from {tablename(models.TgTopicIdPositive)} ttip
+            join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
+            where  
+                ttip.date_id between {start_date} and {end_date}
+                and ttip.country_id = {country_id}
+                {topic_clause}
+                {sentiment_clause} 
+                {emotion_clause}
+
+        ), 
+        tot_messages as (
+            select 
+                *
+            from filt_prev_msg
+            
+            union
+            
+            select 	
+                *
+            from filt_latest_msg
+        )
+
+	
+            select 
+                avg(topic_norm_prevalence) as attention
+                , avg(sentiment) as sentiment
+                , t.domain_id as domain_id
+                , d.name as domain
+                , _type as type
+            from tot_messages l
+            join  {tablename(models.TgTopicIdPositive)} ttip on l.message_unique_id = ttip.message_unique_id
+            join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
+            join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
+            join {tablename(models.Domain)} d on t.domain_id = d.id
+            
+            group by t.domain_id, d.name, l._type
+            ;
+                '''
+        )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result        

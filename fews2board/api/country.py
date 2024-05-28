@@ -385,5 +385,29 @@ async def get_talking_points_on_conditions(
     data = await utils.talking_points_on_conditions(
         request.app.async_pool, conditions, country_id, start_date, end_date
     )
-    response = data
+    response = []
+    nested_dicts = lambda: defaultdict(nested_dicts)
+
+    by_domain_layer = nested_dicts()
+
+    for d in data:
+        if d["type"] == "prev":
+            k = "prev_value"
+        else:
+            k = "latest_value"
+        by_domain_layer[d["domain"]]["attention"][k] = d["attention"]
+        by_domain_layer[d["domain"]]["sentiment"][k] = d["sentiment"]
+
+    
+    for domain, layer in by_domain_layer.items():
+        for lname, values in layer.items():
+            o = {
+                "domain": domain,
+                "layer": lname,
+                "latest_value": values["latest_value"],
+                "prev_value":  values["prev_value"]
+            }
+
+            response.append(o)
+    response = [x for x in response if x["latest_value"]]
     return response

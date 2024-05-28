@@ -865,10 +865,12 @@ footer {
     justify-content: space-between;
 }
 .datepicker {
-    padding: 5px;
+    padding: 0px;
     margin-left: 5px;
     border: 1px solid #ccc;
     border-radius: 8px;
+    overflow: hidden;
+    align-items: center;
 }
     .datepicker span  {
         color: #ccc;
@@ -993,4 +995,11 @@ input.discard{
     height: 16px;           /* make this the size of your image */
     padding-left: 16px;     /* make text start to the right of the image */
     vertical-align: middle; /* align the text vertically centered */
+}
+
+.calendar-icon{
+    background-color: white;
+    padding: 2px;
+    height: 100%;
+    align-items: center;
 }

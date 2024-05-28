@@ -795,9 +795,11 @@ footer {
     display: flex;
 
 }
-
-.query-button{
-    margin-left: auto;
+.action-buttons {
+    margin-left: auto;   
+}
+.query-button, .reset-button{
+    
     height: 3rem;
 }
 #modal-overlay {
@@ -844,13 +846,18 @@ footer {
         align-content: center;
         
     }
-    .form-open .icon > img {
+    .form-open .icon  img {
         height: 2em;
         padding: 5px;
     }
-    .form-open .icon .svg>path {
-        fill: var(--phase2-blue-dark);
+    .form-open .icon .svg path {
+        color: var(--phase2-blue-dark);
     }
+
+.condition-mod.icon > img{
+    height: 2em;
+        padding: 5px;
+}
 .search-bar {
     flex-grow: 1;
     padding: 10px;

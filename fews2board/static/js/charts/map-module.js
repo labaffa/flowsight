@@ -40,8 +40,26 @@ function capitalizeString(s) {
 };
 
 function tooltipCallBack(){
-    let toptopics = window.mapTooltipData.top_topics;
-    let latest_sentiment = window.mapTooltipData.sentiment;
+    let toptopics, latest_sentiment;
+    if (window.streamKey == 'tg'){
+        toptopics = window.mapTooltipData[this.point['hc-key']]['tg']['top_topics'];
+
+        latest_sentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment']
+    } else if (window.streamKey == 'mc') {
+        toptopics = window.mapTooltipData[this.point['hc-key']]['mc']['top_topics'];
+        latest_sentiment = window.mapTooltipData[this.point['hc-key']]['mc']['sentiment'];
+    } else if (window.streamKey == 'all') {
+		toptopics =  window.mapTooltipData[this.point['hc-key']]['tg']['top_topics'].concat(
+				window.mapTooltipData[this.point['hc-key']]['mc']['top_topics'])
+		
+		toptopics = toptopics.sort((a, b) => a.np - b.np).slice(0, 3)
+		latest_sentiment = [
+			window.mapTooltipData[this.point['hc-key']]['tg']['sentiment'], 
+			window.mapTooltipData[this.point['hc-key']]['mc']['sentiment']
+		]
+		latest_sentiment = latest_sentiment.sort((a, b) => b.date_id - a.date_id)[0];
+    }
+	
     let html = `<div class="p-3" style="background-color: #f7f7f7">
 	<div class="row">
 		<h2>${this.point.name}</h2>
@@ -66,9 +84,9 @@ function tooltipCallBack(){
 	<div class="row">
 		<div class="col">
 			<span style="font-weight: 600;">
-			${parseTooltipValue(latest_sentiment[0].sentiment)}
+			${parseTooltipValue(latest_sentiment.sentiment)}
 			</span>&nbsp;&nbsp;
-			${getTooltipChangeHTML(latest_sentiment[0].delta)}
+			${getTooltipChangeHTML(latest_sentiment.delta)}
 		</div>
 	</div>
 </div>

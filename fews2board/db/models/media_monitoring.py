@@ -13,6 +13,7 @@ class MCStory(MyBase):
     url = sa.Column(sa.String, nullable=False)
     language = sa.Column(sa.String, nullable=True)
     indexed_date = sa.Column(sa.DateTime, nullable=True)
+    country_id = sa.Column(sa.Integer, nullable=False, default=716)
 
 
 class MCSentiment(MyBase):
@@ -30,6 +31,8 @@ class MCSentiment(MyBase):
     trust = sa.Column(sa.Integer, nullable=True)
     negative = sa.Column(sa.Integer, nullable=True)
     positive = sa.Column(sa.Integer, nullable=True)
+    country_id = sa.Column(sa.Integer)
+    date_id = sa.Column(sa.Integer)
 
 
 class MCTopicId(MyBase):
@@ -46,3 +49,5 @@ class MCTopicIdPositive(MyBase):
     story_id = sa.Column(sa.String, primary_key=True)
     topic_unique_id = sa.Column(sa.Integer, primary_key=True)
     topic_norm_prevalence = sa.Column(sa.Float)
+    country_id = sa.Column(sa.Integer)
+    date_id = sa.Column(sa.Integer)

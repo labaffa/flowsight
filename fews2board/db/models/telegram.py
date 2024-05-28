@@ -31,6 +31,7 @@ class TgMessage(MyBase):
     fwd_from_author_name = sa.Column(sa.String, nullable=True)
     inserted = sa.Column(TIMESTAMP(timezone=True), server_default=sa.func.now())
     flow_id = sa.Column(sa.String)
+    country_id = sa.Column(sa.Integer, nullable=True)
 
 
 class TgChannel(MyBase):
@@ -50,6 +51,7 @@ class TgChannel(MyBase):
     language = sa.Column(sa.String, nullable=True)
     country = sa.Column(sa.String, nullable=True)
     category = sa.Column(sa.String, nullable=True)
+    country_id = sa.Column(sa.Integer, nullable=True)
 
 
 class TgSentiment(MyBase):
@@ -67,6 +69,8 @@ class TgSentiment(MyBase):
     trust = sa.Column(sa.Integer, nullable=True)
     negative = sa.Column(sa.Integer, nullable=True)
     positive = sa.Column(sa.Integer, nullable=True)
+    country_id = sa.Column(sa.Integer)
+    date_id = sa.Column(sa.Integer)
 
 
 class TgTopicId(MyBase):
@@ -83,6 +87,8 @@ class TgTopicIdPositive(MyBase):
     message_unique_id = sa.Column(sa.Integer, primary_key=True)
     topic_unique_id = sa.Column(sa.Integer, primary_key=True)
     topic_norm_prevalence = sa.Column(sa.Float)
+    country_id = sa.Column(sa.Integer)
+    date_id = sa.Column(sa.Integer)
 
 
 

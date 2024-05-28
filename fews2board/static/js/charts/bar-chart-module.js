@@ -109,12 +109,12 @@ export function renderBarChartb(chartId, data, mappingKeys, customOptions) {
 
 export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 	const defaultOptions = {
-		// chartHeightRatio: 7 / 16,
+		chartHeightRatio: 7 / 16,
 		chartType: 'bar',
 		chartWidth: 400,
 		dataLabelsEnabled: true,
 		legendEnabled: false,
-		maxCategoriesVisible: 5,
+		maxCategoriesVisible: 7,
 		maxWidthBreakpoint: 680,
 		mobileChartHeight: 350,
 		titleText: 'Bar Chart Title',
@@ -135,7 +135,7 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 	const chartOptions = {
 		chart: {
 			type: opts.chartType,
-			height: (opts.chartHeightRatio * 100) + '%',
+			// height: (opts.chartHeightRatio * 100) + '%',
 			//width: opts.chartWidth,
 		},
 		title: {

@@ -134,7 +134,8 @@
 	border-radius: 5px;
 	padding: 10px 10px;
 	overflow-y: scroll;
-	max-height: 500px;
+	height: 100%;
+	/* max-height: 500px; */
 	/* width: 400px;
 	height: 300px; */
 }
@@ -152,5 +153,20 @@ path.ssi-column:nth-child(2) {
 }
 
 .highcharts-map .highcharts-background {
-	fill: #A6BFE2;
+	fill: rgb(188, 218, 233);
 }
+
+.highcharts-map .highcharts-point {
+	stroke: rgb(96, 104, 110);
+}
+
+.highcharts-map .highcharts-null-point {
+	fill: rgb(209, 211, 212) !important;
+
+}
+
+.customChart {
+	align-items: center;
+	align-content: center;
+}
+ 

@@ -246,6 +246,7 @@ async function MCPersons(tableId) {
             out.push({"Person": entity, "Coverage": coverage})
         });
         renderHTMLTable(tableId, out, customOptions);
+        reflowCharts();
     })
 };
 
@@ -277,7 +278,9 @@ async function MCLocations(tableId) {
             out.push({"Location": entity, "Coverage": coverage})
         });
         renderHTMLTable(tableId, out, customOptions);
+        reflowCharts();
     })
+
 
 };
 
@@ -309,6 +312,7 @@ async function MCOrgs(tableId) {
             out.push({"Org": entity, "Coverage": coverage})
         });
         renderHTMLTable(tableId, out, customOptions);
+        reflowCharts();
     })
 
 };
@@ -353,10 +357,11 @@ function initPicker(pickerId, stream) {
 function conditionTemplate(index, stream, logicDiv){
     return `<div class="condition" id="${stream}-condition-${index}">
         ${logicDiv}
-        <div class="d-flex flex-wrap">
+        <div class="d-flex flex-wrap justify-content-center align-items-center">
             <div class="field-condition sub-condition">
                 <label for="${stream}-field-select-${index}">Field:</label><br>
                 <select id="${stream}-field-select-${index}" class="field-select">
+                    
                 </select>
             </div>
             <div class="operator-condition sub-condition">
@@ -368,7 +373,7 @@ function conditionTemplate(index, stream, logicDiv){
             <div class="value-condition sub-condition">
                 <label for="${stream}-value-select-${index}">Value:</label><br>
                 <select id="${stream}-value-select-${index}">
-            
+                
                 </select>
             </div>
             <div  id="${stream}-remove-condition-${index}" class="condition-mod icon" value="Remove"> 
@@ -596,7 +601,7 @@ async function MCStoryWidget(){
             )
            
         });
-        
+        reflowCharts();
     })    
 
 };
@@ -644,10 +649,44 @@ async function TgMessageWidget(){
             );
            
         });
-        
+        reflowCharts();
     })
 };
+function prettyPrintConditions(conditions){
+    let grouped = conditions.reduce((acc, item) => {
+        const key = `${item.field}-${item.operator}`;
+        if (!acc[key]) {
+            
+          acc[key] = {
+            field: item.field,
+            operator: item.operator,
+            value: new Set()
+          };
+        }
+        acc[key].value.add(item.value);
+        return acc;
+      }, {});
+    let result = Object.values(grouped).map(group => ({
+        field: group.field,
+        operator: group.operator,
+        value: Array.from(group.value)
+      }));
+      let parts = result.map(x => {
+        let values = x.value.map(
+            b => x.field.toLowerCase() == "topic" ? window.topicsById[b].toString() : b.toString()).join(', ');
+        return `[${x.field} ${x.operator} (${values})]`;
+      });
+      
+      return parts.join(' AND ');
+};
 
+function fillSearchBar(stream){
+    if (window.countryConditions[stream].length > 0){
+        $(`#${stream}-filter-bar .search-bar`).attr('placeholder', prettyPrintConditions(window.countryConditions[stream]))
+    } else {
+        $(`#${stream}-filter-bar .search-bar`).attr('placeholder', 'Build a query...')
+    }
+}
 
 
 $(document).ready(async function (){
@@ -689,6 +728,19 @@ $(document).ready(async function (){
         SSIFieldsTimeline('si-food-insecurity-fields', 3);
         TgMessageWidget();
         MCStoryWidget();
+    };
+
+
+     function renderNonChartCards(){
+        TalkingPoints('tg-talking-points', 'tg');
+        TalkingPoints('tg-talking-points', 'tg');
+        MCLocations('mc-locations');
+        MCPersons('mc-persons');
+        MCOrgs('mc-orgs');
+        TgMessageWidget();
+        MCStoryWidget();
+
+        reflowCharts();
     };
     async function renderElements(){
         addCon('tg-query-form');
@@ -746,9 +798,10 @@ $(document).ready(async function (){
     $('.reset-button').on('click', async function (){
         let parts = $(this).attr('id').split('-');
         let stream = parts[0];
-        window.conditionCounter[stream] = 0;
+        //window.conditionCounter[stream] = 0;
         window.countryConditions[stream] =  [];
         renderCharts();
+        fillSearchBar(stream);
     });
 
     $('.query-button').on('click', async function (){
@@ -822,18 +875,11 @@ $(document).ready(async function (){
             '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
         TgMessageWidget();
         MCStoryWidget();
-
-    });
-
-    await renderElements().then((e) =>{
+        fillSearchBar(stream);
         
-            $('.hcs').each(function (){
-                let chart = jQuery(this).highcharts();
-                    if (chart){
-                        chart.reflow();
-                    }
-        })
     });
+
+    
     jQuery(document).on('shown.bs.tab', 'button[data-bs-toggle="pill"]', function (e) {
         jQuery(".hcs").each(function() { 
             let chart = jQuery(this).highcharts();
@@ -851,5 +897,5 @@ $(document).ready(async function (){
             }
         });
     });
-    
+    renderElements();
 })

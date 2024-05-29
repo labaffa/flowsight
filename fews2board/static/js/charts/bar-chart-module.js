@@ -166,7 +166,11 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 					enabled: opts.dataLabelsEnabled,
 					align: 'center',
 					inside: true,
-					format: '{x} - ({point.y})'
+					// format: '{x} - ({point.y})',
+					formatter: function () {
+						return this.x + '  -  ('  + this.y.toFixed(5) + ')';
+					}
+					
 				},
 				borderRadius: 0,
 				colorByPoint: true

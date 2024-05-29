@@ -980,8 +980,8 @@ footer {
 }
 
 #mc-stories {
-    min-height: var(--upper-row-min-h);
-    max-height: var(--upper-row-max-h);
+    /* min-height: var(--upper-row-min-h);
+    max-height: var(--upper-row-max-h); */
     height: 100%;
 }
 
@@ -1013,6 +1013,10 @@ input.discard{
     height: 100%;
     align-items: center;
 }
+:root {
+    --card-max-height: 450px;
+    --card-min-height: 400px;
+}
 
 .card {
     height: 100%;
@@ -1021,8 +1025,14 @@ input.discard{
     padding: 10px;
     box-sizing: border-box;
     background-clip: content-box;
+    min-height: var(--card-max-height);
+    max-height: var(--card-min-height);
 }
 
+.long-card {
+    max-height: calc(2*var(--card-max-height));
+    min-height: calc(2*var(--card-min-height));
+}
 .table-card caption, .table-card tbody, .table-card thead, .widget-title, .mc-card, .tg-card, .cards-separator{
     padding: 5px;
 }

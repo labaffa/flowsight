@@ -391,18 +391,88 @@ function conditionTemplate(index, stream, logicDiv){
 $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
     window.tgStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
     window.tgEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
-    DomainRanking('tg-domains-bar-chart', 'tg');
-    AttentionTrends('tg-attention-trends', 'tg');
-    TalkingPoints('tg-talking-points', 'tg');
+
+    let start_date = window.tgStartDate;
+    let end_date = window.tgEndDate;
+    let stream = 'tg';
+    let base_endpoint = `/${window.country}/filter_attention_trends`;
+    let queryParams = $.param(
+        {
+            start_date: start_date,
+            end_date: end_date,
+            conditions: JSON.stringify(window.countryConditions[stream]),
+            stream: stream
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {titleText: 'Attention'}
+    $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    renderLineChartFromUrl(
+        `${stream}-attention-trends`, url, customOptions, 'date'
+    )
+
+    let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
+    let hotUrl = hotTopicsEndpoint + '?' + queryParams;
+    customOptions = {titleText: 'Hot Topics'};
+    let hasTopic = window.countryConditions[stream].some(obj => obj.field === 'Topic');
+    let categoryKey = hasTopic ? 'topic' : 'domain';
+    let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
+    $(`#${stream}-domains-bar-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    renderBarChartFromUrl(
+        `${stream}-domains-bar-chart`, hotUrl, mappingKeys, customOptions);
+
+    $(`#${stream}-talking-points`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');        
+    TalkingPoints(
+        `${stream}-talking-points`, stream, 
+        '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
     TgMessageWidget();
+    fillSearchBar(stream);
+
+    
 });
 
 $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
     window.mcStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
     window.mcEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
-    DomainRanking('mc-domains-bar-chart', 'mc');
-    AttentionTrends('mc-attention-trends', 'mc');
-    TalkingPoints('mc-talking-points', 'mc');
+    let start_date = window.mcStartDate;
+    let end_date = window.mcEndDate;
+    let stream = 'mc';
+    let base_endpoint = `/${window.country}/filter_attention_trends`;
+    let queryParams = $.param(
+        {
+            start_date: start_date,
+            end_date: end_date,
+            conditions: JSON.stringify(window.countryConditions[stream]),
+            stream: stream
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {titleText: 'Attention'}
+    $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    renderLineChartFromUrl(
+        `${stream}-attention-trends`, url, customOptions, 'date'
+    )
+
+    let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
+    let hotUrl = hotTopicsEndpoint + '?' + queryParams;
+    customOptions = {titleText: 'Hot Topics'};
+    let hasTopic = window.countryConditions[stream].some(obj => obj.field === 'Topic');
+    let categoryKey = hasTopic ? 'topic' : 'domain';
+    let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
+    $(`#${stream}-domains-bar-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    renderBarChartFromUrl(
+        `${stream}-domains-bar-chart`, hotUrl, mappingKeys, customOptions);
+
+    $(`#${stream}-talking-points`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');        
+    TalkingPoints(
+        `${stream}-talking-points`, stream, 
+        '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
+    
+    MCStoryWidget();
+    fillSearchBar(stream);
+    
     MCPersons('mc-persons');
     MCLocations('mc-locations');
     MCOrgs('mc-orgs');

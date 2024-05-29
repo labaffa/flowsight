@@ -1174,9 +1174,10 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
         )
             select
                 sum(ttip.topic_norm_prevalence)/mc.value as frequency
-                , ttip.topic_unique_id as topic
+                , t.topic as topic
             from {tablename(topic_model)} ttip
             join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
+            join {tablename(models.Topic)} as t on ttip.topic_unique_id = t.id
             join msg_count_in_period mc on true
             
             where 
@@ -1185,7 +1186,7 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
-            group by ttip.topic_unique_id, mc.value
+            group by t.topic, mc.value
             ;
         '''
     )

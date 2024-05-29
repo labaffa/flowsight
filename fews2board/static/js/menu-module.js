@@ -2,7 +2,7 @@ export var filterStructure = {
     "tg": {
         
         "Topic": {
-                "operators": ["IS", "IS NOT"],
+                "operators": ["IS"],
                 "value": Object.keys(window.topicsByName)
             },
         "Sentiment": {
@@ -15,15 +15,15 @@ export var filterStructure = {
             "anticipation", "disgust", "fear", "joy",
             "sadness", "surprise", "trust"]
         },
-        "Keyword": {
-            "operators": ["CONTAINS", "DOES NOT CONTAIN"],
-            "value": []
-        }
+        // "Keyword": {
+        //     "operators": ["CONTAINS", "DOES NOT CONTAIN"],
+        //     "value": []
+        // }
     },
     "mc": {
         
         "Topic": {
-                "operators": ["IS", "IS NOT"],
+                "operators": ["IS"],
                 "value": Object.keys(window.topicsByName)
             },
         "Sentiment": {
@@ -36,14 +36,14 @@ export var filterStructure = {
             "anticipation", "disgust", "fear", "joy",
             "sadness", "surprise", "trust"]
         },
-        "Keyword": {
-            "operators": ["CONTAINS", "DOES NOT CONTAIN"],
-            "value": []
-        },
-        "Entity": {
-            "operators": ["IS", "IS NOT"],
-            "value": []
-        }
+        // "Keyword": {
+        //     "operators": ["CONTAINS", "DOES NOT CONTAIN"],
+        //     "value": []
+        // },
+        // "Entity": {
+        //     "operators": ["IS", "IS NOT"],
+        //     "value": []
+        // }
     }
 };
 

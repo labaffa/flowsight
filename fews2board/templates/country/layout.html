@@ -8,12 +8,12 @@
     <div class="d-flex flex-row justify-content-center border-bottom border-secondary country-header">
         <h2 class="fews-country">{{country_name}}</h2>
     </div>
-    <div class="row justify-content-center remove-margin fews-tab-content">
-        <div style="max-width: 16000px;">
+    <div class="container-fluid  remove-margin fews-tab-content">
+        
             {% include "base/country-filter-bar.html" %}
             {% include "base/toggler.html" %}
             <!-- TAB CONTENT -->
-            <div class="tab-content flex-grow-1 bs-none" id="pills-tabContent">
+            <div class="tab-content  bs-none" id="pills-tabContent">
                 <!-- Thematic Trends -->
                 <div class="tab-pane fade show active bs-none" id="pills-thematic-trends" role="tabpanel"
                     aria-labelledby="pills-thematic-trends">
@@ -31,7 +31,7 @@
                     {% include "country/search_interest.html" %}
                 </div>
             </div>
-        </div>
+        
     </div>
 </div>
 

@@ -170,6 +170,7 @@
 
 .pg-content {
     min-height: calc(var(--sidebar-min-height) + 300px);
+    height: 100%;
  }
 
 .sb{
@@ -762,6 +763,7 @@ footer {
 
 .country-header {
     background-color: var(--phase2-blue-dark);
+    
 }
 
 .fews-tab-content {
@@ -983,9 +985,9 @@ footer {
     height: 100%;
 }
 
-/* .tp-table {
+.tp-table {
     height: 100%
-} */
+}
 
 
 .accordion-button.clicked {
@@ -1011,3 +1013,44 @@ input.discard{
     height: 100%;
     align-items: center;
 }
+
+.card {
+    height: 100%;
+    width: 100%;
+    background-color:  var(--phase2-bg-chart);
+    padding: 10px;
+    box-sizing: border-box;
+    background-clip: content-box;
+}
+
+.table-card caption, .table-card tbody, .table-card thead, .widget-title, .mc-card, .tg-card, .cards-separator{
+    padding: 5px;
+}
+
+
+/* Works on Firefox */
+* {
+    scrollbar-width: 2px;
+    scrollbar-color: var(--phase2-blue-light);
+  }
+  
+  /* Works on Chrome, Edge, and Safari */
+  *::-webkit-scrollbar {
+    width: 2px;
+  }
+  
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--phase2-blue-light);
+    border-radius: 20px;
+    border: 3px solid transparent;
+  }
+
+
+  .sub-condition select {
+    width: 200px;
+    text-overflow: ellipsis;
+  }

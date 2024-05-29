@@ -793,6 +793,7 @@ footer {
 }
 .query-builder {
     display: flex;
+    flex-wrap: wrap;
 
 }
 .action-buttons {

@@ -353,7 +353,7 @@ function initPicker(pickerId, stream) {
 function conditionTemplate(index, stream, logicDiv){
     return `<div class="condition" id="${stream}-condition-${index}">
         ${logicDiv}
-        <div class="d-flex">
+        <div class="d-flex flex-wrap">
             <div class="field-condition sub-condition">
                 <label for="${stream}-field-select-${index}">Field:</label><br>
                 <select id="${stream}-field-select-${index}" class="field-select">

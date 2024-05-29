@@ -165,7 +165,7 @@ export function renderLineChart(chartId, data, customOptions) {
 			verticalAlign: 'top',
 		},
 		tooltip: {
-			pointFormat: opts.tooltipPointText + '{point.y:.2f}',
+			// pointFormat: opts.tooltipPointText + '{point.y:.2f}',
 		},
 		series: seriesData,
 		responsive: {
@@ -208,7 +208,7 @@ export function renderLineChart(chartId, data, customOptions) {
 						selected: 1
 					},
 					chart: {
-						height: 350,
+						//height: 350,
 
 						/* scrollablePlotArea: {
 							minWidth: 700,

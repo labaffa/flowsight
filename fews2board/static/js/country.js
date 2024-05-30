@@ -53,6 +53,34 @@ Highcharts.setOptions({
 	},
 });
 
+function initTopicField(eleId){
+    const a = {};
+    window.topics.forEach( t => {
+        if (!a[t.domain]) {
+            a[t.domain] = [];
+          }
+          a[t.domain].push({"label": t.topic, "value": t.topic_id});
+    })
+    
+    const groupedOptions = Object.keys(a).map(key => ({
+        label: key,
+        options: a[key]
+    }));
+    console.log("groups", groupedOptions)
+    // placeHolder = `-- ${placeHolder} [${options.length}] --`
+    VirtualSelect.init({
+      ele: eleId,
+      options: groupedOptions,
+      multiple: true,
+      search: false,
+      disableSelectAll: true,
+      showSelectedOptionsFirst: true,
+      placeholder: 'Select topic...'
+    }
+    )
+  }
+  
+
 function reflowCharts(){
     $('.hcs').each(function (){
         let chart = jQuery(this).highcharts();
@@ -357,7 +385,7 @@ function initPicker(pickerId, stream) {
 function conditionTemplate(index, stream, logicDiv){
     return `<div class="condition" id="${stream}-condition-${index}">
         ${logicDiv}
-        <div class="d-flex flex-wrap justify-content-center align-items-center">
+        <div class="d-flex justify-content-center align-items-center">
             <div class="field-condition sub-condition">
                 <label for="${stream}-field-select-${index}">Field:</label><br>
                 <select id="${stream}-field-select-${index}" class="field-select">
@@ -370,17 +398,18 @@ function conditionTemplate(index, stream, logicDiv){
                     
                 </select>
             </div>
-            <div class="value-condition sub-condition">
-                <label for="${stream}-value-select-${index}">Value:</label><br>
-                <select id="${stream}-value-select-${index}">
-                
-                </select>
+            <div class="value-condition sub-condition wrapper">
+                <label for="${stream}-value-condition-${index}">Value:</label><br>
+                <div class="value-condition sub-condition vscontainer" id="${stream}-value-condition-${index}">
             </div>
-            <div  id="${stream}-remove-condition-${index}" class="condition-mod icon" value="Remove"> 
-                <img src="/static/img/trash-bin.svg"  alt="">
-            </div> 
-            <div  id="${stream}-and-condition-${index}" class="condition-mod icon add-filter" value="And">
-                <img src="/static/img/plus-sign.svg"  alt="">
+            </div>
+            <div class="d-flex justify-content-center align-items-center">
+                <div  id="${stream}-remove-condition-${index}" class="condition-mod icon" value="Remove"> 
+                    <img src="/static/img/trash-bin.svg"  alt="">
+                </div> 
+                <div  id="${stream}-and-condition-${index}" class="condition-mod icon add-filter" value="And">
+                    <img src="/static/img/plus-sign.svg"  alt="">
+                </div>
             </div>
             
         </div>
@@ -521,14 +550,26 @@ function fillOperatorAndValue(stream, index){
     let selectedField = $(`#${stream}-field-select-${index}`).val();
     let operators = filterStructure[stream][selectedField]["operators"];
     let value = filterStructure[stream][selectedField]["value"];
+    try { 
+        document.querySelector(`#${stream}-value-condition-${index}`).destroy();
+    } catch {
+        console.log("err")
+    }
     $(`#${stream}-operator-select-${index}`).html('');
-    $(`#${stream}-value-select-${index}`).html('');
+    $(`#${stream}-value-condition-${index}`).html('');
     operators.forEach((o) => {
         createOption(`${stream}-operator-select-${index}`, o, o);
     });
+    if (selectedField.toLowerCase() == 'topic') {
+        //document.querySelector(`#${stream}-value-condition-${index}`).destroy()
+        initTopicField(`#${stream}-value-condition-${index}`)
+    } else {
+        $(`#${stream}-value-condition-${index}`).append(
+            `<select id="${stream}-value-select-${index}"></select>`)
     value.forEach((o) => {
-        createOption(`${stream}-value-select-${index}`, o, o);
-    })
+            createOption(`${stream}-value-select-${index}`, o, o);
+        }
+    )}
 };
 
 function fillForm(elementId){
@@ -889,24 +930,37 @@ $(document).ready(async function (){
         let payload = [];
         conditions.each(function() {
             let field = $($(this).find('.field-condition select')[0]).val();
+            console.log('field', field.toLowerCase())
             let operator = $($(this).find('.operator-condition select')[0]).val();
-            let value = $($(this).find('.value-condition select')[0]).val();
-            if (field == "Topic") {
-                value = window.topicsByName[value]
-            };
+            let value;
+            if (field.toLowerCase() == 'topic') {
+                value = $($(this).find('.vscontainer')[0]).val();
+
+                console.log('if', value)
+            } else {
+                value = $($(this).find('.value-condition select')[0]).val();
+            }
             let logic = $(this).find('.logic');
             logic = logic.length > 0 ? $(logic).attr('value') : "";
-            payload.push(
+            
+            let selectedArray = Array.isArray(value) ? value : [value];
+            selectedArray.forEach(v => 
                 {
-                    
-                    "field": field,
-                    "operator": operator,
-                    "value": value,
-                    "logic": logic
-                }
-            )
+                payload.push(
+                    {
+                        
+                        "field": field,
+                        "operator": operator,
+                        "value": v,
+                        "logic": logic
+                    }
+            )})
         })
         window.countryConditions[stream] = payload
+        if (window.countryConditions[stream].length == 0) {
+            alert('Query empty. Select at least one field.')
+            return
+        }
         let base_endpoint = `/${window.country}/filter_attention_trends`;
         let queryParams = $.param(
             {

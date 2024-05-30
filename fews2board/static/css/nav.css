@@ -869,11 +869,17 @@ footer {
     background-color: var(--phase2-blue-dark);
     height: 100%
   }
-
+.query-form {
+    background-color: rgb(231, 241, 255, 0.7);
+    border-radius: 0.8rem;
+    
+}
 .query-form form{
     display: flex;
     justify-content: space-between;
+    
 }
+
 .datepicker {
     padding: 0px;
     margin-left: 5px;
@@ -920,6 +926,7 @@ footer {
     justify-content: center;
     padding: 5px 5px;
     text-transform: uppercase;
+    background-color: white;
 }
 
 .sub-condition {
@@ -1060,7 +1067,22 @@ input.discard{
   }
 
 
-  .sub-condition select {
-    width: 200px;
+  .sub-condition select, .vscomp-ele {
+    width: 300px !important;
+    max-width: 300px !important;
     text-overflow: ellipsis;
+    padding: 0 !important;
   }
+
+
+.vscomp-toggle-button, .sub-condition select {
+    border: 1px solid rgb(48,80,136) !important;
+    height: 2rem !important;
+    background-color: white !important;
+    font-family: inherit !important;
+    font-size: 1rem !important;
+    color:rgba(80, 80, 80, 1) !important;
+    font-weight: normal !important;
+    border-radius: 0.2rem !important;
+}
+

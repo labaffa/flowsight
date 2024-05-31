@@ -1032,8 +1032,8 @@ input.discard{
     padding: 10px;
     box-sizing: border-box;
     background-clip: content-box;
-    min-height: var(--card-max-height);
-    max-height: var(--card-min-height);
+    min-height: var(--card-min-height);
+    max-height: var(--card-max-height);
 }
 
 .long-card {

@@ -176,7 +176,7 @@ async function SSIFieldsTimeline(containerId, domainId){
 
 
 async function TalkingPoints(containerId, stream, endP='/talking_points', conditions=""){
-    $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    $(`#${containerId}`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     let base_endpoint = `/${window.country}${endP}`;
     let startD, endD;
     startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
@@ -261,7 +261,7 @@ async function TalkingPoints(containerId, stream, endP='/talking_points', condit
 };
 
 async function MCPersons(tableId) {
-    $(`#${tableId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    $(`#${tableId}`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     let base_endpoint = `/${window.country}/mc_entity_in_period`;
     let queryParams = $.param(
         {
@@ -292,7 +292,7 @@ async function MCPersons(tableId) {
 };
 
 async function MCLocations(tableId) {
-    $(`#mc-locations`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    $(`#mc-locations`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
 
     let base_endpoint = `/${window.country}/mc_entity_in_period`;
     let queryParams = $.param(
@@ -326,7 +326,7 @@ async function MCLocations(tableId) {
 };
 
 async function MCOrgs(tableId) {
-    $(`#mc-orgs`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    $(`#mc-orgs`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
 
     let base_endpoint = `/${window.country}/mc_entity_in_period`;
     let queryParams = $.param(
@@ -685,7 +685,7 @@ function MCStoryCard(author, storyUrl, body, timestamp){
 
 async function MCStoryWidget(){
     let MAX_LEN = 300;
-    $(`#mc-stories`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    $(`#mc-stories`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
 
     let base_endpoint = `/${window.country}/mc_stories`;
     let queryParams = $.param(
@@ -733,7 +733,8 @@ async function MCStoryWidget(){
 
 async function TgMessageWidget(){
     let MAX_LEN = 300;
-    $(`#tg-messages`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    $(`#tg-messages`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    
 
     let base_endpoint = `/${window.country}/tg_messages`;
     let queryParams = $.param(
@@ -1006,7 +1007,7 @@ $(document).ready(async function (){
         // let talkingUrl = talkingPointsEndpoint + '?' + queryParams;
         //     await fetch(talkingUrl).then((response) => response.json()).then(data => {console.log(data)})
 
-        $(`#${stream}-talking-points`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');        
+        $(`#${stream}-talking-points`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');        
         TalkingPoints(
             `${stream}-talking-points`, stream, 
             '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))

@@ -1086,3 +1086,9 @@ input.discard{
     border-radius: 0.2rem !important;
 }
 
+.table-container {
+    height: 100%;
+    width: 100%;
+    margin-bottom: 0.8rem;
+    overflow-y: scroll;
+}

@@ -111,18 +111,18 @@
 .tp-table caption {
 	font-size: 16px;
 	font-weight: 600;
-	/* padding-top: 3px; */
+	padding-top: 3px;
 	text-align: left;
 	color: white;
 	caption-side: top;
 }
 
 .tp-table td {
-	/* padding: 5px 5px 5px 15px; */
+	padding: 5px 5px 5px 15px;
 }
 
 .tp-table th {
-	/* padding: 20px 0px 10px 15px; */
+	padding: 20px 0px 10px 15px;
 	text-align: left;
 }
 

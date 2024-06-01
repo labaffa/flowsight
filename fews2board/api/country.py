@@ -228,6 +228,7 @@ async def get_telegram_messages(
     response = await utils.tg_messages(
         request.app.async_pool, country_id, start_date, end_date, sorted_by, limit, conditions
     )
+    response = list({x["unique_id"]: x for x in response}.values())
     return response
 
 
@@ -285,7 +286,7 @@ async def get_attention_trends_on_conditions(
 
 
 @router.get("/{alpha_2}/mc_stories")
-async def get_telegram_messages(
+async def get_mediacloud_stories(
     request: fastapi.Request,
     alpha_2: str,
     start_date: int,
@@ -305,6 +306,8 @@ async def get_telegram_messages(
     response = await utils.mc_stories(
         request.app.async_pool, country_id, start_date, end_date, sorted_by, limit, conditions
     )
+    # remove duplicates
+    response = list({x["id"]: x for x in response}.values())
     return response
 
 

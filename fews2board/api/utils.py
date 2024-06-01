@@ -1187,6 +1187,7 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
                 {sentiment_clause}
                 {emotion_clause}
             group by t.topic, mc.value
+            order by frequency desc
             ;
         '''
     )
@@ -1277,11 +1278,13 @@ async def hot_topics_without_topic_condition(
 
 
 
-async def talking_points_on_conditions(pool, conditions, country_id, start_date, end_date):
+async def talking_points_on_conditions_bkp(pool, conditions, country_id, start_date, end_date):
     """
     This function can be used on any kind of conditions (topic, sentiment, emotion)
     It does an avereage prevalence for each domain of the framekork within country and period and other conditions
 
+    the version with the first two with clauses (msg_count_in_latest_period, msg_count_in_prev_previous) has 
+    never been tested. Search on previous commits for tested one
     Args:
         pool (_type_): _description_
         conditions (_type_): _description_
@@ -1305,17 +1308,41 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
 
     q = (
         f'''
-        with
-        
+        with msg_count_in_latest_period as (
+            select sum(dcounts.msg_count) as value
+            from (
+                select 
+                    distinct cda.date_id, cda.msg_count as msg_count
+                from {tablename(models.TgTopicIdCountDayAgg)} as cda
+                where 
+                    cda.country_id = {country_id}
+                    and (cda.date_id >= {start_date} and cda.date_id <= {end_date})
+            ) as lcounts
+            
+        ),
+        msg_count_in_prev_period as (
+            select sum(dcounts.msg_count) as value
+            from (
+                select 
+                    distinct cda.date_id, cda.msg_count as msg_count
+                from {tablename(models.TgTopicIdCountDayAgg)} as cda
+                where 
+                    cda.country_id = {country_id}
+                    and (cda.date_id >= {prev_start_date} and cda.date_id <= {prev_end_date})
+            ) as pcounts
+            
+        ),
         prev_values 
         as (
             select 
                 t.domain_id as domain_id
-                , avg(ttip.topic_norm_prevalence) as prev_attention
+                , sum(ttip.topic_norm_prevalence)/pcounts.msg_count as prev_attention
                 , avg(sentiment) as prev_sentiment
             from {tablename(models.TgTopicIdPositive)} ttip
             join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
             join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
+            join pcounts on true
+            
             where  
                 (ttip.date_id >= {prev_start_date} and ttip.date_id <= {prev_end_date}) 
                 and ttip.country_id = {country_id}
@@ -1328,14 +1355,16 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
         select 
             t.domain_id
             , avg(ts.sentiment) as latest_sentiment
-            , avg(ttip.topic_norm_prevalence) as latest_attention
+            , sum(ttip.topic_norm_prevalence)/lcounts.msg_count as latest_attention
             , prev_values.prev_attention as prev_attention
             , prev_values.prev_sentiment as prev_sentiment
         
         from {tablename(models.TgTopicIdPositive)} ttip
         join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
         join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
+        join lcounts on true
         left join prev_values on t.domain_id = prev_values.domain_id 
+
         where  
             (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
             and ttip.country_id = {country_id}
@@ -1347,7 +1376,6 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
         ;
         '''
     )
-    print(q)
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -1355,11 +1383,25 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
     return result
 
 
-async def talking_points_on_conditions(pool, conditions, country_id, start_date, end_date):
+async def talking_points_on_conditions(pool, conditions, country_id, start_date, end_date, stream):
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
         topic_clause, sentiment_clause, emotion_clause = "", "", ""
+    if stream == "tg":
+        count_model = models.TgTopicIdCountDayAgg
+        count_col_name = "msg_count"
+        topic_model = models.TgTopicIdPositive
+        sentiment_model = models.TgSentiment
+        record_id_name = "message_unique_id"
+    elif stream == "mc":
+        count_model = models.MCTopicIdCountDayAgg
+        count_col_name = "story_count"
+        topic_model = models.MCTopicIdPositive
+        sentiment_model = models.MCSentiment
+        record_id_name = "story_id"
+    else:
+        raise ValueError(f'Stream {stream} not allowed')        
     date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
     date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
     day_difference = (date2 - date1).days + 1
@@ -1368,12 +1410,36 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
 
     q = (
         f'''
-        with filt_prev_msg as (
+        with latest_count as (
+            select sum(lcounts.msg_count) as value
+            from (
+                select 
+                    distinct cda.date_id, cda.{count_col_name} as msg_count
+                from {tablename(count_model)} as cda
+                where 
+                    cda.country_id = {country_id}
+                    and (cda.date_id >= {start_date} and cda.date_id <= {end_date})
+            ) as lcounts
+            
+        ),
+        prev_count as (
+            select sum(pcounts.msg_count) as value
+            from (
+                select 
+                    distinct cda.date_id, cda.{count_col_name} as msg_count
+                from {tablename(count_model)} as cda
+                where 
+                    cda.country_id = {country_id}
+                    and (cda.date_id >= {prev_start_date} and cda.date_id <= {prev_end_date})
+            ) as pcounts
+            
+        ),
+        filt_prev_msg as (
             select 
-                ttip.message_unique_id
+                ttip.{record_id_name}
                 ,'prev' as _type
-            from {tablename(models.TgTopicIdPositive)} ttip
-            join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
+            from {tablename(topic_model)} ttip
+            join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
             where  
                 ttip.date_id between {prev_start_date} and {prev_end_date}
                 and ttip.country_id = {country_id}
@@ -1384,10 +1450,10 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
         ),	
         filt_latest_msg as (
             select 
-                ttip.message_unique_id
+                ttip.{record_id_name}
                 , 'latest' as _type
-            from {tablename(models.TgTopicIdPositive)} ttip
-            join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
+            from {tablename(topic_model)} ttip
+            join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
             where  
                 ttip.date_id between {start_date} and {end_date}
                 and ttip.country_id = {country_id}
@@ -1410,18 +1476,25 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
 
 	
             select 
-                avg(topic_norm_prevalence) as attention
+                sum(topic_norm_prevalence)/
+                case 
+                    when l._type = 'prev' then prev_count.value
+                    when l._type = 'latest' then latest_count.value
+                    else 1  -- default
+                end as attention
                 , avg(sentiment) as sentiment
                 , t.domain_id as domain_id
                 , d.name as domain
                 , _type as type
             from tot_messages l
-            join  {tablename(models.TgTopicIdPositive)} ttip on l.message_unique_id = ttip.message_unique_id
-            join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
+            join  {tablename(topic_model)} ttip on l.{record_id_name} = ttip.{record_id_name}
+            join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
             join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
             join {tablename(models.Domain)} d on t.domain_id = d.id
+            join latest_count on true
+            join prev_count on true
             
-            group by t.domain_id, d.name, l._type
+            group by t.domain_id, d.name, l._type, prev_count.value, latest_count.value
             ;
                 '''
         )

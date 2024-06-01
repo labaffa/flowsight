@@ -336,8 +336,6 @@ async def get_ssi_series(
     return list(by_date_data.values())
 
 
-
-
 @router.get("/{alpha_2}/hot_topics_on_conditions")
 async def get_hot_topics_on_conditions(
     request: fastapi.Request,
@@ -370,7 +368,8 @@ async def get_talking_points_on_conditions(
     alpha_2: str,
     start_date: int,
     end_date: int,
-    conditions: str=""
+    conditions: str="",
+    stream:str="tg"
 ):
     try:    
         country_id = int(
@@ -383,7 +382,7 @@ async def get_talking_points_on_conditions(
     # response = await utils.get_filtered_message_ids(
     #     request.app.async_pool, conditions, start_date, end_date, country_id)
     data = await utils.talking_points_on_conditions(
-        request.app.async_pool, conditions, country_id, start_date, end_date
+        request.app.async_pool, conditions, country_id, start_date, end_date, stream
     )
     response = []
     nested_dicts = lambda: defaultdict(nested_dicts)
@@ -404,8 +403,8 @@ async def get_talking_points_on_conditions(
             o = {
                 "domain": domain,
                 "layer": lname,
-                "latest_value": values["latest_value"],
-                "prev_value":  values["prev_value"]
+                "latest_value": values.get("latest_value"),
+                "prev_value":  values.get("prev_value")
             }
 
             response.append(o)

@@ -803,6 +803,64 @@ async def ssi_fields_series(
     return result
 
 
+async def tg_messages_no_duplicates(
+    pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None
+):
+    if conditions is not None:
+        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    else:
+        topic_clause, sentiment_clause, emotion_clause = "", "", ""
+    
+    sorted_by = sorted_by.strip().lower()
+    if sorted_by not in ["date", "sentiment"]:
+        sorted_by = "date"
+    if sorted_by == "date":
+        col = "ms.timestamp"
+    elif sorted_by == "sentiment":
+        col = "ts.sentiment"
+
+    
+    start_date = parse(str(start_date)).strftime('%Y-%m-%d')
+    end_date = parse(str(end_date)).strftime('%Y-%m-%d')
+    
+    q = (
+        f'''
+        select 
+            sub.username,
+            sub.timestamp,
+            sub.body
+        from (
+            select distinct on (ms.unique_id)
+                ms.author_username as username
+                , ms.timestamp as timestamp
+                , ms.body as body
+            from {tablename(models.TgTopicIdPositive)} ttip 
+            join {tablename(models.TgSentiment)} ts on ttip.message_unique_id  = ts.message_unique_id
+            join {tablename(models.TgMessage)} ms on ttip.message_unique_id = ms.unique_id
+            
+            where 
+                ms.country_id = {country_id} and 
+                ms.timestamp::DATE  BETWEEN '{start_date}' and '{end_date}' 
+                {topic_clause}
+                {sentiment_clause}
+                {emotion_clause}
+            order by ms.unique_id, {col} desc 
+            
+            ) sub
+        order by sub.timestamp desc
+        limit {limit}
+        ;
+
+        '''
+    )
+   
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
+
 async def tg_messages(
     pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None
 ):
@@ -826,7 +884,8 @@ async def tg_messages(
     q = (
         f'''
         select 
-            ms.author_username as username
+            ms.unique_id
+            , ms.author_username as username
             , ms.timestamp as timestamp
             , ms.body as body
         from {tablename(models.TgTopicIdPositive)} ttip 
@@ -851,7 +910,6 @@ async def tg_messages(
             await cur.execute(q)
             result = await cur.fetchall()
     return result
-
 
 
 def generate_sql(conditions, start_date, end_date):
@@ -908,7 +966,7 @@ def generate_sql(conditions, start_date, end_date):
     return q
 
 
-async def mc_stories(
+async def mc_stories_no_duplicates(
     pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None):
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
@@ -926,24 +984,33 @@ async def mc_stories(
     q = (
         f'''
         select 
-            ms.media_name as username
-            , ms.url as url
-            , ms.publish_date as timestamp
-            , ms.title as body
-        from {tablename(models.MCSentiment)} ts 
-        join {tablename(models.MCTopicIdPositive)} ttip on ts.story_id = ttip.story_id
-        join {tablename(models.MCStory)} ms on ms.id = ts.story_id
-        where 
-            ms.country_id = {country_id} and 
-            ms.publish_date::DATE between '{start_date}' and '{end_date}' 
-           {topic_clause} 
-           {sentiment_clause} 
-           {emotion_clause} 
-        order by {col} desc 
-        limit {limit}
-        ;
+            sub.username,
+            sub.url,
+            sub.timestamp,
+            sub.body
+        from (
+            select distinct on (ms.id)
+                ms.media_name as username
+                , ms.url as url
+                , ms.publish_date as timestamp
+                , ms.title as body
+            from {tablename(models.MCSentiment)} ts 
+            join {tablename(models.MCTopicIdPositive)} ttip on ts.story_id = ttip.story_id
+            join {tablename(models.MCStory)} ms on ms.id = ts.story_id
+            where 
+                ms.country_id = {country_id} and 
+                ms.publish_date::DATE between '{start_date}' and '{end_date}' 
+            {topic_clause} 
+            {sentiment_clause} 
+            {emotion_clause} 
+            order by ms.id, {col} desc
+            
+        ) sub 
+        order by sub.timestamp desc
+        limit {limit};
         '''
     )
+    
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -992,6 +1059,50 @@ def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_ali
             '''
         )
     return (topic_clause, sentiment_clause, emotion_clause)
+
+
+async def mc_stories(
+    pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None):
+    if conditions is not None:
+        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    else:
+        topic_clause, sentiment_clause, emotion_clause = "", "", ""
+    sorted_by = sorted_by.strip().lower()
+    if sorted_by not in ["date", "sentiment"]:
+        sorted_by = "date"
+    if sorted_by == "date":
+        col = "ms.publish_date"
+    elif sorted_by == "sentiment":
+        col = "ts.sentiment"
+    start_date = parse(str(start_date)).strftime('%Y-%m-%d')
+    end_date = parse(str(end_date)).strftime('%Y-%m-%d')
+    q = (
+        f'''
+        select 
+            ms.id
+            , ms.media_name as username
+            , ms.url as url
+            , ms.publish_date as timestamp
+            , ms.title as body
+        from {tablename(models.MCSentiment)} ts 
+        join {tablename(models.MCTopicIdPositive)} ttip on ts.story_id = ttip.story_id
+        join {tablename(models.MCStory)} ms on ms.id = ts.story_id
+        where 
+            ms.country_id = {country_id} and 
+            ms.publish_date::DATE between '{start_date}' and '{end_date}' 
+           {topic_clause} 
+           {sentiment_clause} 
+           {emotion_clause} 
+        order by {col} desc 
+        limit {limit}
+        ;
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
 
 
 def generate_filters_sql(conditions, start_date, end_date, country_id):

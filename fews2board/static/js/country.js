@@ -203,27 +203,40 @@ async function TalkingPoints(containerId, stream, endP='/talking_points', condit
         dataCopy.forEach(function(i) {
             
             var layer = i.layer;
-            let latest_value, prev_value, delta, percentSign;
+            let latest_value, prev_value, delta, percentSign, color;
 
             if (!r[i.domain]) {
                 r[i.domain] = {};
             }
             if (layer === "attention"){
-                i.latest_value = i.latest_value;
-                i.prev_value = i.prev_value ? i.prev_value: i.prev_value;
-                delta = ((i.latest_value - i.prev_value)/i.prev_value)*100
-                percentSign = ' %'
-            } else {
                 
-                delta = i.latest_value - i.prev_value;
+                if (i.prev_value == null) {
+                    delta = 'N/A';
+                    color = 'white';  // dummy
+                    percentSign = '';
+                } else {
+                    delta = ((i.latest_value - i.prev_value)/i.prev_value)*100
+                    delta = delta.toFixed(1)
+                    color = delta >= 0 ? 'green' : 'red'
+                    percentSign = ' %'
+                }
+            } else {
+                if (i.prev_value == null) {
+                    delta = 'N/A';
+                    color = 'white';  // dummy
+                    
+                } else {
+                    delta = i.latest_value - i.prev_value;
+                    delta = delta.toFixed(2)
+                    color = delta >= 0 ? 'green' : 'red'
+                }
+                
                 percentSign = '';
             }
             
             console.log(stream, i.latest_value, i.prev_value, delta)
-            i.prev_value = (i.prev_value) ? i.prev_value : '';
-            let color = delta >= 0 ? 'green' : 'red'
             latest_value = `<span class="tp-latest">${i.latest_value.toFixed(3)}</span>`;
-            prev_value = `<span class="tp-delta" style="color: ${color}">${delta.toFixed(1)}${percentSign}</span>`
+            prev_value = `<span class="tp-delta" style="color: ${color}">${delta}${percentSign}</span>`
             r[i.domain][layer] = `${latest_value} -- ${prev_value}`;
         });
 

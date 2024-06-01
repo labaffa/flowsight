@@ -168,7 +168,7 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 					inside: true,
 					// format: '{x} - ({point.y})',
 					formatter: function () {
-						return this.x + '  -  ('  + this.y.toFixed(5) + ')';
+						return this.x ;
 					}
 					
 				},

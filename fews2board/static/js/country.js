@@ -12,8 +12,8 @@ window.mcStartDate = parseInt(moment(window.dateRanges.mc[1].toString()).subtrac
 window.mcEndDate = window.dateRanges.mc[1];
 
 // hardcoding because mediacloud entities are less recent than metadata, so default is not empty
-window.mcStartDate = 20240101
-window.mcEndDate = 20240108
+// window.mcStartDate = 20240101
+// window.mcEndDate = 20240108
 
 
 window.siStartDate = parseInt(moment(window.dateRanges.si[1].toString()).subtract(365, 'days').format('YYYYMMDD'));
@@ -27,6 +27,14 @@ window.countryConditions = {
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+
+const noDataHTML = `
+    <div class="d-flex justify-content-center align-items-center">
+        <div class="fews-country"> NO DATA AVAILABLE</div>
+    </div>
+`;
+
 
 Highcharts.setOptions({
 	chart: {
@@ -634,14 +642,25 @@ function TgTimestamp(timestamp){
     `
 }
 
-function TgMessageCard(author, body, timestamp){
+function TgMessageCard(author, url, body, timestamp){
     return `
-    <div class='tg-card'>
-        <div class="tg-author">${author}</div>
+    <div class='mc-card mt-4 mb-4'>
+        <div class="mc-message mb-4 mt-2">
+            <div class="mb-2"><span>${body}</span>
+       
+            <a href="${url}" target="_blank" style="margin-left: 1rem;">
+                <i class="fa fa-external-link" style="color: white;">
+                </i>
+            </a>
+            </div>
+        
+        </div>
         <br>
-        <div class="tg-message">${body}</div>
-        <br>
-        <div class="tg-timestamp">${timestamp}</div>
+        <div class="mc-story-meta d-flex justify-content-between flex-wrap">
+            <div class="mc-author">${author.split("/").slice(-1)[0]}</div>
+            <br>
+            <div class="mc-timestamp">${timestamp.split(":").slice(0, -1).join(":")}</div>
+        </div>
     </div>
     `
 }
@@ -670,15 +689,16 @@ function truncate(str, n){
 
 function MCStoryCard(author, storyUrl, body, timestamp){
     return `
-    <div class='mc-card'>
-        <div class="mc-author">
-            <a href="${storyUrl}" class="link" target="_blank" rel="noopener noreferrer">${author}</a>
+    <div class='mc-card mt-4 mb-4'>
+        <div class="mc-message mb-4 mt-2">
+            <a href="${storyUrl}" style="color: white;" class="link" target="_blank" rel="noopener noreferrer">${body}</a>
         </div>
         <br>
-        <div class="mc-message">${body}</div>
-        <br>
-        <div class="mc-timestamp">${timestamp}</div>
-        
+        <div class="mc-story-meta d-flex justify-content-between">
+            <div class="mc-author">${author}</div>
+            <br>
+            <div class="mc-timestamp">${timestamp.split("T")[0]}</div>
+        </div>
     </div>
     `
 
@@ -711,6 +731,10 @@ async function MCStoryWidget(){
             `<div class="widget-title">News Stories</div>
             <br>
             <br>
+            <div class="table-container">
+                <div class="" id="mc-stories-content">
+                </div>
+            </div>
             `
         )
         data.forEach(function(d) {
@@ -718,11 +742,11 @@ async function MCStoryWidget(){
             let body = d.body ? d.body : '';
             let url = d.url ? d.url : '';
             
-            $('#mc-stories').append(
+            $('#mc-stories-content').append(
                 MCStoryCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
 
             )
-            $('#mc-stories').append(
+            $('#mc-stories-content').append(
                 '<div class="cards-separator"></div>'
             )
            
@@ -762,16 +786,20 @@ async function TgMessageWidget(){
             `<div class="widget-title">Conversations</div>
             <br>
             <br>
+            <div class="table-container">
+                <div class="" id="tg-messages-content">
+                </div>
+            </div>
             `
         )
         data.forEach(function(d) {
-            let author_username = d.author_username ? d.author_username : '';
+            let author_username = d.username ? d.username : '';
             let body = d.body ? d.body : '';
-            
-            $('#tg-messages').append(
-                TgMessageCard(author_username, truncate(body, MAX_LEN), d.timestamp)
+            let url = author_username + '/' + d.message_id.toString();
+            $('#tg-messages-content').append(
+                TgMessageCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
             );
-            $('#tg-messages').append(
+            $('#tg-messages-content').append(
                 '<div class="cards-separator"></div>'
             );
            

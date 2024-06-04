@@ -894,7 +894,8 @@ async def tg_messages(
         f'''
         select 
             ms.unique_id
-            , ms.author_username as username
+            , ms.message_id as message_id
+            , ms.username as username
             , ms.timestamp as timestamp
             , ms.body as body
         from {tablename(models.TgTopicIdPositive)} ttip 

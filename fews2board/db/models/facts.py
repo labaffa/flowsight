@@ -198,4 +198,18 @@ class SSIDayAgg(MyBase):
     is_ssi_w = sa.Column(sa.Boolean, nullable=False)
 
 
+class MCDailyCounts(MyBase):
+    __tablename__ = "mc_daily_counts"
+
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    count = sa.Column(sa.Integer)
+
+
+class TgDailyCounts(MyBase):
+    __tablename__ = "tg_daily_counts"
+
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    count = sa.Column(sa.Integer)
 

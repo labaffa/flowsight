@@ -25,4 +25,5 @@ from fews2board.db.models.facts import TopicIdDayAggTg, TopicIdDayDomainAggTg, \
     MCTopicIdDayAgg, MCTopicIdDayDomainAgg, TgTopicIdCountDayAgg, \
     TgTopicIdCountDayDomainAgg, TgLatestUpdates, MCLatestUpdates, \
     MCTopicIdCountDayAgg, MCTopicIdCountDayDomainAgg, DateRanges, MCBigramsDayAgg, \
-    MCLocationsDayAgg, MCOrgsDayAgg, MCPersonsDayAgg, MCTrigramsDayAgg, SSIDayAgg
+    MCLocationsDayAgg, MCOrgsDayAgg, MCPersonsDayAgg, MCTrigramsDayAgg, SSIDayAgg, MCDailyCounts, \
+    TgDailyCounts

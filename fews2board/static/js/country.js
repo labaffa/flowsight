@@ -6,13 +6,15 @@ import { filterStructure } from "./menu-module.js";
 
 window.dateRanges["si"] = [20111227, 20231231];
 
-window.tgStartDate = parseInt(moment(window.latestUpdates.tg.toString()).subtract(7, 'days').format('YYYYMMDD'));
-window.tgEndDate = window.latestUpdates.tg;
-window.mcStartDate = parseInt(moment(window.latestUpdates.mc.toString()).subtract(7, 'days').format('YYYYMMDD'));
-window.mcEndDate = window.latestUpdates.mc;
+window.tgStartDate = parseInt(moment(window.dateRanges.tg[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
+window.tgEndDate = window.dateRanges.tg[1];
+window.mcStartDate = parseInt(moment(window.dateRanges.mc[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
+window.mcEndDate = window.dateRanges.mc[1];
 
-window.mcStartDate = 20240101;
-window.mcEndDate = 20240108;
+// hardcoding because mediacloud entities are less recent than metadata, so default is not empty
+window.mcStartDate = 20240101
+window.mcEndDate = 20240108
+
 
 window.siStartDate = parseInt(moment(window.dateRanges.si[1].toString()).subtract(365, 'days').format('YYYYMMDD'));
 window.siEndDate = window.dateRanges.si[1];

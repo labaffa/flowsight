@@ -180,7 +180,7 @@ function tooltipCallBack(){
         latest_sentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment']
     } else if (window.streamKey == 'mc') {
         toptopics = window.mapTooltipData[this.point['hc-key']]['mc']['top_topics'];
-        latest_sentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment'];
+        latest_sentiment = window.mapTooltipData[this.point['hc-key']]['mc']['sentiment'];
     } else if (window.streamKey == 'all') {
 
     }

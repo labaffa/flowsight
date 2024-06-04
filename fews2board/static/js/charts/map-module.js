@@ -71,7 +71,7 @@ function tooltipCallBack(){
 	<div class="row">
 		<div class="col">`
         for (let i=0; i < toptopics.length; i++){
-            html += `<span class="badge rounded-pill badge-theme-${i}">${topics[i].topic}</span>`
+            html += `<span class="badge rounded-pill badge-theme-${i}">${window.topics[toptopics[i].topic_id].topic}</span>`
         }
     html += 
     `

@@ -66,6 +66,7 @@ async def get_topic_rankings_by_domain_in_period_for_country(
     start_date: int, 
     end_date: int
 ):
+    """it might be broken, but it looks unused"""
     try:
         country_id = int(request.app.countries[alpha_2.strip().lower()]["country_id"])
     except KeyError:

@@ -147,12 +147,10 @@ async def top_topics_on_latest(pool, top_n=3, stream: str="tg"):
     FROM {tablename(agg_model)} AS tti
     join {tablename(models.Topic)} t on tti.topic_id = t.id
     join {tablename(models.Country)} cou on tti.country_id = cou.country_code
-    WHERE tti.date_id = 
-    (
-    	SELECT MAX(tidat.date_id) FROM {tablename(agg_model)} tidat 
+    join {tablename(models.DateRanges)} dr on 
+        tti.country_id = dr.country_id and tti.date_id = dr.max_date_id and dr.stream = '{stream}'
     )
-   
-    )
+    
     SELECT 
         country_id
         , alpha_2
@@ -233,16 +231,18 @@ async def latest_sentiment_with_delta(pool, stream: str="tg"):
         )
             select 
                 date_id
-                , country_id
+                , p.country_id
                 , alpha_2
                 , country
                 , avg(sentiment) sentiment
                 , (avg(sentiment) - avg(prev)) as delta
                 , '{stream}' as stream
-            from prev_r
-            group by country_id, date_id, country, alpha_2
+            from prev_r p
+            join {tablename(models.DateRanges)} dr on
+                 p.country_id = dr.country_id and p.date_id = dr.max_date_id and dr.stream = '{stream}'
+            group by p.country_id, p.date_id, p.country, p.alpha_2
             order by date_id desc
-            limit 1
+
         ;
         '''
     )
@@ -261,26 +261,35 @@ async def domain_ranking_in_period(
     stream: str
 ):
     if stream == "tg":
-        agg_model = models.TgTopicIdCountDayDomainAgg
-        count_var = 'msg_count'
+        agg_model = models.TgTopicIdPositive
+        count_model = models.TgDailyCounts
     elif stream == "mc":
-        agg_model = models.MCTopicIdCountDayDomainAgg
-        count_var = 'story_count'
+        agg_model = models.MCTopicIdPositive
+        count_model = models.MCDailyCounts
     else:
         raise ValueError(f'Stream {stream} not allowed')
     q = (
         f'''
+         WITH total_count AS (
+            SELECT
+                SUM(cm.count) AS total_count
+            FROM {tablename(count_model)} cm
+            WHERE
+                cm.country_id = {country_id}
+                AND cm.date_id BETWEEN {start_date} AND {end_date}
+        )
         select 
-            sum(topic_count)::float/sum({count_var}) as frequency
+            sum(1)::float/(SELECT total_count FROM total_count) as frequency
             , domain_id
             , dom.name as domain
-        from {tablename(agg_model)}  tticda 
-        join {tablename(models.Date)} d on tticda.date_id = d.id
-        join {tablename(models.Domain)} dom on tticda.domain_id = dom.id
+        from {tablename(agg_model)} tticda 
+        join {tablename(count_model)} cm on tticda.country_id = cm.country_id and tticda.date_id = cm.date_id
+        join {tablename(models.Topic)} t on tticda.topic_unique_id = t.id
+        join {tablename(models.Domain)} dom on t.domain_id = dom.id
         where
             tticda.country_id = {country_id}
-            and (d.id >= {start_date} and d.id <= {end_date})
-        group by tticda.domain_id, dom.name
+            and (tticda.date_id >= {start_date} and tticda.date_id <= {end_date})
+        group by t.domain_id, dom.name
         order by frequency desc;
         '''
     )
@@ -1256,14 +1265,12 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
     else:
         topic_clause, sentiment_clause, emotion_clause = "", "", ""
     if stream == "tg":
-        count_model = models.TgTopicIdCountDayAgg
-        count_col_name = "msg_count"
+        count_model = models.TgDailyCounts
         topic_model = models.TgTopicIdPositive
         sentiment_model = models.TgSentiment
         record_id_name = "message_unique_id"
     elif stream == "mc":
-        count_model = models.MCTopicIdCountDayAgg
-        count_col_name = "story_count"
+        count_model = models.MCDailyCounts
         topic_model = models.MCTopicIdPositive
         sentiment_model = models.MCSentiment
         record_id_name = "story_id"
@@ -1271,25 +1278,20 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
         raise ValueError(f'Stream {stream} not allowed')
     q = (
         f'''
-        with msg_count_in_period as (
-            select sum(dcounts.msg_count) as value
-            from (
-                select 
-                    distinct cda.date_id, cda.country_id, cda.{count_col_name} as msg_count
-                from {tablename(count_model)} as cda
-                where 
-                    cda.country_id = {country_id}
-                    and (cda.date_id >= {start_date} and cda.date_id <= {end_date})
-            ) as dcounts
-            
+        WITH total_count AS (
+            SELECT
+                SUM(cm.count) AS total_count
+            FROM {tablename(count_model)} cm
+            WHERE
+                cm.country_id = {country_id}
+                AND cm.date_id BETWEEN {start_date} AND {end_date}
         )
             select
-                sum(ttip.topic_norm_prevalence)/mc.value as frequency
+                sum(ttip.topic_norm_prevalence)/(SELECT total_count FROM total_count) as frequency
                 , t.topic as topic
             from {tablename(topic_model)} ttip
             join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
             join {tablename(models.Topic)} as t on ttip.topic_unique_id = t.id
-            join msg_count_in_period mc on true
             
             where 
                 (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
@@ -1297,7 +1299,7 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
-            group by t.topic, mc.value
+            group by t.topic
             order by frequency desc
             ;
         '''
@@ -1331,14 +1333,12 @@ async def hot_topics_without_topic_condition(
     else:
         topic_clause, sentiment_clause, emotion_clause = "", "", ""
     if stream == "tg":
-        count_model = models.TgTopicIdCountDayAgg
-        count_col_name = "msg_count"
+        count_model = models.TgDailyCounts
         topic_model = models.TgTopicIdPositive
         sentiment_model = models.TgSentiment
         record_id_name = "message_unique_id"
     elif stream == "mc":
-        count_model = models.MCTopicIdCountDayAgg
-        count_col_name = "story_count"
+        count_model = models.MCDailyCounts
         topic_model = models.MCTopicIdPositive
         sentiment_model = models.MCSentiment
         record_id_name = "story_id"
@@ -1346,27 +1346,22 @@ async def hot_topics_without_topic_condition(
         raise ValueError(f'Stream {stream} not allowed')
     q = (
         f'''
-        with msg_count_in_period as (
-            select sum(dcounts.msg_count) as value
-            from (
-                select 
-                    distinct cda.date_id, cda.country_id, cda.{count_col_name} as msg_count
-                from {tablename(count_model)} as cda
-                where 
-                    cda.country_id = {country_id}
-                    and (cda.date_id >= {start_date} and cda.date_id <= {end_date})
-            ) as dcounts
-            
+        WITH total_count AS (
+            SELECT
+                SUM(cm.count) AS total_count
+            FROM {tablename(count_model)} cm
+            WHERE
+                cm.country_id = {country_id}
+                AND cm.date_id BETWEEN {start_date} AND {end_date}
         )
             select
-                sum(1)::float/mc.value as frequency
+                sum(1)::float/(SELECT total_count FROM total_count) as frequency
                 , domain_id
                 , dom.name as domain
 
                 
             from {tablename(topic_model)} ttip
             join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
-            join msg_count_in_period mc on true
             join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
             join {tablename(models.Domain)} dom on t.domain_id = dom.id 
             
@@ -1376,7 +1371,7 @@ async def hot_topics_without_topic_condition(
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
-            group by dom.name, domain_id, mc.value
+            group by dom.name, domain_id
             order by frequency desc
             ;
         '''
@@ -1500,14 +1495,14 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
     else:
         topic_clause, sentiment_clause, emotion_clause = "", "", ""
     if stream == "tg":
-        count_model = models.TgTopicIdCountDayAgg
-        count_col_name = "msg_count"
+        count_model = models.TgDailyCounts
+        count_col_name = "count"
         topic_model = models.TgTopicIdPositive
         sentiment_model = models.TgSentiment
         record_id_name = "message_unique_id"
     elif stream == "mc":
-        count_model = models.MCTopicIdCountDayAgg
-        count_col_name = "story_count"
+        count_model = models.MCDailyCounts
+        count_col_name = "count"
         topic_model = models.MCTopicIdPositive
         sentiment_model = models.MCSentiment
         record_id_name = "story_id"

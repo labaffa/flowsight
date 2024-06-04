@@ -108,6 +108,19 @@
 	/* scrollbar-width: none; */
 }
 
+/* .tp-table tbody {
+	overflow-y: auto;
+
+}
+.tp-table thead {
+    position: absolute;
+    top: 0; 
+} */
+
+.tp-table thead {
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+}
 .tp-table caption {
 	font-size: 16px;
 	font-weight: 600;
@@ -115,14 +128,16 @@
 	text-align: left;
 	color: white;
 	caption-side: top;
+	
 }
 
 .tp-table td {
-	padding: 5px 5px 5px 15px;
+	padding: 1rem 0rem 1rem 1rem;
 }
 
 .tp-table th {
-	padding: 20px 0px 10px 15px;
+	
+	padding: 1rem 0rem 1.5rem 1.5rem;
 	text-align: left;
 }
 

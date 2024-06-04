@@ -1091,4 +1091,14 @@ input.discard{
     width: 100%;
     margin-bottom: 0.8rem;
     overflow-y: scroll;
+    
+}
+
+#tg-messages, #mc-stories {
+    overflow-y: hidden;
+    margin-bottom: 0.8rem;
+}
+
+.mc-author {
+    font-weight: bold;
 }

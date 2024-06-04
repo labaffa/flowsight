@@ -71,8 +71,11 @@ function tooltipCallBack(){
 	<div class="row">
 		<div class="col">`
         for (let i=0; i < toptopics.length; i++){
-            html += `<span class="badge rounded-pill badge-theme-${i}">${window.topics[toptopics[i].topic_id].topic}</span>`
-        }
+			let tid = toptopics[i].topic_id;
+			if (window.topics[tid]){
+            	html += `<span class="badge rounded-pill badge-theme-${i}">${window.topics[tid].topic}</span>`
+			}
+			}
     html += 
     `
 		</div>
@@ -125,7 +128,8 @@ export async function renderMap(chartId, data, customOptions, topology) {
 			text: '',
 		},
 		mapNavigation: {
-			enabled: true,
+			enabled: false,
+			enableButtons: true,
 			buttonOptions: {
 				verticalAlign: 'bottom'
 			}

@@ -1045,17 +1045,22 @@ def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_ali
     if b["Topic"].get("IS"):
         topic_clause = f' AND ({" OR ".join(f"{topic_table_alias}.topic_unique_id = {f} " for f in b["Topic"]["IS"])})'
     if b["Sentiment"].get("IS") or b["Sentiment"].get("IS NOT"):
-        sentiment_clause = (
-            f'''
-             AND (
-                {" AND ".join(
-                    f"{sent_table_alias}.{v} {(' > 0', ' = 0 ')[key == 'IS NOT']} " 
-                    for key, values in b["Sentiment"].items()
-                    for v in values
-                )}
-             )
-            '''
-        )
+        sentiment_sub_conds = []
+        for key, values in b["Sentiment"].items():
+            for v in values:
+                sub_cond = f'{sent_table_alias}.positive - {sent_table_alias}.negative '
+                sub_cond_add = None
+                if v.lower() == "negative" and key.lower() == "is":
+                    sub_cond_add = " < 0 "
+                if v.lower() == "negative" and key.lower() == "is not":
+                    sub_cond_add = " >= 0 "
+                if v.lower() == "positive" and key.lower() == "is":
+                    sub_cond_add = " > 0 "
+                if v.lower() == "positive" and key.lower() == "is not":
+                    sub_cond_add = " <= 0 "
+                sub_cond += sub_cond_add
+                sentiment_sub_conds.append(sub_cond)
+        sentiment_clause = f' AND ({" AND ".join(sentiment_sub_conds)})'
     if b["Emotion"].get("IS") or b["Emotion"].get("IS NOT"):
         emotion_clause = (
             f'''

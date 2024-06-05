@@ -802,8 +802,11 @@ footer {
     margin-left: auto;   
 }
 .query-button, .reset-button{
-    
+    background-color: white;
+    border: 1px solid rgb(48,80,136) !important;
     height: 3rem;
+    border-radius: 0.3rem;
+    margin: 0.3rem;
 }
 #modal-overlay {
     display: none; /* Hide the overlay by default */
@@ -1101,4 +1104,11 @@ input.discard{
 
 .mc-author {
     font-weight: bold;
+}
+
+#tg-talking-points table tr:first-child th:first-child,
+#tg-talking-points table tr:first-child td:first-child, 
+#mc-talking-points table tr:first-child th:first-child,
+#mc-talking-points table tr:first-child td:first-child {
+    width: 40%;
 }

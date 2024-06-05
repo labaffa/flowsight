@@ -17,7 +17,11 @@
  *   }, ...
  *   ]
  */
-
+const noDataHTML = `
+    <div class="d-flex justify-content-center align-items-center">
+        <div class="fews-country"> NO DATA AVAILABLE</div>
+    </div>
+`;
 export function renderLineChartb(chartId, data, customOptions) {
 	const defaultOptions = {
 		chartType: 'spline',
@@ -252,9 +256,13 @@ export async function renderLineChartFromUrl(
    let data = await fetch(url)
    	.then(response => response.json())
 	.then(data => {
-		console.log(data)
-		data = processChartData(data, dateKey);
-		renderLineChart(chartId, data, customOptions);
+		if (data.length == 0 ) {
+			$(`#${chartId}`).html(noDataHTML);
+		} else {
+
+			data = processChartData(data, dateKey);
+			renderLineChart(chartId, data, customOptions);
+		}
 	});
 	
     

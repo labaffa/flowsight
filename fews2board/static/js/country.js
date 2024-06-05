@@ -30,7 +30,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 
 const noDataHTML = `
-    <div class="d-flex justify-content-center align-items-center">
+    <div class="d-flex justify-content-center align-items-center h-100">
         <div class="fews-country"> NO DATA AVAILABLE</div>
     </div>
 `;
@@ -184,6 +184,15 @@ async function SSIFieldsTimeline(containerId, domainId){
 
 };
 
+function extractLatestValue(htmlString) {
+    // Crea un nuovo documento DOMParser
+    let parser = new DOMParser();
+    let doc = parser.parseFromString(htmlString, 'text/html');
+    
+    // Trova il primo span e ne estrae il contenuto
+    let latestSpan = doc.querySelector('span');
+    return latestSpan ? parseFloat(latestSpan.textContent) : 0;
+}
 
 async function TalkingPoints(containerId, stream, endP='/talking_points', conditions=""){
     $(`#${containerId}`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
@@ -206,48 +215,63 @@ async function TalkingPoints(containerId, stream, endP='/talking_points', condit
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-        
+        if (data.length == 0) {
+            $(`#${containerId}`).html(noDataHTML);
+        } else {
         let dataCopy = [...data]
         var r = {};
         
         dataCopy.forEach(function(i) {
             
             var layer = i.layer;
-            let latest_value, prev_value, delta, percentSign, color;
+            let latest_value, prev_value, delta, percentSign, color, arrowVerse;
 
             if (!r[i.domain]) {
                 r[i.domain] = {};
             }
             if (layer === "attention"){
-                
+                latest_value = i.latest_value.toExponential(1);
                 if (i.prev_value == null) {
                     delta = 'N/A';
                     color = 'white';  // dummy
                     percentSign = '';
+                    
+                
                 } else {
                     delta = ((i.latest_value - i.prev_value)/i.prev_value)*100
-                    delta = delta.toFixed(1)
-                    color = delta >= 0 ? 'green' : 'red'
-                    percentSign = ' %'
+                    if (i.prev_value == 0){
+                        delta = '+Inf';
+                        percentSign = '';
+                        color = 'green';
+                        arrowVerse = "up";
+                    } else {
+                        color = delta >= 0 ? 'green' : 'red';
+                        arrowVerse = delta >= 0 ? 'up' : 'down';
+                        percentSign = ' %'
+                        delta = delta.toFixed(1).replace('-', '')
+
+                    }
                 }
             } else {
+                latest_value = i.latest_value.toFixed(1);
                 if (i.prev_value == null) {
                     delta = 'N/A';
                     color = 'white';  // dummy
                     
                 } else {
                     delta = i.latest_value - i.prev_value;
-                    delta = delta.toFixed(2)
-                    color = delta >= 0 ? 'green' : 'red'
+                    color = delta >= 0 ? 'green' : 'red';
+                    arrowVerse = delta >= 0 ? 'up' : 'down';
+                    delta = delta.toFixed(1).replace('-', '')
                 }
                 
                 percentSign = '';
             }
             
-            console.log(stream, i.latest_value, i.prev_value, delta)
-            latest_value = `<span class="tp-latest">${i.latest_value.toFixed(3)}</span>`;
+           
+            latest_value = `<span class="tp-latest" style="padding-right: 0.5rem;">${latest_value}</span>`;
             prev_value = `<span class="tp-delta" style="color: ${color}">${delta}${percentSign}</span>`
-            r[i.domain][layer] = `${latest_value} -- ${prev_value}`;
+            r[i.domain][layer] = `${latest_value}  <i class="fa-solid fa-arrow-${arrowVerse}" style="color: ${color}"></i>  ${prev_value}`;
         });
 
         var out = [];
@@ -263,9 +287,19 @@ async function TalkingPoints(containerId, stream, endP='/talking_points', condit
                 out.push(item);
             }
         }
+        
+        out = out.sort((a, b) => {
+            // Estrai latest_value dalla stringa "latest_value -- prev_value"
+            let latestValueA = extractLatestValue(a.Attention);
+            let latestValueB = extractLatestValue(b.Attention);
+            console.log("latest", latestValueA, latestValueB)
+            // Confronta i valori per ordinare in ordine decrescente
+            return latestValueB - latestValueA;
+        });
+        
         renderHTMLTable(containerId, out, customOptions);
         reflowCharts();
-        
+    }
     })
 
 };
@@ -287,17 +321,20 @@ async function MCPersons(tableId) {
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-
-        var out = [];
-        
-        data.forEach(function(d) {
+        if (data.length == 0) {
+            $(`#${tableId}`).html(noDataHTML);
+        } else {
+            var out = [];
             
-            let entity = `<span class="mc-entity">${d.person}</span>`;
-            let coverage = `<span class="mc-entity-coverage">${(d.value*100).toFixed(2)}%</span>`
-            out.push({"Person": entity, "Coverage": coverage})
-        });
-        renderHTMLTable(tableId, out, customOptions);
-        reflowCharts();
+            data.forEach(function(d) {
+                
+                let entity = `<span class="mc-entity">${d.person}</span>`;
+                let coverage = `<span class="mc-entity-coverage">${(d.value*100).toFixed(2)}%</span>`
+                out.push({"Person": entity, "Coverage": coverage})
+            });
+            renderHTMLTable(tableId, out, customOptions);
+            reflowCharts();
+        }
     })
 };
 
@@ -319,17 +356,20 @@ async function MCLocations(tableId) {
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-
-        var out = [];
-        
-        data.forEach(function(d) {
+        if (data.length == 0) {
+            $(`#${tableId}`).html(noDataHTML);
+        } else {
+            var out = [];
             
-            let entity = `<span class="mc-entity">${d.location}</span>`;
-            let coverage = `<span class="mc-entity-coverage">${(d.value*100).toFixed(2)}%</span>`
-            out.push({"Location": entity, "Coverage": coverage})
-        });
-        renderHTMLTable(tableId, out, customOptions);
-        reflowCharts();
+            data.forEach(function(d) {
+                
+                let entity = `<span class="mc-entity">${d.location}</span>`;
+                let coverage = `<span class="mc-entity-coverage">${(d.value*100).toFixed(2)}%</span>`
+                out.push({"Location": entity, "Coverage": coverage})
+            });
+            renderHTMLTable(tableId, out, customOptions);
+            reflowCharts();
+        }
     })
 
 
@@ -353,17 +393,20 @@ async function MCOrgs(tableId) {
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-
-        var out = [];
-        
-        data.forEach(function(d) {
+        if (data.length == 0) {
+            $(`#${tableId}`).html(noDataHTML);
+        } else {
+            var out = [];
             
-            let entity = `<span class="mc-entity">${d.org}</span>`;
-            let coverage = `<span class="mc-entity-coverage">${(d.value*100).toFixed(2)}%</span>`
-            out.push({"Org": entity, "Coverage": coverage})
-        });
-        renderHTMLTable(tableId, out, customOptions);
-        reflowCharts();
+            data.forEach(function(d) {
+                
+                let entity = `<span class="mc-entity">${d.org}</span>`;
+                let coverage = `<span class="mc-entity-coverage">${(d.value*100).toFixed(2)}%</span>`
+                out.push({"Org": entity, "Coverage": coverage})
+            });
+            renderHTMLTable(tableId, out, customOptions);
+            reflowCharts();
+        }
     })
 
 };
@@ -725,33 +768,36 @@ async function MCStoryWidget(){
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-
-        $(`#mc-stories`).html('');
-        $('#mc-stories').append(
-            `<div class="widget-title">News Stories</div>
-            <br>
-            <br>
-            <div class="table-container">
-                <div class="" id="mc-stories-content">
+        if (data.length == 0) {
+            $(`#mc-stories`).html(noDataHTML);
+        } else {
+            $(`#mc-stories`).html('');
+            $('#mc-stories').append(
+                `<div class="widget-title">News Stories</div>
+                <br>
+                <br>
+                <div class="table-container">
+                    <div class="" id="mc-stories-content">
+                    </div>
                 </div>
-            </div>
-            `
-        )
-        data.forEach(function(d) {
-            let author_username = d.username ? d.username : '';
-            let body = d.body ? d.body : '';
-            let url = d.url ? d.url : '';
-            
-            $('#mc-stories-content').append(
-                MCStoryCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
+                `
+            )
+            data.forEach(function(d) {
+                let author_username = d.username ? d.username : '';
+                let body = d.body ? d.body : '';
+                let url = d.url ? d.url : '';
+                
+                $('#mc-stories-content').append(
+                    MCStoryCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
 
-            )
-            $('#mc-stories-content').append(
-                '<div class="cards-separator"></div>'
-            )
-           
-        });
-        reflowCharts();
+                )
+                $('#mc-stories-content').append(
+                    '<div class="cards-separator"></div>'
+                )
+            
+            });
+            reflowCharts();
+        }
     })    
 
 };
@@ -780,31 +826,34 @@ async function TgMessageWidget(){
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-
-        $(`#tg-messages`).html('');
-        $('#tg-messages').append(
-            `<div class="widget-title">Conversations</div>
-            <br>
-            <br>
-            <div class="table-container">
-                <div class="" id="tg-messages-content">
+        if (data.length == 0) {
+            $(`#tg-messages`).html(noDataHTML);
+        } else {
+            $(`#tg-messages`).html('');
+            $('#tg-messages').append(
+                `<div class="widget-title">Conversations</div>
+                <br>
+                <br>
+                <div class="table-container">
+                    <div class="" id="tg-messages-content">
+                    </div>
                 </div>
-            </div>
-            `
-        )
-        data.forEach(function(d) {
-            let author_username = d.username ? d.username : '';
-            let body = d.body ? d.body : '';
-            let url = author_username + '/' + d.message_id.toString();
-            $('#tg-messages-content').append(
-                TgMessageCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
-            );
-            $('#tg-messages-content').append(
-                '<div class="cards-separator"></div>'
-            );
-           
-        });
-        reflowCharts();
+                `
+            )
+            data.forEach(function(d) {
+                let author_username = d.username ? d.username : '';
+                let body = d.body ? d.body : '';
+                let url = author_username + '/' + d.message_id.toString();
+                $('#tg-messages-content').append(
+                    TgMessageCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
+                );
+                $('#tg-messages-content').append(
+                    '<div class="cards-separator"></div>'
+                );
+            
+            });
+            reflowCharts();
+        }
     })
 };
 function prettyPrintConditions(conditions){

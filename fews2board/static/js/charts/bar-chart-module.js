@@ -27,6 +27,12 @@
  * This function relies on Highcharts library, which must be included in your project to function properly.
  */
 
+const noDataHTML = `
+    <div class="d-flex justify-content-center align-items-center">
+        <div class="fews-country"> NO DATA AVAILABLE</div>
+    </div>
+`;
+
 export function renderBarChartb(chartId, data, mappingKeys, customOptions) {
 	const defaultOptions = {
 		chartType: 'bar',
@@ -210,8 +216,11 @@ export async function renderBarChartFromUrl(
    await fetch(url).then(
     response => response.json())
     .then(data => {
-        renderBarChart(chartId, data, mappingKeys, customOptions);
-
+		if (data.length ==0){
+			$(`#${chartId}`).html(noDataHTML)
+		} else {
+        	renderBarChart(chartId, data, mappingKeys, customOptions);
+		}
     });
 
 };

@@ -3,9 +3,10 @@ import { renderLineChartFromUrl } from "./charts/line-chart-module.js";
 import { renderHTMLTableFromUrl } from "./charts/html-table.js";
 import { renderHTMLTable } from "./charts/html-table.js";
 import { filterStructure } from "./menu-module.js";
+import { renderWordCloud } from "./charts/wordcloud-module.js";
 
-window.dateRanges["si"] = [20111227, 20231231];
 
+window.dateRanges["si"] = [20111227, 20231231];  // check why I hardcoded this daterange
 window.tgStartDate = parseInt(moment(window.dateRanges.tg[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
 window.tgEndDate = window.dateRanges.tg[1];
 window.mcStartDate = parseInt(moment(window.dateRanges.mc[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
@@ -76,7 +77,6 @@ function initTopicField(eleId){
         label: key,
         options: a[key]
     }));
-    console.log("groups", groupedOptions)
     // placeHolder = `-- ${placeHolder} [${options.length}] --`
     VirtualSelect.init({
       ele: eleId,
@@ -145,7 +145,43 @@ async function AttentionTrends(containerId, stream) {
     )
 };
 
+async function WordCloud(containerId, stream){
+    
+    $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    let startD, endD;
+    startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
+    endD = stream == "mc" ? window.mcEndDate : window.tgEndDate;
 
+    let base_endpoint = `/${window.country}/tfidf_top_terms`;
+    let queryParams = $.param(
+        {
+            start_date: startD,
+            end_date: endD,
+            stream: stream,
+            limit: 50
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {
+        titleText: 'Significant Terms',
+        chartHeightRatio: null,
+        chartWidth: null
+    }
+    let mappingKeys = {'categoryKey': 'lemma', 'valueKey': 'mean_value'};
+    await fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length == 0 ) {
+                $(`#${containerId}`).html(noDataHTML);
+            } else {
+
+                renderWordCloud(containerId, data, mappingKeys, customOptions);
+            }
+        });
+    reflowCharts();
+
+}
 async function SSITimeline(containerId, domainId){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let base_endpoint = `/${window.country}/ssi_series`;
@@ -292,7 +328,6 @@ async function TalkingPoints(containerId, stream, endP='/talking_points', condit
             // Estrai latest_value dalla stringa "latest_value -- prev_value"
             let latestValueA = extractLatestValue(a.Attention);
             let latestValueB = extractLatestValue(b.Attention);
-            console.log("latest", latestValueA, latestValueB)
             // Confronta i valori per ordinare in ordine decrescente
             return latestValueB - latestValueA;
         });
@@ -431,7 +466,6 @@ function initPicker(pickerId, stream) {
         endDate = moment(window.siEndDate.toString());
     }
     
-    console.log(start, end, startDate, endDate)
     function cb(start, end) {
         $(`#${pickerId} span`).html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
     }
@@ -502,6 +536,7 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     );
     let url = base_endpoint + '?' + queryParams;
     let customOptions = {titleText: 'Attention'}
+    TgMessageWidget();
     $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     renderLineChartFromUrl(
         `${stream}-attention-trends`, url, customOptions, 'date'
@@ -521,10 +556,9 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     TalkingPoints(
         `${stream}-talking-points`, stream, 
         '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
-    TgMessageWidget();
+    WordCloud('tg-top-terms', 'tg');
     fillSearchBar(stream);
 
-    
 });
 
 $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
@@ -816,7 +850,7 @@ async function TgMessageWidget(){
             conditions: JSON.stringify(window.countryConditions["tg"]),
             entity: 'location',
             sorted_by: 'date',
-            limit: 10
+            limit: 30
         },
         true
     );
@@ -955,8 +989,11 @@ $(document).ready(async function (){
         DomainRanking('tg-domains-bar-chart', 'tg');
         AttentionTrends('tg-attention-trends', 'tg');
         TalkingPoints('tg-talking-points', 'tg');
-        DomainRanking('mc-domains-bar-chart', 'mc');
+        WordCloud('tg-top-terms', 'tg');
+        TgMessageWidget();
         
+        MCStoryWidget();
+        DomainRanking('mc-domains-bar-chart', 'mc');
         AttentionTrends('mc-attention-trends', 'mc');
         TalkingPoints('mc-talking-points', 'mc');
         MCLocations('mc-locations');
@@ -964,8 +1001,6 @@ $(document).ready(async function (){
         MCOrgs('mc-orgs');
         SSITimeline('si-food-insecurity', 3);
         SSIFieldsTimeline('si-food-insecurity-fields', 3);
-        TgMessageWidget();
-        MCStoryWidget();
     };
 
     
@@ -1023,13 +1058,11 @@ $(document).ready(async function (){
         let payload = [];
         conditions.each(function() {
             let field = $($(this).find('.field-condition select')[0]).val();
-            console.log('field', field.toLowerCase())
             let operator = $($(this).find('.operator-condition select')[0]).val();
             let value;
             if (field.toLowerCase() == 'topic') {
                 value = $($(this).find('.vscontainer')[0]).val();
 
-                console.log('if', value)
             } else {
                 value = $($(this).find('.value-condition select')[0]).val();
             }

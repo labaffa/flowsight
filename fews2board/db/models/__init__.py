@@ -14,7 +14,7 @@ class MyBase(Base):
 
 
 from fews2board.db.models.telegram import TgMessage, TgChannel, TgSentiment, TgTopicId, \
-    TgTopicIdPositive
+    TgTopicIdPositive, TgMessageCountry
 from fews2board.db.models.luigi import MarkerTable
 from fews2board.db.models.media_monitoring import MCStory, MCSentiment, MCTopicId, \
     MCTopicIdPositive
@@ -26,4 +26,4 @@ from fews2board.db.models.facts import TopicIdDayAggTg, TopicIdDayDomainAggTg, \
     TgTopicIdCountDayDomainAgg, TgLatestUpdates, MCLatestUpdates, \
     MCTopicIdCountDayAgg, MCTopicIdCountDayDomainAgg, DateRanges, MCBigramsDayAgg, \
     MCLocationsDayAgg, MCOrgsDayAgg, MCPersonsDayAgg, MCTrigramsDayAgg, SSIDayAgg, MCDailyCounts, \
-    TgDailyCounts
+    TgDailyCounts, TFIDF

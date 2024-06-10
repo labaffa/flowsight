@@ -213,3 +213,26 @@ class TgDailyCounts(MyBase):
     date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     count = sa.Column(sa.Integer)
 
+
+def TFIDFModelCreator(alpha2):
+    tablename = f'tfidf_{alpha2.lower()}'
+    modelname = tablename.upper()
+    attributes = {
+        "__tablename__": tablename,
+        "__table_args__": (
+            sa.Index(f"{tablename}_date_id", "date_id"),
+            sa.Index(f"{tablename}_message_unique_id", "message_unique_id")
+        ),
+        "message_unique_id": sa.Column(sa.Integer, primary_key=True, nullable=False),
+        "lemma": sa.Column(sa.String, primary_key=True, nullable=False),
+        "date_id":  sa.Column(sa.Integer, nullable=False),
+        "tfidf": sa.Column(sa.Float)
+
+    }
+    x = type(modelname, (MyBase,), attributes)
+    return x
+
+
+TFIDF = {}
+for a2 in ["zw", "ht", "tg"]:
+    TFIDF[a2] = TFIDFModelCreator(a2)

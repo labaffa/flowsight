@@ -1,7 +1,7 @@
 from fews2board.db.models import MyBase
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import TIMESTAMP
-
+from fews2board import config
 
 class TgMessage(MyBase):
     __tablename__ = "tg_message"
@@ -91,6 +91,47 @@ class TgTopicIdPositive(MyBase):
     date_id = sa.Column(sa.Integer)
 
 
+def TgMessageModelCreator(alpha2):
+    tablename = f'tg_message_{alpha2.lower()}'
+    modelname = tablename.upper()
+    attributes = {
+        "__tablename__": tablename,
+        "__table_args__": (
+           sa.UniqueConstraint("channel_id", "message_id", name=f"id_message_{alpha2.lower()}"),
+            sa.Index(f"tg_message_timestamp_{alpha2.lower()}", "timestamp"),
+        ),
+        "unique_id": sa.Column(sa.BigInteger, primary_key=True, nullable=False),
+        "channel_id": sa.Column(sa.BigInteger, nullable=False),
+        "message_id":  sa.Column(sa.BigInteger, nullable=False),
+        "username": sa.Column(sa.String, nullable=True),
+        "body": sa.Column(sa.String, nullable=True),
+        "timestamp": sa.Column(sa.DateTime),
+        "views": sa.Column(sa.Integer, nullable=True),
+        "media_type": sa.Column(sa.String, nullable=True),
+        "media_description": sa.Column(sa.String, nullable=True),
+        "media_filename": sa.Column(sa.String, nullable=True),
+        "author_type": sa.Column(sa.String, nullable=True),
+        "author_id": sa.Column(sa.BigInteger, nullable=True),
+        "author_username": sa.Column(sa.String, nullable=True),
+        "author_name": sa.Column(sa.String, nullable=True),
+        "reply_to_author_type": sa.Column(sa.String, nullable=True),
+        # reply_to_author_id = sa.Column(sa.BigInteger, nullable=True)
+        "reply_to_author_username": sa.Column(sa.String, nullable=True),
+        "fwd_from_author_type": sa.Column(sa.String, nullable=True),
+        "fwd_from_author_username": sa.Column(sa.String, nullable=True),
+        "fwd_from_author_name": sa.Column(sa.String, nullable=True),
+        "inserted": sa.Column(TIMESTAMP(timezone=True), server_default=sa.func.now()),
+        "flow_id": sa.Column(sa.String),
+        "country_id": sa.Column(sa.Integer, nullable=True),
+
+    }
+    x = type(modelname, (MyBase,), attributes)
+    return x
+
+TgMessageCountry = {}
+
+for code in config.FEWS_COUNTRIES:
+    TgMessageCountry[code] = TgMessageModelCreator(code)
 
 
 

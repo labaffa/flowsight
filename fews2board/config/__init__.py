@@ -26,4 +26,25 @@ PG_PASSWORD = os.getenv("PG_PASSWORD")
 PG_URL = f'postgresql+psycopg2://{PG_USER}:{PG_PASSWORD}@{PG_HOST}/{PG_DATABASE}'
 PG_ASYNC_URL = f'postgresql+asyncpg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}/{PG_DATABASE}'
 PG_SCHEMA_NAME = os.getenv("PG_SCHEMA_NAME")
+FEWS_COUNTRIES = [
+    "af",
+    "ao",
+    "bj",
+    "bf",
+    "bi",
+    "cm",
+    "td",
+    "sv",
+    "et",
+    "gt",
+    "ht",
+    "ke",
+    "ly",
+    "mz",
+    "ng",
+    "sn",
+    "tg",
+    "ve",
+    "zw"
+]
 

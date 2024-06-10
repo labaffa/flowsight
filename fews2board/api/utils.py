@@ -815,6 +815,8 @@ async def ssi_fields_series(
 async def tg_messages_no_duplicates(
     pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None
 ):
+    cou = "zw"
+    model = models.TgMessageCountry[cou]
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
@@ -829,34 +831,37 @@ async def tg_messages_no_duplicates(
         col = "ts.sentiment"
 
     
-    start_date = parse(str(start_date)).strftime('%Y-%m-%d')
-    end_date = parse(str(end_date)).strftime('%Y-%m-%d')
+    # start_date = parse(str(start_date)).strftime('%Y-%m-%d')
+    # end_date = parse(str(end_date)).strftime('%Y-%m-%d')
     
     q = (
         f'''
-        select 
-            sub.username,
-            sub.timestamp,
-            sub.body
-        from (
-            select distinct on (ms.unique_id)
-                ms.author_username as username
+        --  select 
+        --     sub.username,
+        --     sub.timestamp,
+        --     sub.body
+        -- from (
+            select distinct 
+                ms.unique_id as unique_ID
+                , ms.author_username as username
+                , ms.message_id as message_id
                 , ms.timestamp as timestamp
                 , ms.body as body
             from {tablename(models.TgTopicIdPositive)} ttip 
             join {tablename(models.TgSentiment)} ts on ttip.message_unique_id  = ts.message_unique_id
-            join {tablename(models.TgMessage)} ms on ttip.message_unique_id = ms.unique_id
+            join {tablename(model)} ms on ttip.message_unique_id = ms.unique_id
             
             where 
-                ms.country_id = {country_id} and 
-                ms.timestamp::DATE  BETWEEN '{start_date}' and '{end_date}' 
+                ttip.country_id = {country_id} and 
+                ttip.date_id  BETWEEN {start_date} and {end_date}
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
-            order by ms.unique_id, {col} desc 
+            order by {col} desc 
             
-            ) sub
-        order by sub.timestamp desc
+        --     ) 
+        --     sub
+        -- order by sub.timestamp desc
         limit {limit}
         ;
 
@@ -1615,3 +1620,30 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
             await cur.execute(q)
             result = await cur.fetchall()
     return result        
+
+
+async def tfidf_top_terms(pool, alpha_2: str, start_date: int, end_date: int, stream: str="tg", limit: int=50):
+    if stream == "tg":
+        model = models.TFIDF[alpha_2]
+    elif stream == "mc":
+        pass
+    else:
+        raise ValueError(f'Stream {stream} not allowed')
+    q = (
+        f"""
+        select 	
+            tz.lemma as lemma
+            , avg(tz.tfidf) as mean_value
+        from {tablename(model)} tz 
+        where 
+           tz.date_Id between {start_date} and {end_date}
+        group by tz.lemma 
+        order by avg(tz.tfidf) desc 
+        limit {limit}
+        """
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result    

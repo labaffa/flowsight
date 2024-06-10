@@ -226,7 +226,8 @@ async def get_telegram_messages(
             status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
         )
     conditions = json.loads(conditions) if conditions else None
-    response = await utils.tg_messages(
+    func = utils.tg_messages_no_duplicates if alpha_2 == 'zw' else utils.tg_messages
+    response = await func(
         request.app.async_pool, country_id, start_date, end_date, sorted_by, limit, conditions
     )
     response = list({x["unique_id"]: x for x in response}.values())
@@ -414,3 +415,18 @@ async def get_talking_points_on_conditions(
             response.append(o)
     response = [x for x in response if x["latest_value"]]
     return response
+
+
+@router.get("/{alpha_2}/tfidf_top_terms")
+async def get_talking_points_on_conditions(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream:str="tg",
+    limit: int=50
+):
+    data = await utils.tfidf_top_terms(
+        request.app.async_pool, alpha_2, start_date, end_date, stream, limit
+    )
+    return data

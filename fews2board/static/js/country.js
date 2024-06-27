@@ -7,11 +7,41 @@ import { renderWordCloud } from "./charts/wordcloud-module.js";
 
 
 window.dateRanges["si"] = [20111227, 20231231];  // check why I hardcoded this daterange
-window.tgStartDate = parseInt(moment(window.dateRanges.tg[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
-window.tgEndDate = window.dateRanges.tg[1];
-window.mcStartDate = parseInt(moment(window.dateRanges.mc[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
-window.mcEndDate = window.dateRanges.mc[1];
-
+try {
+    window.tgStartDate = parseInt(moment(window.dateRanges.tg[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
+    window.tgEndDate = window.dateRanges.tg[1];
+} catch {
+    window.tgStartDate = 19000101;
+    window.tgEndDate = 20000101;
+}
+try {
+    window.mcStartDate = parseInt(moment(window.dateRanges.mc[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
+    window.mcEndDate = window.dateRanges.mc[1];
+} catch {
+    window.mcStartDate = 19000101;
+    window.mcEndDate = 20000101;
+}
+try {
+    window.mcCalendarMin = moment(window.dateRanges.mc[0].toString());
+    window.mcCalendarMax = moment(window.dateRanges.mc[1].toString());
+} catch {
+    window.mcCalendarMin = moment('19000101');
+    window.mcCalendarMax = moment('20000101')
+}
+try {
+    window.tgCalendarMin = moment(window.dateRanges.tg[0].toString());
+    window.tgCalendarMax = moment(window.dateRanges.tg[1].toString());
+} catch {
+    window.tgCalendarMin = moment('19000101');
+    window.tgCalendarMax = moment('20000101')
+}
+try {
+    window.siCalendarMin = moment(window.dateRanges.si[0].toString());
+    window.siCalendarMax = moment(window.dateRanges.si[1].toString());
+} catch {
+    window.siCalendarMin = moment('19000101');
+    window.siCalendarMax = moment('20000101')
+}
 // hardcoding because mediacloud entities are less recent than metadata, so default is not empty
 // window.mcStartDate = 20240101
 // window.mcEndDate = 20240108
@@ -146,7 +176,7 @@ async function AttentionTrends(containerId, stream) {
 };
 
 async function WordCloud(containerId, stream){
-    
+
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let startD, endD;
     startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
@@ -169,16 +199,20 @@ async function WordCloud(containerId, stream){
         chartWidth: null
     }
     let mappingKeys = {'categoryKey': 'lemma', 'valueKey': 'mean_value'};
-    await fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length == 0 ) {
-                $(`#${containerId}`).html(noDataHTML);
-            } else {
+    try {
+        await fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                    if (data.length == 0 ) {
+                        $(`#${containerId}`).html(noDataHTML);
+                    } else {
 
-                renderWordCloud(containerId, data, mappingKeys, customOptions);
-            }
-        });
+                        renderWordCloud(containerId, data, mappingKeys, customOptions);
+                    }
+            });
+    } catch {
+        $(`#${containerId}`).html(noDataHTML);
+    }
     reflowCharts();
 
 }
@@ -450,18 +484,18 @@ async function MCOrgs(tableId) {
 function initPicker(pickerId, stream) {
     let start, end, startDate, endDate;
     if (stream === 'tg'){
-        start = moment(window.dateRanges.tg[0].toString());
-        end = moment(window.dateRanges.tg[1].toString());
+        start = window.tgCalendarMin;
+        end = window.tgCalendarMax;
         startDate = moment(window.tgStartDate.toString());
         endDate = moment(window.tgEndDate.toString());
     } else if (stream === 'mc') {
-        start = moment(window.dateRanges.mc[0].toString());
-        end = moment(window.dateRanges.mc[1].toString());
+        start = window.mcCalendarMin;
+        end = window.mcCalendarMax;
         startDate = moment(window.mcStartDate.toString());
         endDate = moment(window.mcEndDate.toString());
     } else if (stream === 'si') {
-        start = moment(window.dateRanges.si[0].toString());
-        end = moment(window.dateRanges.si[1].toString());
+        start = window.siCalendarMin;
+        end = window.siCalendarMax;
         startDate = moment(window.siStartDate.toString());
         endDate = moment(window.siEndDate.toString());
     }

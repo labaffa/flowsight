@@ -29,8 +29,8 @@
         var country = JSON.parse('{{country|tojson}}');
         var countryName = JSON.parse('{{country_name|tojson}}');
         var dateRanges = JSON.parse('{{date_ranges|tojson}}');
-        var topics = JSON.parse('{{topics|tojson}}');
         var domainsObj = JSON.parse('{{domains|tojson}}');
+        var topics = JSON.parse('{{topics|tojson}}');
         var topicsById = {};
         var topicsByName = {};
         topics.forEach((t) => {topicsById[t.topic_id] = t.topic})

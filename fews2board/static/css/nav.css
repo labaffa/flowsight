@@ -1112,3 +1112,53 @@ input.discard{
 #mc-talking-points table tr:first-child td:first-child {
     width: 40%;
 }
+
+#available-fields li, #selected-fields li, #available-variables li, #selected-variables li{
+    background-color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style-type: none;
+    border-radius: .5rem;
+    margin-bottom: .8rem;
+    padding-left: .8rem;
+    padding-right: .8rem;
+    padding-top: .3rem;
+    padding-bottom: .3rem;
+
+}
+
+#available-fields ul, #selected-fields ul, #available-variables ul, #selected-variables ul{
+    list-style-type: none;
+    padding-inline-start: 0px;
+    padding-left: .8rem;
+    padding-right: .8rem;
+}
+
+.field-header *{
+    color: white;
+    padding-left: 1rem;
+   
+}
+
+.no-max-height {
+    max-height: none;
+    
+}
+
+#available-fields, #selected-fields, #available-variables, #selected-variables  {
+    margin-top: 1rem;
+}
+
+
+/* Link the series colors to axis colors */
+.highcharts-axis.hc-xAxis text {
+    fill: white;
+}
+.highcharts-axis.hc-yAxis text {
+    fill: white;
+}
+
+#chart-select, #country-select {
+    margin-left: .8rem;
+}

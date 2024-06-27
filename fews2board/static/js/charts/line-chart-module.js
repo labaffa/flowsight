@@ -128,8 +128,10 @@ export function renderLineChart(chartId, data, customOptions) {
 		titleText: 'Timeline Title',
 		tooltipPointText: 'Correlation: ',
 		xAxisType: 'datetime',
-		yAxisTitleEnabled: false,
-		yAxisTitleText: 'yAxis New Title',
+		xAxisTitleText: undefined,
+		xAxisTitleEnabled: true,
+		yAxisTitleEnabled: true,
+		yAxisTitleText: undefined,
 	};
 
 	const opts = { ...defaultOptions, ...customOptions };
@@ -157,9 +159,17 @@ export function renderLineChart(chartId, data, customOptions) {
 		},
 		xAxis: {
 			type: opts.xAxisType,
+			className: 'hc-xAxis',
+			title: {
+				enabled: opts.xAxisTitleEnabled,
+				text: opts.xAxisTitleText, 
+				
+			}
 		},
 		yAxis: {
+			className: 'hc-yAxis',
 			title: {
+				style: {color: 'white'},
 				enabled: opts.yAxisTitleEnabled,
 				text: opts.yAxisTitleText,
 			}
@@ -226,7 +236,7 @@ export function renderLineChart(chartId, data, customOptions) {
 
 	Highcharts.chart(chartId, chartOptions);
 }
-function processChartData(data, dateKey) {
+export function processChartData(data, dateKey) {
 	if (data.length === 0){
 		return [];
 	}

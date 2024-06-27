@@ -19,12 +19,17 @@
         <ul class="navbar-nav ms-auto">
           {% set home_url_params = '?pre_2013=true' if pre_2013 else '' %}
           {% set home_url = '/' + home_url_params %}
+          
           <li class="nav-item">
             <a class="nav-link" aria-current="page" href={{home_url}}>Home</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/studio">Chart Studio</a>
-          </li>
+          {% if True %}
+            {% set country = country if country else 'dummy' %}
+            {% set studio_url = '/country/' + country + '/studio' %}
+            <li class="nav-item">
+              <a class="nav-link" href='/studio'>Chart Studio</a>
+            </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link" href="/about">About</a>
           </li>

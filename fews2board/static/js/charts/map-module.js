@@ -38,26 +38,59 @@ function getTooltipChangeHTML (v) {
 function capitalizeString(s) {
 	return  s[0].toUpperCase() + s.slice(1);
 };
-
+function isNotEmpty(obj) {
+    return Object.keys(obj).length !== 0;
+}
 function tooltipCallBack(){
-    let toptopics, latest_sentiment;
+    let toptopics, latest_sentiment, tgTopTopics, tgLatestSentiment, mcTopTopics, mcLatestSentiment;
+	try {
+		tgTopTopics = window.mapTooltipData[this.point['hc-key']]['tg']['top_topics'];
+		if (!tgTopTopics) {
+			tgTopTopics = [];
+		}
+	} catch {
+		tgTopTopics = [];
+	}
+	try {
+		tgLatestSentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment'];
+		if (!tgLatestSentiment){
+			tgLatestSentiment = {};
+		}
+	} catch {
+		tgLatestSentiment = {};
+	}
+	try {
+		mcTopTopics = window.mapTooltipData[this.point['hc-key']]['mc']['top_topics'];
+		if (!mcTopTopics) {
+			mcTopTopics = [];
+		}
+	} catch {
+		mcTopTopics = [];
+	}
+	try {
+		mcLatestSentiment = window.mapTooltipData[this.point['hc-key']]['mc']['sentiment'];
+		if (!mcLatestSentiment){
+			mcLatestSentiment = {};
+		}
+	} catch {
+		mcLatestSentiment = {};
+	}
     if (window.streamKey == 'tg'){
-        toptopics = window.mapTooltipData[this.point['hc-key']]['tg']['top_topics'];
-
-        latest_sentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment']
+		toptopics = tgTopTopics;
+		latest_sentiment = tgLatestSentiment;
     } else if (window.streamKey == 'mc') {
-        toptopics = window.mapTooltipData[this.point['hc-key']]['mc']['top_topics'];
-        latest_sentiment = window.mapTooltipData[this.point['hc-key']]['mc']['sentiment'];
+		toptopics = mcTopTopics;
+		latest_sentiment = mcLatestSentiment;
     } else if (window.streamKey == 'all') {
-		toptopics =  window.mapTooltipData[this.point['hc-key']]['tg']['top_topics'].concat(
-				window.mapTooltipData[this.point['hc-key']]['mc']['top_topics'])
-		
+		console.log(mcLatestSentiment, tgLatestSentiment)
+		toptopics =  tgTopTopics.concat(mcTopTopics);
 		toptopics = toptopics.sort((a, b) => a.np - b.np).slice(0, 3)
-		latest_sentiment = [
-			window.mapTooltipData[this.point['hc-key']]['tg']['sentiment'], 
-			window.mapTooltipData[this.point['hc-key']]['mc']['sentiment']
-		]
-		latest_sentiment = latest_sentiment.sort((a, b) => b.date_id - a.date_id)[0];
+		latest_sentiment = [tgLatestSentiment, mcLatestSentiment].filter(isNotEmpty);
+		if (latest_sentiment.length > 0){
+			latest_sentiment = latest_sentiment.sort((a, b) => b.date_id - a.date_id)[0];
+		} else {
+			latest_sentiment = {};
+		}
     }
 	
     let html = `<div class="p-3" style="background-color: #f7f7f7">

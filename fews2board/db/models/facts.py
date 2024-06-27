@@ -1,5 +1,6 @@
 from fews2board.db.models import MyBase
 import sqlalchemy as sa
+from fews2board import config
 
 
 class TopicIdDayAggTg(MyBase):
@@ -234,5 +235,5 @@ def TFIDFModelCreator(alpha2):
 
 
 TFIDF = {}
-for a2 in ["zw", "ht", "tg"]:
+for a2 in config.FEWS_COUNTRIES:
     TFIDF[a2] = TFIDFModelCreator(a2)

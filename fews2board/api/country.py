@@ -17,6 +17,7 @@ from fews2board.api import utils
 from collections import defaultdict
 import json
 import datetime as dt
+from asyncio import gather
 
 router = fastapi.APIRouter()
 templates = Jinja2Templates(directory="fews2board/templates")
@@ -226,9 +227,8 @@ async def get_telegram_messages(
             status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
         )
     conditions = json.loads(conditions) if conditions else None
-    func = utils.tg_messages_no_duplicates if alpha_2 == 'zw' else utils.tg_messages
-    response = await func(
-        request.app.async_pool, country_id, start_date, end_date, sorted_by, limit, conditions
+    response = await utils.tg_messages_no_duplicates(
+        request.app.async_pool, country_id, alpha_2, start_date, end_date, sorted_by, limit, conditions
     )
     response = list({x["unique_id"]: x for x in response}.values())
     return response
@@ -430,3 +430,48 @@ async def get_talking_points_on_conditions(
         request.app.async_pool, alpha_2, start_date, end_date, stream, limit
     )
     return data
+
+
+@router.get("/{alpha_2}/studio_line_chart")
+async def get_studio_time_series(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    fields,
+    conditions: str=""
+):
+    try:
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )
+    conditions = json.loads(conditions) if conditions else None
+    fields = json.loads(fields)
+    sql_coros = []
+    for x in fields:
+        if x["stream"] == "si":
+            sql_coros.append(utils.chart_studio_time_series_from_ssi(
+                request.app.async_pool, country_id, start_date, end_date, conditions
+            ))
+        else:
+            sql_coros.append(utils.chart_studio_time_series_from_stream(
+                request.app.async_pool, conditions, country_id, start_date, end_date, x
+                )
+            )
+    sql_responses = await gather(*sql_coros)
+    data = [x for r in sql_responses for x in r]
+    by_field = defaultdict(dict)
+    fields_set = set()
+    response = []
+    for d in data:
+        by_field[d["date"]][d["field"]] = d["value"]
+        fields_set.add(d["field"])
+    for day in by_field:
+        day_data = {"date": day}
+        for field in fields_set:
+            day_data[field] = by_field[day].get(field)
+        response.append(day_data)
+    return response

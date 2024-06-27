@@ -686,6 +686,21 @@ async def get_domains(pool):
     return result
 
 
+async def date_ranges_overall(pool):
+    q = (
+        f'''
+        select
+            min(min_date_id) as min_date
+            , max(max_date_id) as max_date
+        from {tablename(models.DateRanges)};
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
 
 async def date_ranges_for_all_countries(pool):
     q = (
@@ -813,10 +828,10 @@ async def ssi_fields_series(
 
 
 async def tg_messages_no_duplicates(
-    pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None
+    pool, country_id: int, alpha_2: str, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None
 ):
-    cou = "zw"
-    model = models.TgMessageCountry[cou]
+    
+    model = models.TgMessageCountry[alpha_2]
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
@@ -843,7 +858,8 @@ async def tg_messages_no_duplicates(
         -- from (
             select distinct 
                 ms.unique_id as unique_ID
-                , ms.author_username as username
+                , ms.username as username
+                , ms.author_username as author_username
                 , ms.message_id as message_id
                 , ms.timestamp as timestamp
                 , ms.body as body
@@ -1647,3 +1663,128 @@ async def tfidf_top_terms(pool, alpha_2: str, start_date: int, end_date: int, st
             await cur.execute(q)
             result = await cur.fetchall()
     return result    
+
+
+async def chart_studio_time_series_from_stream(
+    pool, conditions, country_id, start_date, end_date, field
+):
+    """
+    This function must be used only if topics are present in conditions, i.e. the variable topic_clause
+    is not an empty string
+
+    Args:
+        pool (_type_): _description_
+        conditions (_type_): _description_
+        country_id (_type_): _description_
+        start_date (_type_): _description_
+        end_date (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if conditions is not None:
+        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    else:
+        topic_clause, sentiment_clause, emotion_clause = "", "", ""
+    stream, field_type = field["stream"], field["type"]
+    if stream == "tg":
+        topic_table = models.TgTopicIdPositive
+        sentiment_table = models.TgSentiment
+        record_col_name = "message_unique_id"
+        suffix = "' (Social)'"
+    elif stream == "mc":
+        topic_table = models.MCTopicIdPositive
+        sentiment_table = models.MCSentiment
+        record_col_name = "story_id"
+        suffix = "' (Media)'"
+    else:
+        raise ValueError(f'Stream {stream} not allowed')
+    if field_type == "attention":
+        value_col = "ttip.topic_norm_prevalence"
+        distinct_clause = ""
+        field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
+        joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"
+    elif field_type == "sentiment":
+        value_col = "ts.sentiment"
+        distinct_clause = " distinct on (date_actual) "
+        field_clause = f", c.name  || ' - Sentiment - ' || {suffix} as field"
+        joint_topic_clause = " "
+    
+    q = (
+        f'''
+        
+            select
+                {distinct_clause}
+                d.date_actual as date
+                , {value_col} as value
+                {field_clause}
+            from {tablename(topic_table)} ttip
+            join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
+            join {tablename(models.Date)} d on ttip.date_id = d.id
+            join {tablename(models.Country)} c on c.country_code = {country_id}
+            {joint_topic_clause}
+            where 
+                (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
+                and ttip.country_id = {country_id}
+                {topic_clause}
+                {sentiment_clause}
+                {emotion_clause}
+            ;
+        '''
+    )
+    
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result    
+
+
+async def chart_studio_time_series_from_ssi(
+    pool, country_id: int, start_date: int, end_date: int, conditions
+):
+    nested_dicts = lambda: defaultdict(nested_dicts)
+    b = nested_dicts()
+    for cond in conditions:
+        op = b[cond["field"]][cond["operator"]]
+        if not op:
+            b[cond["field"]][cond["operator"]] = [cond["value"]]
+            
+        else:
+            b[cond["field"]][cond["operator"]].append(cond["value"])
+    ssi_field_ids = []
+    if b["Topic"].get("IS"): 
+        ssi_field_ids = b["Topic"]["IS"]
+    if not ssi_field_ids:
+        return []
+    field_clause = f"({', '.join(str(x) for x in ssi_field_ids)})"
+    q = (
+        f'''
+        with field_names as (
+            select 
+                lower(t.topic) as topic_name
+            from {tablename(models.Topic)} t
+            where t.id in {field_clause}
+        )
+        select
+            d.date_actual as date
+            , sda.value as value
+            , c.name || ' - ' || sf.field || ' - (SSI)' as field
+        from {tablename(models.SSIDayAgg)} sda
+        join {tablename(models.Date)} d on sda.date_id = d.id
+        join {tablename(models.Country)} c on c.country_code = {country_id}
+        join {tablename(models.SSIField)} sf on sda.ssi_field_id = sf.id
+        join field_names f on lower(f.topic_name) = lower(sf.field)
+        where 
+            sda.date_id >= {start_date} and sda.date_id <= {end_date}
+            and sda.country_id = {country_id} 
+        ;
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
+

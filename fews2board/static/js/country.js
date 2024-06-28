@@ -57,6 +57,11 @@ window.countryConditions = {
     "tg": [], "mc": []
 }
 
+window.tgMessagesOffset = 0;
+window.tgMessagesLimit = 10;
+window.mcMessagesOffset = 0;
+window.mcMessagesLimit = 10;
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 
@@ -818,8 +823,9 @@ function MCStoryCard(author, storyUrl, body, timestamp){
 
 async function MCStoryWidget(){
     let MAX_LEN = 300;
-    $(`#mc-stories`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-
+    if (window.mcMessagesOffset == 0) {
+        $(`#mc-stories`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    }
     let base_endpoint = `/${window.country}/mc_stories`;
     let queryParams = $.param(
         {
@@ -827,7 +833,8 @@ async function MCStoryWidget(){
             end_date: window.mcEndDate,
             conditions: JSON.stringify(window.countryConditions["mc"]),
             sorted_by: 'date',
-            limit: 10
+            limit: window.mcMessagesLimit,
+            offset: window.mcMessagesOffset
         },
         true
     );
@@ -836,20 +843,27 @@ async function MCStoryWidget(){
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-        if (data.length == 0) {
+        if (data.length == 0 && window.mcMessagesOffset == 0) {
             $(`#mc-stories`).html(noDataHTML);
         } else {
-            $(`#mc-stories`).html('');
-            $('#mc-stories').append(
-                `<div class="widget-title">News Stories</div>
-                <br>
-                <br>
-                <div class="table-container">
-                    <div class="" id="mc-stories-content">
+            if (window.mcMessagesOffset == 0){
+                $(`#mc-stories`).html('');
+                $('#mc-stories').append(
+                    `<div class="widget-title">News Stories</div>
+                    <br>
+                    <br>
+                    <div class="table-container" id="scrollable-stories">
+                        <div class="" id="mc-stories-content">
+                        </div>
                     </div>
-                </div>
-                `
-            )
+                    `)
+                    $('#scrollable-stories').scroll(function() {
+                        if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+                            window.mcMessagesOffset += window.mcMessagesLimit;
+                            MCStoryWidget();
+                        }
+                    });
+            }
             data.forEach(function(d) {
                 let author_username = d.username ? d.username : '';
                 let body = d.body ? d.body : '';
@@ -873,8 +887,9 @@ async function MCStoryWidget(){
 
 async function TgMessageWidget(){
     let MAX_LEN = 300;
-    $(`#tg-messages`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-    
+    if (window.tgMessagesOffset == 0) {
+        $(`#tg-messages`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    }
 
     let base_endpoint = `/${window.country}/tg_messages`;
     let queryParams = $.param(
@@ -884,7 +899,9 @@ async function TgMessageWidget(){
             conditions: JSON.stringify(window.countryConditions["tg"]),
             entity: 'location',
             sorted_by: 'date',
-            limit: 30
+            limit: window.tgMessagesLimit,
+            offset: window.tgMessagesOffset
+            
         },
         true
     );
@@ -894,20 +911,29 @@ async function TgMessageWidget(){
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-        if (data.length == 0) {
+        if (data.length == 0 && window.tgMessagesOffset == 0) {
             $(`#tg-messages`).html(noDataHTML);
         } else {
-            $(`#tg-messages`).html('');
-            $('#tg-messages').append(
-                `<div class="widget-title">Conversations</div>
-                <br>
-                <br>
-                <div class="table-container">
-                    <div class="" id="tg-messages-content">
+            if (window.tgMessagesOffset == 0) {
+                $(`#tg-messages`).html('');
+                $('#tg-messages').append(
+                    `<div class="widget-title">Conversations</div>
+                    <br>
+                    <br>
+                    <div class="table-container" id="scrollable-messages">
+                        <div id="tg-messages-content">
+                        </div>
                     </div>
-                </div>
-                `
-            )
+                    `
+                )
+                $('#scrollable-messages').scroll(function() {
+                    
+                    if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+                        window.tgMessagesOffset += window.tgMessagesLimit;
+                        TgMessageWidget();
+                    }
+                });
+            }
             data.forEach(function(d) {
                 let author_username = d.username ? d.username : '';
                 let body = d.body ? d.body : '';
@@ -1044,6 +1070,9 @@ $(document).ready(async function (){
         let index = parts[parts.length - 1];
         fillOperatorAndValue(stream, index);
     });
+    
+    
+    
     
     $(document).on('click', '.condition-mod', function(e){
         let logic = $(this).attr('value');

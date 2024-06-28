@@ -1178,3 +1178,17 @@ input.discard{
 #create-chart-button {
     width: 15%;
 }
+
+.vh50{
+    min-height: none;
+    max-height: none;
+    height: 50vh;
+
+}
+
+.vh60{
+    min-height: none;
+    max-height: none;
+    height: 60vh;
+
+}

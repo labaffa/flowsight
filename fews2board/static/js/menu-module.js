@@ -82,11 +82,11 @@ export var studioFilterStructure = {
     "fields": {
         0: {"name": "Attention (social)", "stream": "tg", "type": "attention"}, 
         1: {"name": "Sentiment (social)", "stream": "tg", "type": "sentiment"}, 
-        // 2: {"name": "Emotion (social)", "stream": "tg", "type": "emotion"}, 
+        2: {"name": "Emotion (social)", "stream": "tg", "type": "emotion"}, 
         3: {"name": "Synthetic Search Index", "stream": "si", "type": "ssi_index"},
         4: {"name": "Attention (media)", "stream": "mc", "type": "attention"},
         5: {"name": "Sentiment (media)", "stream": "mc", "type": "sentiment"},
-        // 6: {"name": "Emotion (media)", "stream": "mc", "type": "emotion"}
+        6: {"name": "Emotion (media)", "stream": "mc", "type": "emotion"}
     },
     "variables": {
         0: {"name": "Title", "value": "titleText"}, 

@@ -167,11 +167,11 @@ function initTopicField(eleId){
         a.push({"label": t.name, "value": t.country_id})
         }
     })
-    console.log(a)
+    
     // placeHolder = `-- ${placeHolder} [${options.length}] --`
     VirtualSelect.init({
       ele: eleId,
-      options: a,
+      options: a.sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase())),
       multiple: true,
       search: false,
       disableSelectAll: true,
@@ -451,6 +451,31 @@ $(document).on('change', '.field-select', function (e) {
     let index = parts[parts.length - 1];
     fillOperatorAndValue(stream, index);
 });
+$(document).on('click', '.condition-mod', function(e){
+    if ($(this).hasClass('add-field')) {
+        return
+    }
+    
+    let logic = $(this).attr('value');
+    let parts = $(this).attr('id').split('-');
+    let stream = parts[0];
+    let index = parts[parts.length - 1];
+    if (logic.toLowerCase() == 'remove'){
+        let conditionNumber = $(`#${stream}-query-form .condition`).length;
+        if (!(conditionNumber == 1)){
+
+            $(`#${stream}-condition-${index}`).remove();
+        } 
+        if ($(`#${stream}-query-form .condition`).length == 1){
+            $(`#${stream}-query-form .condition .logic-container`).remove();
+        };
+        $($(`#${stream}-query-form .condition`).first()).find('.logic-container').remove()
+
+    } else { 
+        addCon(`${stream}-query-form`, logic);
+        
+    }
+});
 $('.reset-button').on('click', async function (){
     let parts = $(this).attr('id').split('-');
     let stream = parts[0];
@@ -460,23 +485,15 @@ $('.reset-button').on('click', async function (){
     fillSearchBar(stream);
 });
 $('#studio-generate-query-button').on('click', function(){
-    if (window.selectedCountries.length == 0) {
-        alert('Select at least one country from dropdown menu')
-        return
-    }
+   
     // ALARM:  aggiungere la country!!!
-    let parts = $(this).attr('id').split('-');
-    let stream = parts[0];
-        
+    
+    // let parts = $(this).attr('id').split('-');
+    // let stream = parts[0];
+    let stream = 'studio' ;
     let conditions = $(`#${stream}-query-form .condition`);
     
-    let start_date = $(`#${stream}-filter-bar .datepicker`).data(
-        'daterangepicker').startDate.format('YYYYMMDD')
-
-    let end_date = $(`#${stream}-filter-bar .datepicker`).data(
-            'daterangepicker').endDate.format('YYYYMMDD')
-    start_date = parseInt(start_date);
-    end_date = parseInt(end_date);   
+    
     let payload = [];
     conditions.each(function() {
         let field = $($(this).find('.field-condition select')[0]).val();
@@ -505,20 +522,28 @@ $('#studio-generate-query-button').on('click', function(){
         })
     window.countryConditions[stream] = payload;
     fillSearchBar(stream);
-    if (window.countryConditions[stream].length == 0) {
-        alert('Query empty. Select at least one field.')
+});
+
+$('#create-chart-button').on('click', function(){
+    if (window.selectedCountries.length == 0) {
+        alert('Select at least one country from dropdown menu')
         return
     }
-    // let studio_endpoint = `/${window.country}/studio_line_chart`;
-    // let studioQueryParams = $.param(
-    //     {
-    //         start_date: start_date,
-    //         end_date: end_date,
-    //         conditions: JSON.stringify(window.countryConditions[stream]),
-    //         fields: JSON.stringify(Object.values(window.selectedFields))
-    //     },
-    //     true
-    // );
+    if (window.countryConditions['studio'].length == 0) {
+        alert('Query empty. Select at least one field')
+        return
+    }
+    if (Object.keys(window.selectedFields).length == 0) {
+        alert('Select at least one field from Available Fields')
+    }
+    let stream = 'studio';
+    let start_date = $(`#${stream}-filter-bar .datepicker`).data(
+        'daterangepicker').startDate.format('YYYYMMDD')
+
+    let end_date = $(`#${stream}-filter-bar .datepicker`).data(
+            'daterangepicker').endDate.format('YYYYMMDD')
+    start_date = parseInt(start_date);
+    end_date = parseInt(end_date);   
     let studio_endpoint = `/studio_line_chart`;
     let studioQueryParams = $.param(
         {
@@ -539,14 +564,13 @@ $('#studio-generate-query-button').on('click', function(){
         let input = $(this).find('input').val();
         customOptions[`${value}`] = input;
     });
-    console.log(customOptions)
     // let customOptions = {titleText: 'Attention'};
     $(`#studio-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     renderLineChartFromUrl(
         `studio-chart`, studioUrl, customOptions, 'date'
     )
-
 });
+
 $(document).ready(async function (){
     $('.form-open').on('click', function (){
         

@@ -646,9 +646,13 @@ async def domain_prevalences_in_period_for_country(
         select 
             d.date_actual as date
             , d2.name as domain
-            , avg(topic_norm_prevalence) as value
+            -- , avg(topic_norm_prevalence) as value
+            , sum(ttip.topic_norm_prevalence)/tdc.count  AS value
         from {tablename(topic_model)} ttip
         join {tablename(sentiment_model)} ts on ttip.{record_col_name} = ts.{record_col_name}
+            and (ttip.country_id = ts.country_id)
+        join {tablename(models.TgDailyCounts)} tdc on 
+            tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
         join {tablename(models.Date)} d on ttip.date_id = d.id
         join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
         join {tablename(models.Domain)} d2 on t.domain_id = d2.id
@@ -659,7 +663,7 @@ async def domain_prevalences_in_period_for_country(
             {sentiment_clause} 
             {emotion_clause} 
         
-        group by d.date_actual, d2.name
+        group by ttip.country_id, d.date_actual, d2.name, tdc.count
         ;
         '''
     )
@@ -1573,6 +1577,7 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
                 ,'prev' as _type
             from {tablename(topic_model)} ttip
             join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
+                and ttip.country_id = ts.country_id
             where  
                 ttip.date_id between {prev_start_date} and {prev_end_date}
                 and ttip.country_id = {country_id}
@@ -1587,6 +1592,7 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
                 , 'latest' as _type
             from {tablename(topic_model)} ttip
             join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
+                and ttip.country_id = ts.country_id
             where  
                 ttip.date_id between {start_date} and {end_date}
                 and ttip.country_id = {country_id}
@@ -1622,6 +1628,7 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
             from tot_messages l
             join  {tablename(topic_model)} ttip on l.{record_id_name} = ttip.{record_id_name}
             join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
+                and ttip.country_id = ts.country_id
             join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
             join {tablename(models.Domain)} d on t.domain_id = d.id
             join latest_count on true
@@ -1631,6 +1638,7 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
             ;
                 '''
         )
+    print(q)
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)

@@ -22,7 +22,7 @@ from asyncio import gather
 
 router = fastapi.APIRouter()
 templates = Jinja2Templates(directory="fews2board/templates")
-
+EMOTIONS = ['anger', 'anticipation', 'disgust', 'fear', 'joy', 'sadness', 'surprise', 'trust']
 
 @router.get("/studio_line_chart")
 async def get_studio_time_series(
@@ -43,7 +43,6 @@ async def get_studio_time_series(
             combined_fields.append(c_field)
 
     sql_coros = []
-    print(combined_fields)
     for x in combined_fields:
         if x["stream"] == "si":
             sql_coros.append(utils.chart_studio_time_series_from_ssi(
@@ -60,8 +59,15 @@ async def get_studio_time_series(
     fields_set = set()
     response = []
     for d in data:
-        by_field[d["date"]][d["field"]] = d["value"]
-        fields_set.add(d["field"])
+        if '- emotion -' in d["field"].lower():
+            cou, _, suffix = d["field"].split("-")
+            for emotion, value in d["value"].items():
+                field = cou.strip() + f' - {emotion} - ' + suffix.strip()
+                by_field[d["date"]][field] = value
+                fields_set.add(field)
+        else:
+            by_field[d["date"]][d["field"]] = d["value"]
+            fields_set.add(d["field"])
     for day in by_field:
         day_data = {"date": day}
         for field in fields_set:

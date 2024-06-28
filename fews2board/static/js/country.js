@@ -264,7 +264,7 @@ function extractLatestValue(htmlString) {
     return latestSpan ? parseFloat(latestSpan.textContent) : 0;
 }
 
-async function TalkingPoints(containerId, stream, endP='/talking_points', conditions=""){
+async function TalkingPoints(containerId, stream, endP='/talking_points_on_conditions', conditions=""){
     $(`#${containerId}`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     let base_endpoint = `/${window.country}${endP}`;
     let startD, endD;

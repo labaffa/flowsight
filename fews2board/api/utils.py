@@ -1700,23 +1700,39 @@ async def chart_studio_time_series_from_stream(
     else:
         raise ValueError(f'Stream {stream} not allowed')
     if field_type == "attention":
-        value_col = "ttip.topic_norm_prevalence"
+        value_clause = ", ttip.topic_norm_prevalence as value"
         distinct_clause = ""
         field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
         joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"
     elif field_type == "sentiment":
-        value_col = "ts.sentiment"
+        value_clause = ", ts.sentiment as value"
         distinct_clause = " distinct on (date_actual) "
         field_clause = f", c.name  || ' - Sentiment - ' || {suffix} as field"
         joint_topic_clause = " "
-    
+    elif field_type == "emotion":
+        value_clause = (
+            """, json_build_object(
+                    'anger', anger,
+                    'anticipation', anticipation,
+                    'disgust', disgust,
+                    'fear', fear,
+                    'joy', joy,
+                    'sadness', sadness,
+                    'surprise', surprise,
+                    'trust', trust
+                ) AS value  
+            """
+            )
+        distinct_clause = " distinct on (date_actual) "
+        field_clause = f", c.name  || ' - Emotion - ' || {suffix} as field"
+        joint_topic_clause = " "
     q = (
         f'''
         
             select
                 {distinct_clause}
                 d.date_actual as date
-                , {value_col} as value
+                {value_clause}
                 {field_clause}
             from {tablename(topic_table)} ttip
             join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}

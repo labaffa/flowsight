@@ -832,7 +832,11 @@ async def ssi_fields_series(
 
 
 async def tg_messages_no_duplicates(
-    pool, country_id: int, alpha_2: str, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None
+    pool, country_id: int, alpha_2: str, 
+    start_date: int, end_date: int, sorted_by: str="date", 
+    limit: int=10, 
+    conditions=None, 
+    offset: int=10
 ):
     
     model = models.TgMessageCountry[alpha_2]
@@ -883,6 +887,7 @@ async def tg_messages_no_duplicates(
         --     sub
         -- order by sub.timestamp desc
         limit {limit}
+        offset {offset}
         ;
 
         '''
@@ -1102,7 +1107,9 @@ def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_ali
 
 
 async def mc_stories(
-    pool, country_id: int, start_date: int, end_date: int, sorted_by: str="date", limit: int=10, conditions=None):
+    pool, country_id: int, start_date: int, end_date: 
+    int, sorted_by: str="date", 
+    limit: int=10, conditions=None, offset: int = 0):
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
@@ -1135,6 +1142,7 @@ async def mc_stories(
            {emotion_clause} 
         order by {col} desc 
         limit {limit}
+        offset {offset}
         ;
         '''
     )

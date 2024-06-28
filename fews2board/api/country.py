@@ -217,6 +217,7 @@ async def get_telegram_messages(
     conditions: str="",
     sorted_by: str="date",
     limit: int = 10,
+    offset: int = 0
     
 ):
     try:    
@@ -228,7 +229,7 @@ async def get_telegram_messages(
         )
     conditions = json.loads(conditions) if conditions else None
     response = await utils.tg_messages_no_duplicates(
-        request.app.async_pool, country_id, alpha_2, start_date, end_date, sorted_by, limit, conditions
+        request.app.async_pool, country_id, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset
     )
     response = list({x["unique_id"]: x for x in response}.values())
     return response
@@ -295,7 +296,8 @@ async def get_mediacloud_stories(
     end_date: int,
     sorted_by: str="date",
     limit: int = 10,
-    conditions: str=""
+    conditions: str="",
+    offset: int = 0
 ):  
     conditions = json.loads(conditions) if conditions else None
     try:    
@@ -306,7 +308,7 @@ async def get_mediacloud_stories(
             status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
         )
     response = await utils.mc_stories(
-        request.app.async_pool, country_id, start_date, end_date, sorted_by, limit, conditions
+        request.app.async_pool, country_id, start_date, end_date, sorted_by, limit, conditions, offset
     )
     # remove duplicates
     response = list({x["id"]: x for x in response}.values())

@@ -57,10 +57,12 @@ window.countryConditions = {
     "tg": [], "mc": []
 }
 
-window.tgMessagesOffset = 0;
-window.tgMessagesLimit = 10;
-window.mcMessagesOffset = 0;
-window.mcMessagesLimit = 10;
+window.MessagesOffset = {
+    "tg": 0, "mc": 0
+};
+window.MessagesLimit = {
+    "tg": 10, "mc": 10
+}
 
 window.tgMessageMaxLen = 300;
 window.mcStoryMaxLen = 300;
@@ -829,7 +831,7 @@ function MCStoryCard(author, storyUrl, body, timestamp, topics){
 
 async function MCStoryWidget(){
     let MAX_LEN = 300;
-    if (window.mcMessagesOffset == 0) {
+    if (window.MessagesOffset["mc"] == 0) {
         $(`#mc-stories`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     }
     let base_endpoint = `/${window.country}/mc_stories`;
@@ -839,8 +841,8 @@ async function MCStoryWidget(){
             end_date: window.mcEndDate,
             conditions: JSON.stringify(window.countryConditions["mc"]),
             sorted_by: 'date',
-            limit: window.mcMessagesLimit,
-            offset: window.mcMessagesOffset
+            limit: window.MessagesLimit["mc"],
+            offset: window.MessagesOffset["mc"]
         },
         true
     );
@@ -849,10 +851,10 @@ async function MCStoryWidget(){
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-        if (data.length == 0 && window.mcMessagesOffset == 0) {
+        if (data.length == 0 && window.MessagesOffset["mc"] == 0) {
             $(`#mc-stories`).html(noDataHTML);
         } else {
-            if (window.mcMessagesOffset == 0){
+            if (window.MessagesOffset["mc"] == 0){
                 $(`#mc-stories`).html('');
                 $('#mc-stories').append(
                     `<div class="widget-title">News Stories</div>
@@ -865,7 +867,7 @@ async function MCStoryWidget(){
                     `)
                     $('#scrollable-stories').scroll(function() {
                         if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
-                            window.mcMessagesOffset += window.mcMessagesLimit;
+                            window.MessagesOffset["mc"] += window.MessagesLimit["mc"];
                             MCStoryWidget();
                         }
                     });
@@ -912,7 +914,7 @@ async function MCStoryWidget(){
 
 async function TgMessageWidget(){
     
-    if (window.tgMessagesOffset == 0) {
+    if (window.MessagesOffset["tg"] == 0) {
         $(`#tg-messages`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     }
 
@@ -924,8 +926,8 @@ async function TgMessageWidget(){
             conditions: JSON.stringify(window.countryConditions["tg"]),
             entity: 'location',
             sorted_by: 'date',
-            limit: window.tgMessagesLimit,
-            offset: window.tgMessagesOffset
+            limit: window.MessagesLimit["tg"],
+            offset: window.MessagesOffset["tg"]
             
         },
         true
@@ -936,10 +938,10 @@ async function TgMessageWidget(){
     await fetch(url).then(
         response => response.json()
     ).then(data => {
-        if (data.length == 0 && window.tgMessagesOffset == 0) {
+        if (data.length == 0 && window.MessagesOffset["tg"] == 0) {
             $(`#tg-messages`).html(noDataHTML);
         } else {
-            if (window.tgMessagesOffset == 0) {
+            if (window.MessagesOffset["tg"] == 0) {
                 $(`#tg-messages`).html('');
                 $('#tg-messages').append(
                     `<div class="widget-title">Conversations</div>
@@ -954,7 +956,7 @@ async function TgMessageWidget(){
                 $('#scrollable-messages').scroll(function() {
                     
                     if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
-                        window.tgMessagesOffset += window.tgMessagesLimit;
+                        window.MessagesOffset["tg"] += window.MessagesLimit["tg"];
                         TgMessageWidget();
                     }
                 });
@@ -1148,6 +1150,7 @@ $(document).ready(async function (){
         let stream = parts[0];
         //window.conditionCounter[stream] = 0;
         window.countryConditions[stream] =  [];
+        window.MessagesOffset[stream] = 0;
         $(`#${stream}-query-form`).html('');
         addCon(`${stream}-query-form`);
         renderCharts();
@@ -1198,6 +1201,7 @@ $(document).ready(async function (){
             alert('Query empty. Select at least one field.')
             return
         }
+        window.MessagesOffset[stream] = 0;
         $('.builder-container').hide();
         $('#modal-overlay').hide();
         let base_endpoint = `/${window.country}/filter_attention_trends`;

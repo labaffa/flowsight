@@ -1,5 +1,5 @@
-import { renderBarChart } from "./charts/bar-chart-module.js";
-import { renderLineChart } from "./charts/line-chart-module.js";
+import { renderBarChart, renderBarChartFromUrl } from "./charts/bar-chart-module.js";
+import { renderLineChart, renderLineChartFromUrl } from "./charts/line-chart-module.js";
 import { renderWordCloud } from "./charts/wordcloud-module.js";
 
 
@@ -75,9 +75,8 @@ export var filterStructure = {
 
 export var studioFilterStructure = {
     "charts": {
-        0: {"name": "Line Chart", "endpoint": "/{alpha_2}/filter_attention_trends", "chart": renderLineChart}, 
-        1: {"name": "Wordcloud", "endpoint": ""}, 
-        2: {"name": "Bar Chart", "endpoint": ""}
+        0: {"name": "Line Chart", "endpoint": "/studio_line_chart", "chart": renderLineChartFromUrl}, 
+        1: {"name": "Bar Chart", "endpoint": "/studio_bar_chart", "chart": renderBarChartFromUrl}
     },
     "fields": {
         0: {"name": "Attention (social)", "stream": "tg", "type": "attention"}, 

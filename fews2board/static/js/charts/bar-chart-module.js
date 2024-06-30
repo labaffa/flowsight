@@ -126,9 +126,11 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 		titleText: 'Bar Chart Title',
 		xAxisLabelsEnabled: false,
 		xAxisRotationAngle: 0,
-		xAxisTitleEnabled: false,
-		yAxisTitleEnabled: false,
-		yAxisTitleText: 'Value',
+		xAxisTitleEnabled: true,
+		yAxisTitleEnabled: true,
+		yAxisTitleText: undefined,
+		xAxisTitleText: undefined,
+		
 	};
 
 	// Merge custom options with default options
@@ -148,16 +150,19 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 			text: opts.titleText,
 		},
 		xAxis: {
+			className: 'hc-xAxis',
 			categories: categories,
 			labels: {
 				enabled: opts.xAxisLabelsEnabled,
 				rotation: opts.xAxisRotationAngle,
 			},
 			title: {
-				enabled: opts.xAxisTitleEnabled
+				enabled: opts.xAxisTitleEnabled,
+				text: opts.xAxisTitleText
 			},
 		},
 		yAxis: {
+			className: 'hc-yAxis',
 			title: {
 				enabled: opts.yAxisTitleEnabled,
 				text: opts.yAxisTitleText,

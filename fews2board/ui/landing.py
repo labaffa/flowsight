@@ -6,6 +6,7 @@ from fews2board import config
 from fews2board.api import utils
 from collections import defaultdict
 import copy
+from asyncio import gather
 
 router = fastapi.APIRouter()
 templates = Jinja2Templates(directory="fews2board/templates")
@@ -26,8 +27,13 @@ async def read_landing(
     nested_dicts = lambda: defaultdict(nested_dicts)
     map_input = nested_dicts()
     
-    topics = await utils.get_framework(request.app.async_pool)
-    map_data = await utils.latest_attention_and_sentiment_per_domain(request.app.async_pool)
+    sql_coros = [
+        utils.get_framework(request.app.async_pool),
+        utils.latest_attention_and_sentiment_per_domain(request.app.async_pool)
+    ]
+    sql_result = await gather(*sql_coros)
+    topics = sql_result[0]
+    map_data = sql_result[1]
     map_data_dict = {x["alpha_2"]: x for x in map_data}
     domains = {t["domain_id"]: t["domain"] for t in topics}
     for r in map_data:

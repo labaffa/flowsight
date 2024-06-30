@@ -74,3 +74,45 @@ async def get_studio_time_series(
             day_data[field] = by_field[day].get(field)
         response.append(day_data)
     return response
+
+
+@router.get("/studio_bar_chart")
+async def get_studio_time_series(
+    request: fastapi.Request,
+    start_date: int,
+    end_date: int,
+    fields,
+    countries, 
+    conditions: str=""
+):
+    conditions = json.loads(conditions) if conditions else None
+    fields = json.loads(fields)
+    countries = json.loads(countries)
+    combined_fields = []
+    for f in fields:
+        for c in countries:
+            c_field = {**f, "country_id": int(c)}
+            combined_fields.append(c_field)
+    sql_coros = []
+    for x in combined_fields:
+        if x["stream"] == "si":
+            sql_coros.append(utils.chart_studio_bar_chart_from_ssi(
+                request.app.async_pool, x["country_id"], start_date, end_date, conditions
+            ))
+        else:
+            sql_coros.append(utils.chart_studio_bar_chart_from_stream(
+                request.app.async_pool, conditions, x["country_id"], start_date, end_date, x
+                )
+            )
+    sql_responses = await gather(*sql_coros)
+    data = [x for r in sql_responses for x in r]
+    response = []
+    for d in data:
+        if ('- emotion -' in d["field"].lower()) or ('- sentiment -' in d["field"].lower()):
+            cou, _, suffix = d["field"].split("-")
+            for emotion, value in d["frequency"].items():
+                field = cou.strip() + f' - {emotion} - ' + suffix.strip()
+                response.append({"field": field, "frequency": value})
+        else:
+            response.append(d)
+    return response

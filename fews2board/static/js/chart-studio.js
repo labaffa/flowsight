@@ -1,5 +1,5 @@
 import { filterStructure, studioFilterStructure } from "./menu-module.js";
-import { renderBarChart } from "./charts/bar-chart-module.js";
+import { renderBarChart, renderBarChartFromUrl } from "./charts/bar-chart-module.js";
 import { processChartData, renderLineChart, renderLineChartFromUrl } from "./charts/line-chart-module.js";
 import { renderWordCloud } from "./charts/wordcloud-module.js";
 
@@ -522,7 +522,10 @@ $('#studio-generate-query-button').on('click', function(){
         })
     window.countryConditions[stream] = payload;
     fillSearchBar(stream);
+    $('.builder-container').hide();
+    $('#modal-overlay').hide();
 });
+
 
 $('#create-chart-button').on('click', function(){
     if (window.selectedCountries.length == 0) {
@@ -544,7 +547,7 @@ $('#create-chart-button').on('click', function(){
             'daterangepicker').endDate.format('YYYYMMDD')
     start_date = parseInt(start_date);
     end_date = parseInt(end_date);   
-    let studio_endpoint = `/studio_line_chart`;
+    let studio_endpoint = studioFilterStructure['charts'][window.selectedChart]['endpoint'];
     let studioQueryParams = $.param(
         {
             start_date: start_date,
@@ -566,9 +569,14 @@ $('#create-chart-button').on('click', function(){
     });
     // let customOptions = {titleText: 'Attention'};
     $(`#studio-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-    renderLineChartFromUrl(
-        `studio-chart`, studioUrl, customOptions, 'date'
-    )
+    if (window.selectedChart == 0) {
+        renderLineChartFromUrl(
+            `studio-chart`, studioUrl, customOptions, 'date'
+        )
+    } else if (window.selectedChart == 1){
+        let mappingKeys = {'categoryKey': 'field', 'valueKey': 'frequency'};
+        renderBarChartFromUrl('studio-chart', studioUrl, mappingKeys, customOptions)
+    }
 });
 
 $(document).ready(async function (){

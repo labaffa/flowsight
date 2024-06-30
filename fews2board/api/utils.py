@@ -859,33 +859,28 @@ async def tg_messages_no_duplicates(
     
     q = (
         f'''
-        --  select 
-        --     sub.username,
-        --     sub.timestamp,
-        --     sub.body
-        -- from (
-            select distinct 
-                ms.unique_id as unique_ID
+            select 
+                -- distinct 
+                ms.unique_id as unique_id
                 , ms.username as username
                 , ms.author_username as author_username
                 , ms.message_id as message_id
                 , ms.timestamp as timestamp
                 , ms.body as body
+                , array_agg(t.topic) AS detected_topics
             from {tablename(models.TgTopicIdPositive)} ttip 
             join {tablename(models.TgSentiment)} ts on ttip.message_unique_id  = ts.message_unique_id
+                and (ttip.country_id = ts.country_id)
             join {tablename(model)} ms on ttip.message_unique_id = ms.unique_id
-            
+            join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
             where 
                 ttip.country_id = {country_id} and 
                 ttip.date_id  BETWEEN {start_date} and {end_date}
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
+            group by ms.unique_id, ms.author_username, ms.username, ms.message_id, ms.timestamp, ms.body
             order by {col} desc 
-            
-        --     ) 
-        --     sub
-        -- order by sub.timestamp desc
         limit {limit}
         offset {offset}
         ;
@@ -959,7 +954,7 @@ def generate_sql(conditions, start_date, end_date):
 
     b = nested_dicts()
     for cond in conditions:
-        print(cond)
+        
         op = b[cond["field"]][cond["operator"]]
         if not op:
             b[cond["field"]][cond["operator"]] = [cond["value"]]
@@ -1036,6 +1031,7 @@ async def mc_stories_no_duplicates(
                 , ms.title as body
             from {tablename(models.MCSentiment)} ts 
             join {tablename(models.MCTopicIdPositive)} ttip on ts.story_id = ttip.story_id
+                and (ttip.country_id = ts.country_id)
             join {tablename(models.MCStory)} ms on ms.id = ts.story_id
             where 
                 ms.country_id = {country_id} and 
@@ -1078,19 +1074,16 @@ def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_ali
         sentiment_sub_conds = []
         for key, values in b["Sentiment"].items():
             for v in values:
-                sub_cond = f'{sent_table_alias}.positive - {sent_table_alias}.negative '
-                sub_cond_add = None
                 if v.lower() == "negative" and key.lower() == "is":
-                    sub_cond_add = " < 0 "
+                    sentiment_sub_conds.append(f' {sent_table_alias}.sentiment < 0')
                 if v.lower() == "negative" and key.lower() == "is not":
-                    sub_cond_add = " >= 0 "
+                    sentiment_sub_conds.append(f' {sent_table_alias}.sentiment >= 0 ')
                 if v.lower() == "positive" and key.lower() == "is":
-                    sub_cond_add = " > 0 "
+                    sentiment_sub_conds.append(f' {sent_table_alias}.sentiment > 0 ')
                 if v.lower() == "positive" and key.lower() == "is not":
-                    sub_cond_add = " <= 0 "
-                sub_cond += sub_cond_add
-                sentiment_sub_conds.append(sub_cond)
+                    sentiment_sub_conds.append(f' {sent_table_alias}.sentiment <= 0 ')
         sentiment_clause = f' AND ({" AND ".join(sentiment_sub_conds)})'
+        
     if b["Emotion"].get("IS") or b["Emotion"].get("IS NOT"):
         emotion_clause = (
             f'''
@@ -1126,20 +1119,25 @@ async def mc_stories(
     q = (
         f'''
         select 
+            -- distinct
             ms.id
             , ms.media_name as username
             , ms.url as url
             , ms.publish_date as timestamp
             , ms.title as body
+            , array_agg(t.topic) AS detected_topics
         from {tablename(models.MCSentiment)} ts 
         join {tablename(models.MCTopicIdPositive)} ttip on ts.story_id = ttip.story_id
+            -- and (ttip.country_id = ts.country_id)
         join {tablename(models.MCStory)} ms on ms.id = ts.story_id
+        join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
         where 
             ms.country_id = {country_id} and 
             ms.publish_date::DATE between '{start_date}' and '{end_date}' 
            {topic_clause} 
            {sentiment_clause} 
            {emotion_clause} 
+        group by ms.id, ms.media_name, ms.url, ms.publish_date, ms.title
         order by {col} desc 
         limit {limit}
         offset {offset}
@@ -1260,10 +1258,13 @@ async def time_series_from_filtered_messages(
         
             select
                 ttip.date_id as date_id
-                , ttip.topic_norm_prevalence as value
+                , sum(ttip.topic_norm_prevalence)/tdc.count as value
                 , t.topic as topic
             from {tablename(topic_table)} ttip
             join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
+                and (ttip.country_id = ts.country_id)
+            join {tablename(models.TgDailyCounts)} tdc on 
+                tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
             join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
             where 
                 (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
@@ -1271,6 +1272,7 @@ async def time_series_from_filtered_messages(
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
+            group by ttip.country_id, ttip.date_id, t.topic, tdc.count
             ;
         '''
     )
@@ -1326,10 +1328,11 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
                 AND cm.date_id BETWEEN {start_date} AND {end_date}
         )
             select
-                sum(ttip.topic_norm_prevalence)/(SELECT total_count FROM total_count) as frequency
+                sum(1)::float/(SELECT total_count FROM total_count) as frequency
                 , t.topic as topic
             from {tablename(topic_model)} ttip
             join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
+                and (ts.country_id = ttip.country_id)
             join {tablename(models.Topic)} as t on ttip.topic_unique_id = t.id
             
             where 
@@ -1401,6 +1404,7 @@ async def hot_topics_without_topic_condition(
                 
             from {tablename(topic_model)} ttip
             join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
+                and (ttip.country_id = ts.country_id)
             join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
             join {tablename(models.Domain)} dom on t.domain_id = dom.id 
             
@@ -1485,6 +1489,7 @@ async def talking_points_on_conditions_bkp(pool, conditions, country_id, start_d
                 , avg(sentiment) as prev_sentiment
             from {tablename(models.TgTopicIdPositive)} ttip
             join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
+             and (ttip.country_id = ts.country_id)
             join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
             join pcounts on true
             
@@ -1506,6 +1511,7 @@ async def talking_points_on_conditions_bkp(pool, conditions, country_id, start_d
         
         from {tablename(models.TgTopicIdPositive)} ttip
         join {tablename(models.TgSentiment)} ts on ttip.message_unique_id = ts.message_unique_id
+            and (ttip.country_id = ts.country_id)
         join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
         join lcounts on true
         left join prev_values on t.domain_id = prev_values.domain_id 
@@ -1646,7 +1652,6 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
             ;
                 '''
         )
-    print(q)
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -1716,42 +1721,48 @@ async def chart_studio_time_series_from_stream(
     else:
         raise ValueError(f'Stream {stream} not allowed')
     if field_type == "attention":
-        value_clause = ", ttip.topic_norm_prevalence as value"
+        value_clause = ", sum(ttip.topic_norm_prevalence)/tdc.count as value"
         distinct_clause = ""
         field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
         joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"
+        group_by_clause = "group by ttip.country_id, d.date_actual, ttip.topic_unique_id, tdc.count, c.name, t.topic"
     elif field_type == "sentiment":
-        value_clause = ", ts.sentiment as value"
+        value_clause = ", avg(ts.sentiment) as value"
         distinct_clause = " distinct on (date_actual) "
         field_clause = f", c.name  || ' - Sentiment - ' || {suffix} as field"
         joint_topic_clause = " "
+        group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
     elif field_type == "emotion":
         value_clause = (
             """, json_build_object(
-                    'anger', anger,
-                    'anticipation', anticipation,
-                    'disgust', disgust,
-                    'fear', fear,
-                    'joy', joy,
-                    'sadness', sadness,
-                    'surprise', surprise,
-                    'trust', trust
+                    'anger', sum(anger::float)/tdc.count,
+                    'anticipation', sum(anticipation::float)/tdc.count,
+                    'disgust', sum(disgust::float)/tdc.count,
+                    'fear', sum(fear::float)/tdc.count,
+                    'joy', sum(joy::float)/tdc.count,
+                    'sadness', sum(sadness::float)/tdc.count,
+                    'surprise', sum(surprise::float)/tdc.count,
+                    'trust', sum(trust::float)/tdc.count
                 ) AS value  
             """
             )
         distinct_clause = " distinct on (date_actual) "
         field_clause = f", c.name  || ' - Emotion - ' || {suffix} as field"
         joint_topic_clause = " "
+        group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
+
     q = (
         f'''
-        
             select
-                {distinct_clause}
+                -- {distinct_clause}
                 d.date_actual as date
                 {value_clause}
                 {field_clause}
             from {tablename(topic_table)} ttip
             join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
+                and ttip.country_id = ts.country_id
+            join {tablename(models.TgDailyCounts)} tdc on 
+                tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
             join {tablename(models.Date)} d on ttip.date_id = d.id
             join {tablename(models.Country)} c on c.country_code = {country_id}
             {joint_topic_clause}
@@ -1761,10 +1772,10 @@ async def chart_studio_time_series_from_stream(
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
+            {group_by_clause}
             ;
         '''
     )
-    
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -1820,3 +1831,167 @@ async def chart_studio_time_series_from_ssi(
     return result
 
 
+async def chart_studio_bar_chart_from_stream(
+    pool, conditions, country_id, start_date, end_date, field
+):
+    """
+    This function must be used only if topics are present in conditions, i.e. the variable topic_clause
+    is not an empty string
+
+    Args:
+        pool (_type_): _description_
+        conditions (_type_): _description_
+        country_id (_type_): _description_
+        start_date (_type_): _description_
+        end_date (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if conditions is not None:
+        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    else:
+        topic_clause, sentiment_clause, emotion_clause = "", "", ""
+    stream, field_type = field["stream"], field["type"]
+    if stream == "tg":
+        topic_model = models.TgTopicIdPositive
+        sentiment_model = models.TgSentiment
+        record_col_name = "message_unique_id"
+        suffix = "' (Social)'"
+        count_model = models.TgDailyCounts
+    elif stream == "mc":
+        topic_model = models.MCTopicIdPositive
+        sentiment_model = models.MCSentiment
+        record_col_name = "story_id"
+        suffix = "' (Media)'"
+        count_model = models.MCDailyCounts
+    else:
+        raise ValueError(f'Stream {stream} not allowed')
+    if field_type == "attention":
+        frequency_clause = " sum(1)::float/(SELECT total_count FROM total_count) as frequency"
+        distinct_clause = ""
+        field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
+        joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"
+        group_by_clause = "group by ttip.country_id, ttip.topic_unique_id, c.name, t.topic"
+        order_clause = ' order by frequency desc '
+    elif field_type == "sentiment":
+        frequency_clause = (
+            """
+             json_build_object(
+                'positive', SUM(CASE WHEN ts.sentiment > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count),
+                'negative', SUM(CASE WHEN ts.sentiment < 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count),
+                'neutral', SUM(CASE WHEN ts.sentiment = 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) 
+            ) as frequency 
+            """
+        )
+        
+        distinct_clause = " distinct on (date_actual) "
+        field_clause = f", c.name  || ' - Sentiment - ' || {suffix} as field"
+        joint_topic_clause = " "
+        group_by_clause = "group by ttip.country_id, c.name " 
+        order_clause = ' '
+    elif field_type == "emotion":
+        frequency_clause = (
+            """ json_build_object(
+                    'anger', SUM(CASE WHEN ts.anger > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) ,
+                    'anticipation', SUM(CASE WHEN ts.anticipation > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) ,
+                    'disgust', SUM(CASE WHEN ts.disgust > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) ,
+                    'fear', SUM(CASE WHEN ts.fear > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) ,
+                    'joy', SUM(CASE WHEN ts.joy > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) ,
+                    'sadness', SUM(CASE WHEN ts.sadness > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) ,
+                    'surprise', SUM(CASE WHEN ts.surprise > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) ,
+                    'trust', SUM(CASE WHEN ts.trust > 0  THEN 1 ELSE 0 END)::float/(SELECT total_count FROM total_count) 
+                ) AS frequency  
+            """
+            )
+        distinct_clause = " distinct on (date_actual) "
+        field_clause = f", c.name  || ' - Emotion - ' || {suffix} as field"
+        joint_topic_clause = " "
+        group_by_clause = "group by ttip.country_id, c.name"
+        order_clause = ' '
+    q = (
+        f'''
+            WITH total_count AS (
+                SELECT
+                    SUM(cm.count) AS total_count
+                FROM {tablename(count_model)} cm
+                WHERE
+                    cm.country_id = {country_id}
+                    AND cm.date_id BETWEEN {start_date} AND {end_date}
+            )
+            select
+                -- {distinct_clause} 
+                {frequency_clause}
+                {field_clause}
+            from {tablename(topic_model)} ttip
+            join {tablename(sentiment_model)} ts on ttip.{record_col_name} = ts.{record_col_name}
+                and (ts.country_id = {country_id})
+            join {tablename(models.Country)} c on c.country_code = ttip.country_Id
+            join {tablename(models.Date)} d on d.id = ttip.date_id
+            {joint_topic_clause}
+            
+            where 
+                (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
+                and ttip.country_id = {country_id}
+                {topic_clause}
+                {sentiment_clause}
+                {emotion_clause}
+            {group_by_clause}
+            {order_clause}
+            ;
+        '''
+    )
+    print(q)
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result    
+
+
+async def chart_studio_bar_chart_from_ssi(
+    pool, country_id: int, start_date: int, end_date: int, conditions
+):
+    nested_dicts = lambda: defaultdict(nested_dicts)
+    b = nested_dicts()
+    for cond in conditions:
+        op = b[cond["field"]][cond["operator"]]
+        if not op:
+            b[cond["field"]][cond["operator"]] = [cond["value"]]
+            
+        else:
+            b[cond["field"]][cond["operator"]].append(cond["value"])
+    ssi_field_ids = []
+    if b["Topic"].get("IS"): 
+        ssi_field_ids = b["Topic"]["IS"]
+    if not ssi_field_ids:
+        return []
+    field_clause = f"({', '.join(str(x) for x in ssi_field_ids)})"
+    q = (
+        f'''
+        with field_names as (
+            select 
+                lower(t.topic) as topic_name
+            from {tablename(models.Topic)} t
+            where t.id in {field_clause}
+        )
+        select
+            avg(sda.value) as frequency
+            , c.name || ' - ' || sf.field || ' - (SSI)' as field
+        from {tablename(models.SSIDayAgg)} sda
+        join {tablename(models.Date)} d on sda.date_id = d.id
+        join {tablename(models.Country)} c on c.country_code = {country_id}
+        join {tablename(models.SSIField)} sf on sda.ssi_field_id = sf.id
+        join field_names f on lower(f.topic_name) = lower(sf.field)
+        where 
+            sda.date_id >= {start_date} and sda.date_id <= {end_date}
+            and sda.country_id = {country_id}
+        group by sf.field, c.name
+        ;
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result

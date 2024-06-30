@@ -169,7 +169,7 @@ export function renderLineChart(chartId, data, customOptions) {
 		yAxis: {
 			className: 'hc-yAxis',
 			title: {
-				style: {color: 'white'},
+				
 				enabled: opts.yAxisTitleEnabled,
 				text: opts.yAxisTitleText,
 			}

@@ -1148,6 +1148,8 @@ $(document).ready(async function (){
         let stream = parts[0];
         //window.conditionCounter[stream] = 0;
         window.countryConditions[stream] =  [];
+        $(`#${stream}-query-form`).html('');
+        addCon(`${stream}-query-form`);
         renderCharts();
         fillSearchBar(stream);
     });
@@ -1196,6 +1198,8 @@ $(document).ready(async function (){
             alert('Query empty. Select at least one field.')
             return
         }
+        $('.builder-container').hide();
+        $('#modal-overlay').hide();
         let base_endpoint = `/${window.country}/filter_attention_trends`;
         let queryParams = $.param(
             {

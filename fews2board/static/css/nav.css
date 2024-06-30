@@ -1192,3 +1192,27 @@ input.discard{
     height: 60vh;
 
 }
+
+
+.popup {
+    display: none;
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    z-index: 1000;
+    max-width: 300px;
+    border-radius: .2rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+.popup .detected-topics, .popup .full-text {
+    border: 0.1rem, solid, var(--phase2-blue-light);
+    margin: 0.2rem;
+    padding: .2rem;
+    border-radius: .2rem;
+}
+
+.center-text {
+    text-align: center;
+}

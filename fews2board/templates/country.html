@@ -23,7 +23,27 @@
     <!-- FOOTER -->
     {% include "base/footer.html" %}
 
-
+    <!-- popups-->
+    <div id="tg-message-popup" class="popup">
+        <div class="detected-topics">
+            <h5 class="center-text">Topics:</h5>
+            <span></span>
+        </div>
+        <div class="full-text">
+            <h5 class="center-text">Full text:</h5>
+            <span></span>
+        </div>
+    </div>
+    <div id="mc-story-popup" class="popup">
+        <div class="detected-topics">
+            <h5 class="center-text">Topics:</h5>
+            <span></span>
+        </div>
+        <div class="full-text">
+            <h5 class="center-text">Full text:</h5>
+            <span></span>
+        </div>
+    </div>
     <!-- JAVASCRIPT -->
     <script>
         var country = JSON.parse('{{country|tojson}}');

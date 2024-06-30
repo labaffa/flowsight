@@ -62,6 +62,8 @@ window.tgMessagesLimit = 10;
 window.mcMessagesOffset = 0;
 window.mcMessagesLimit = 10;
 
+window.tgMessageMaxLen = 300;
+window.mcStoryMaxLen = 300;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 
@@ -758,12 +760,14 @@ function TgTimestamp(timestamp){
     `
 }
 
-function TgMessageCard(author, url, body, timestamp){
+function TgMessageCard(author, url, body, timestamp, topics){
     return `
     <div class='mc-card mt-4 mb-4'>
         <div class="mc-message mb-4 mt-2">
-            <div class="mb-2"><span>${body}</span>
-       
+            <div class="mb-2 tg-msg-text">
+                <span>${truncate(body, window.tgMessageMaxLen)}</span>
+                <span style="display: none;" class='full-text'>${body}</span>
+                <span style="display: none;" class='detected-topics'>${topics}</span>
             <a href="${url}" target="_blank" style="margin-left: 1rem;">
                 <i class="fa fa-external-link" style="color: white;">
                 </i>
@@ -803,11 +807,13 @@ function truncate(str, n){
     return (str.length > n) ? str.slice(0, n-1) + '&hellip;' : str;
   };
 
-function MCStoryCard(author, storyUrl, body, timestamp){
+function MCStoryCard(author, storyUrl, body, timestamp, topics){
     return `
     <div class='mc-card mt-4 mb-4'>
         <div class="mc-message mb-4 mt-2">
-            <a href="${storyUrl}" style="color: white;" class="link" target="_blank" rel="noopener noreferrer">${body}</a>
+            <a href="${storyUrl}" style="color: white;" class="link" target="_blank" rel="noopener noreferrer">${truncate(body, window.mcStoryMaxLen)}</a>
+            <span style="display: none;" class='full-text'>${body}</span>
+            <span style="display: none;" class='detected-topics'>${topics}</span>
         </div>
         <br>
         <div class="mc-story-meta d-flex justify-content-between">
@@ -870,7 +876,7 @@ async function MCStoryWidget(){
                 let url = d.url ? d.url : '';
                 
                 $('#mc-stories-content').append(
-                    MCStoryCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
+                    MCStoryCard(author_username, url, body, d.timestamp, d.detected_topics)
 
                 )
                 $('#mc-stories-content').append(
@@ -878,6 +884,25 @@ async function MCStoryWidget(){
                 )
             
             });
+            $('.mc-message').hover(
+                function(evt) {
+                  
+                  const fullText = $(this).find('.full-text').text();
+                  const topics = $(this).find('.detected-topics').text();
+                  let popup = $('#mc-story-popup');
+                  popup.find('.detected-topics span').text(`${topics}`);
+                  popup.find('.full-text span').text(`${fullText}`);
+                  
+                  popup.css({
+                    display: 'block',
+                    top: `${evt.clientY + window.scrollY}px`,
+                    left: `${evt.clientX + window.scrollX}px`
+                  });
+                },
+                function() {
+                  $('#mc-story-popup').css('display', 'none');
+                }
+              );
             reflowCharts();
         }
     })    
@@ -886,7 +911,7 @@ async function MCStoryWidget(){
 
 
 async function TgMessageWidget(){
-    let MAX_LEN = 300;
+    
     if (window.tgMessagesOffset == 0) {
         $(`#tg-messages`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     }
@@ -933,23 +958,44 @@ async function TgMessageWidget(){
                         TgMessageWidget();
                     }
                 });
+                
             }
             data.forEach(function(d) {
                 let author_username = d.username ? d.username : '';
                 let body = d.body ? d.body : '';
                 let url = author_username + '/' + d.message_id.toString();
                 $('#tg-messages-content').append(
-                    TgMessageCard(author_username, url, truncate(body, MAX_LEN), d.timestamp)
+                    TgMessageCard(author_username, url, body, d.timestamp, d.detected_topics)
                 );
                 $('#tg-messages-content').append(
                     '<div class="cards-separator"></div>'
                 );
             
             });
+            $('.tg-msg-text').hover(
+                function(evt) {
+                  
+                  const fullText = $(this).find('.full-text').text();
+                  const topics = $(this).find('.detected-topics').text();
+                  let popup = $('#tg-message-popup');
+                  popup.find('.detected-topics span').text(`${topics}`);
+                  popup.find('.full-text span').text(`${fullText}`);
+                  
+                  popup.css({
+                    display: 'block',
+                    top: `${evt.clientY + window.scrollY}px`,
+                    left: `${evt.clientX + window.scrollX}px`
+                  });
+                },
+                function() {
+                  $('#tg-message-popup').css('display', 'none');
+                }
+              );
             reflowCharts();
         }
     })
 };
+
 function prettyPrintConditions(conditions){
     let grouped = conditions.reduce((acc, item) => {
         const key = `${item.field}-${item.operator}`;
@@ -1210,5 +1256,6 @@ $(document).ready(async function (){
             }
         });
     });
+    
     renderElements();
 })

@@ -810,7 +810,7 @@ function truncate(str, n){
 function MCStoryCard(author, storyUrl, body, timestamp, topics){
     return `
     <div class='mc-card mt-4 mb-4'>
-        <div class="mc-message mb-4 mt-2">
+        <div class="mc-message mb-4 mt-2 mc-story-text">
             <a href="${storyUrl}" style="color: white;" class="link" target="_blank" rel="noopener noreferrer">${truncate(body, window.mcStoryMaxLen)}</a>
             <span style="display: none;" class='full-text'>${body}</span>
             <span style="display: none;" class='detected-topics'>${topics}</span>
@@ -884,7 +884,7 @@ async function MCStoryWidget(){
                 )
             
             });
-            $('.mc-message').hover(
+            $('.mc-story-text').hover(
                 function(evt) {
                   
                   const fullText = $(this).find('.full-text').text();

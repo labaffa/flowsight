@@ -828,6 +828,43 @@ function MCStoryCard(author, storyUrl, body, timestamp, topics){
 
 
 }
+function showMCPopup(evt) {
+                  
+    const fullText = $(this).find('.full-text').text();
+    const topics = $(this).find('.detected-topics').text();
+    let popup = $('#mc-story-popup');
+    popup.find('.detected-topics span').text(`${topics}`);
+    popup.find('.full-text span').text(`${fullText}`);
+    
+    popup.css({
+      display: 'block',
+      top: `${evt.clientY + window.scrollY}px`,
+      left: `${evt.clientX + window.scrollX}px`
+    });
+  };
+
+  function hideMCPopup() {
+    $('#mc-story-popup').css('display', 'none');
+  };
+
+  function showTgPopup(evt) {
+                  
+    const fullText = $(this).find('.full-text').text();
+    const topics = $(this).find('.detected-topics').text();
+    let popup = $('#tg-message-popup');
+    popup.find('.detected-topics span').text(`${topics}`);
+    popup.find('.full-text span').text(`${fullText}`);
+    
+    popup.css({
+      display: 'block',
+      top: `${evt.clientY + window.scrollY}px`,
+      left: `${evt.clientX + window.scrollX}px`
+    });
+  };
+
+  function hideTgPopup() {
+    $('#tg-message-popup').css('display', 'none');
+  };
 
 async function MCStoryWidget(){
     let MAX_LEN = 300;
@@ -886,25 +923,13 @@ async function MCStoryWidget(){
                 )
             
             });
-            $('.mc-story-text').hover(
-                function(evt) {
-                  
-                  const fullText = $(this).find('.full-text').text();
-                  const topics = $(this).find('.detected-topics').text();
-                  let popup = $('#mc-story-popup');
-                  popup.find('.detected-topics span').text(`${topics}`);
-                  popup.find('.full-text span').text(`${fullText}`);
-                  
-                  popup.css({
-                    display: 'block',
-                    top: `${evt.clientY + window.scrollY}px`,
-                    left: `${evt.clientX + window.scrollX}px`
-                  });
-                },
-                function() {
-                  $('#mc-story-popup').css('display', 'none');
-                }
-              );
+            //$('.mc-story-text').off('hover');
+            document.querySelectorAll('.mc-story-text').forEach((s) => s.removeEventListener('mouseenter', showMCPopup) )
+            document.querySelectorAll('.mc-story-text').forEach((s) => s.removeEventListener('mouseleave', hideMCPopup) )
+            document.querySelectorAll('.mc-story-text').forEach((s) => s.addEventListener('mouseenter', showMCPopup) )
+            document.querySelectorAll('.mc-story-text').forEach((s) => s.addEventListener('mouseleave', hideMCPopup) )
+
+
             reflowCharts();
         }
     })    
@@ -974,25 +999,10 @@ async function TgMessageWidget(){
                 );
             
             });
-            $('.tg-msg-text').hover(
-                function(evt) {
-                  
-                  const fullText = $(this).find('.full-text').text();
-                  const topics = $(this).find('.detected-topics').text();
-                  let popup = $('#tg-message-popup');
-                  popup.find('.detected-topics span').text(`${topics}`);
-                  popup.find('.full-text span').text(`${fullText}`);
-                  
-                  popup.css({
-                    display: 'block',
-                    top: `${evt.clientY + window.scrollY}px`,
-                    left: `${evt.clientX + window.scrollX}px`
-                  });
-                },
-                function() {
-                  $('#tg-message-popup').css('display', 'none');
-                }
-              );
+            document.querySelectorAll('.tg-msg-text').forEach((s) => s.removeEventListener('mouseenter', showTgPopup) )
+            document.querySelectorAll('.tg-msg-text').forEach((s) => s.removeEventListener('mouseleave', hideTgPopup) )
+            document.querySelectorAll('.tg-msg-text').forEach((s) => s.addEventListener('mouseenter', showTgPopup) )
+            document.querySelectorAll('.tg-msg-text').forEach((s) => s.addEventListener('mouseleave', hideTgPopup) )
             reflowCharts();
         }
     })

@@ -1138,9 +1138,9 @@ async def mc_stories(
            {sentiment_clause} 
            {emotion_clause} 
         group by ms.id, ms.media_name, ms.url, ms.publish_date, ms.title
-        order by {col} desc 
-        limit {limit}
+        order by {col} desc, ms.indexed_date desc
         offset {offset}
+        limit {limit}
         ;
         '''
     )
@@ -1941,7 +1941,6 @@ async def chart_studio_bar_chart_from_stream(
             ;
         '''
     )
-    print(q)
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)

@@ -132,6 +132,8 @@ export function renderLineChart(chartId, data, customOptions) {
 		xAxisTitleEnabled: true,
 		yAxisTitleEnabled: true,
 		yAxisTitleText: undefined,
+		backgroundColor: '#4A5975',
+		textColor: '#ffffff'
 	};
 
 	const opts = { ...defaultOptions, ...customOptions };
@@ -140,15 +142,26 @@ export function renderLineChart(chartId, data, customOptions) {
 
 	const chartOptions = {
 		chart: {
+			// className: 'hc-line-chart',
 			height: null,
 			// height: (opts.chartHeightRatio * 100) + '%',
 			type: opts.chartType,
 			// width: opts.chartWidth,
 			zoomType: 'x',
 			marginLeft: 150,
+			backgroundColor: opts.backgroundColor,
+			style: {
+				//fontFamily: 'serif',
+				color: opts.textColor
+				
+			  }
 		},
 		title: {
-			text: opts.titleText
+			text: opts.titleText,
+			style: {
+				font: 'bold 20px "Trebuchet MS", Verdana, sans-serif',
+				color: opts.textColor
+			}
 		},
 		plotOptions: {
 			series: {
@@ -160,23 +173,55 @@ export function renderLineChart(chartId, data, customOptions) {
 		xAxis: {
 			type: opts.xAxisType,
 			className: 'hc-xAxis',
+			gridLineColor: '#6F7B90',
 			title: {
 				enabled: opts.xAxisTitleEnabled,
 				text: opts.xAxisTitleText, 
+				style: {
+					color: opts.textColor,
+					fontWeight: 'bold',
+					fontSize: '16px',
+					fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+		
+				 }     
 				
-			}
+			},
+			labels: {
+				style: {
+				   color: opts.textColor,
+				   font: '11px Trebuchet MS, Verdana, sans-serif'
+				}
+			 },
 		},
 		yAxis: {
 			className: 'hc-yAxis',
+			gridLineColor: '#6F7B90',
 			title: {
 				
 				enabled: opts.yAxisTitleEnabled,
 				text: opts.yAxisTitleText,
-			}
+				style: {
+					color: opts.textColor,
+					fontWeight: 'bold',
+					fontSize: '16px',
+					fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+				 },
+			},
+			labels: {
+				style: {
+				   color: opts.textColor,
+				   font: '11px Trebuchet MS, Verdana, sans-serif'
+				}
+			 },
 		},
 		legend: {
 			align: 'right',
 			verticalAlign: 'top',
+			itemStyle: {
+				color: opts.textColor,
+				fontWeight: 'normal' 
+			}
+
 		},
 		tooltip: {
 			// pointFormat: opts.tooltipPointText + '{point.y:.2f}',
@@ -235,6 +280,8 @@ export function renderLineChart(chartId, data, customOptions) {
 	};
 
 	Highcharts.chart(chartId, chartOptions);
+	
+
 }
 export function processChartData(data, dateKey) {
 	if (data.length === 0){
@@ -272,6 +319,8 @@ export async function renderLineChartFromUrl(
 
 			data = processChartData(data, dateKey);
 			renderLineChart(chartId, data, customOptions);
+			// $('.highcharts-background').css('fill', window.chartBackground);
+			// $(`#${chartId} text`).css('fill', window.chartTextColor);
 		}
 	});
 	

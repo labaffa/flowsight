@@ -130,7 +130,8 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 		yAxisTitleEnabled: true,
 		yAxisTitleText: undefined,
 		xAxisTitleText: undefined,
-		
+		backgroundColor: '#4A5975',
+		textColor: '#ffffff'
 	};
 
 	// Merge custom options with default options
@@ -142,34 +143,73 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 
 	const chartOptions = {
 		chart: {
+			className: 'hc-bar-chart',
 			type: opts.chartType,
 			// height: (opts.chartHeightRatio * 100) + '%',
 			//width: opts.chartWidth,
+			backgroundColor: opts.backgroundColor,
+			style: {
+				//fontFamily: 'serif',
+				color: opts.textColor
+				
+			  }
 		},
 		title: {
 			text: opts.titleText,
+			style: {
+				font: 'bold 20px "Trebuchet MS", Verdana, sans-serif',
+				color: opts.textColor
+			}
 		},
 		xAxis: {
 			className: 'hc-xAxis',
 			categories: categories,
+			gridLineColor: '#6F7B90',
 			labels: {
 				enabled: opts.xAxisLabelsEnabled,
 				rotation: opts.xAxisRotationAngle,
+				style: {
+					color: opts.textColor,
+					font: '11px Trebuchet MS, Verdana, sans-serif'
+				 }
 			},
 			title: {
 				enabled: opts.xAxisTitleEnabled,
-				text: opts.xAxisTitleText
+				text: opts.xAxisTitleText,
+				style: {
+					color: opts.textColor,
+					fontWeight: 'bold',
+					fontSize: '12px',
+					fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+		
+				 }   
 			},
 		},
 		yAxis: {
 			className: 'hc-yAxis',
+			gridLineColor: '#6F7B90',
 			title: {
 				enabled: opts.yAxisTitleEnabled,
 				text: opts.yAxisTitleText,
+				style: {
+					color: opts.textColor,
+					fontWeight: 'bold',
+					fontSize: '12px',
+					fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+				 },
 			},
+			labels: {
+				style: {
+				   color: opts.textColor,
+				   font: '11px Trebuchet MS, Verdana, sans-serif'
+				}
+			 }
 		},
 		legend: {
 			enabled: opts.legendEnabled,
+			itemStyle: {
+				color: opts.textColor
+			}
 		},
 		plotOptions: {
 			bar: {
@@ -180,10 +220,15 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 					// format: '{x} - ({point.y})',
 					formatter: function () {
 						return this.x ;
+					},
+					borderWidth: 0,
+					style: {
+						textOutline: 'none'
 					}
 					
 				},
 				borderRadius: 0,
+				borderWidth: 0,
 				colorByPoint: true
 			}
 		},
@@ -225,6 +270,8 @@ export async function renderBarChartFromUrl(
 			$(`#${chartId}`).html(noDataHTML)
 		} else {
         	renderBarChart(chartId, data, mappingKeys, customOptions);
+			// $('.highcharts-background').css('fill', window.chartBackground);
+			// $(`#${chartId} text`).css('fill', window.chartTextColor);
 		}
     });
 

@@ -88,9 +88,11 @@ export var studioFilterStructure = {
         6: {"name": "Emotion (media)", "stream": "mc", "type": "emotion"}
     },
     "variables": {
-        0: {"name": "Title", "value": "titleText"}, 
-        1: {"name": "X Axis Title", "value": "xAxisTitleText"}, 
-        2: {"name": "Y Axis Title", "value": "yAxisTitleText"}
+        0: {"name": "Title", "value": "titleText", "defaultValue": ""}, 
+        1: {"name": "X Axis Title", "value": "xAxisTitleText", "defaultValue": ""}, 
+        2: {"name": "Y Axis Title", "value": "yAxisTitleText", "defaultValue": ""},
+        3: {"name": "Background Color", "value": "backgroundColor", "defaultValue": '#4A5975'},
+        4: {"name": "Text Color", "value": "textColor", "defaultValue": '#ffffff'}
     }
 };
 

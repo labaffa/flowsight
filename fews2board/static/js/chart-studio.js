@@ -155,6 +155,20 @@ const noDataHTML = `
     </div>
 `;
 
+
+const noDataHTMLSocial = `
+    <div class="widget-title">Social</div>
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="fews-country"> NO DATA AVAILABLE</div>
+    </div>
+`;
+const noDataHTMLMedia = `
+    <div class="widget-title">Media</div>
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="fews-country"> NO DATA AVAILABLE</div>
+    </div>
+`;
+
 function initTopicField(eleId){
     const a = {};
     window.topics.forEach( t => {
@@ -614,11 +628,15 @@ $('#create-chart-button').on('click', function(){
     }
     if (containsStream(Object.values(window.selectedFields), 'tg')) {
         TgMessageWidget();
-    
+    } else {
+        $(`#tg-messages`).html('<div class="widget-title">Social</div>');  
     }
     if (containsStream(Object.values(window.selectedFields), 'mc')) {
         MCStoryWidget();
-    }    
+    }  else {
+        $(`#mc-stories`).html('<div class="widget-title">Media</div>');
+    }
+
     let stream = 'studio';
     let start_date = $(`#${stream}-filter-bar .datepicker`).data(
         'daterangepicker').startDate.format('YYYYMMDD')
@@ -730,7 +748,7 @@ async function TgMessageWidget(){
         response => response.json()
     ).then(data => {
         if (data.length == 0 && window.MessagesOffset["tg"] == 0) {
-            $(`#tg-messages`).html(noDataHTML);
+            $(`#tg-messages`).html(noDataHTMLSocial);
         } else {
             if (window.MessagesOffset["tg"] == 0) {
                 $(`#tg-messages`).html('');
@@ -818,7 +836,7 @@ async function MCStoryWidget(){
         response => response.json()
     ).then(data => {
         if (data.length == 0 && window.MessagesOffset["mc"] == 0) {
-            $(`#mc-stories`).html(noDataHTML);
+            $(`#mc-stories`).html(noDataHTMLMedia);
         } else {
             if (window.MessagesOffset["mc"] == 0){
                 $(`#mc-stories`).html('');

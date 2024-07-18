@@ -184,6 +184,29 @@ async function AttentionTrends(containerId, stream) {
     )
 };
 
+async function EmotionTrends(containerId, stream, conditions='') {
+    $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    let startD, endD;
+    startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
+    endD = stream == "mc" ? window.mcEndDate : window.tgEndDate;
+
+    let base_endpoint = `/${window.country}/emotion_trends`;
+    let queryParams = $.param(
+        {
+            start_date: startD,
+            end_date: endD,
+            stream: stream,
+            conditions: conditions
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {titleText: 'Emotion Trends'}
+    await renderLineChartFromUrl(
+        containerId, url, customOptions, 'date'
+    )
+};
+
 async function WordCloud(containerId, stream){
 
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
@@ -596,7 +619,9 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     $(`#${stream}-talking-points`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');        
     TalkingPoints(
         `${stream}-talking-points`, stream, 
-        '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
+        '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]));
+    EmotionTrends(`${stream}-emotion-trends`, stream,  JSON.stringify(window.countryConditions[stream]));
+
     WordCloud('tg-top-terms', 'tg');
     fillSearchBar(stream);
 
@@ -642,7 +667,8 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     
     MCStoryWidget();
     fillSearchBar(stream);
-    
+    EmotionTrends(`${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]));
+
     MCPersons('mc-persons');
     MCLocations('mc-locations');
     MCOrgs('mc-orgs');
@@ -1073,6 +1099,9 @@ $(document).ready(async function (){
         DomainRanking('tg-domains-bar-chart', 'tg');
         AttentionTrends('tg-attention-trends', 'tg');
         TalkingPoints('tg-talking-points', 'tg');
+        EmotionTrends(`tg-emotion-trends`, 'tg', JSON.stringify(window.countryConditions['tg']));
+        EmotionTrends(`mc-emotion-trends`, 'mc', JSON.stringify(window.countryConditions['mc']));
+
         DomainRanking('mc-domains-bar-chart', 'mc');
         AttentionTrends('mc-attention-trends', 'mc');
         TalkingPoints('mc-talking-points', 'mc');
@@ -1108,6 +1137,7 @@ $(document).ready(async function (){
         initPicker('si-filter-bar .datepicker', 'si')
         DomainRanking('tg-domains-bar-chart', 'tg');
         AttentionTrends('tg-attention-trends', 'tg');
+        EmotionTrends(`tg-emotion-trends`, 'tg');
         TalkingPoints('tg-talking-points', 'tg');
         WordCloud('tg-top-terms', 'tg');
         TgMessageWidget();
@@ -1115,6 +1145,8 @@ $(document).ready(async function (){
         MCStoryWidget();
         DomainRanking('mc-domains-bar-chart', 'mc');
         AttentionTrends('mc-attention-trends', 'mc');
+        EmotionTrends(`mc-emotion-trends`, 'mc');
+
         TalkingPoints('mc-talking-points', 'mc');
         MCLocations('mc-locations');
         MCPersons('mc-persons');
@@ -1257,6 +1289,7 @@ $(document).ready(async function (){
             '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
         TgMessageWidget();
         MCStoryWidget();
+        EmotionTrends(`${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]));
         fillSearchBar(stream);
         
     });

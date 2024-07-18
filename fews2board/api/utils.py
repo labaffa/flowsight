@@ -836,10 +836,16 @@ async def tg_messages_no_duplicates(
     start_date: int, end_date: int, sorted_by: str="date", 
     limit: int=10, 
     conditions=None, 
-    offset: int=10
+    offset: int=10,
+    countries_list = None
 ):
     
     model = models.TgMessageCountry[alpha_2]
+    if countries_list is None:
+        country_ids = [country_id]
+    else:
+        country_ids = countries_list
+    country_clause = " (" + ", ".join([str(x) for x in country_ids]) + ") "
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
@@ -874,7 +880,7 @@ async def tg_messages_no_duplicates(
             join {tablename(model)} ms on ttip.message_unique_id = ms.unique_id
             join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
             where 
-                ttip.country_id = {country_id} and 
+                ttip.country_id in {country_clause} and 
                 ttip.date_id  BETWEEN {start_date} and {end_date}
                 {topic_clause}
                 {sentiment_clause}
@@ -887,7 +893,7 @@ async def tg_messages_no_duplicates(
 
         '''
     )
-   
+    print(q)
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -1100,9 +1106,18 @@ def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_ali
 
 
 async def mc_stories(
-    pool, country_id: int, start_date: int, end_date: 
-    int, sorted_by: str="date", 
-    limit: int=10, conditions=None, offset: int = 0):
+    pool, 
+    country_id: int, start_date: int, end_date: int, sorted_by: str="date", 
+    limit: int=10, 
+    conditions=None, 
+    offset: int = 0,
+    countries_list = None
+):
+    if countries_list is None:
+        country_ids = [country_id]
+    else:
+        country_ids = countries_list
+    country_clause = " (" + ", ".join([str(x) for x in country_ids]) + ") "
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
@@ -1132,7 +1147,7 @@ async def mc_stories(
         join {tablename(models.MCStory)} ms on ms.id = ts.story_id
         join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
         where 
-            ms.country_id = {country_id} and 
+            ms.country_id in {country_clause} and 
             ms.publish_date::DATE between '{start_date}' and '{end_date}' 
            {topic_clause} 
            {sentiment_clause} 

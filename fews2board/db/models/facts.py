@@ -237,3 +237,24 @@ def TFIDFModelCreator(alpha2):
 TFIDF = {}
 for a2 in config.FEWS_COUNTRIES:
     TFIDF[a2] = TFIDFModelCreator(a2)
+
+
+def TFIDFDayAggModelCreator(alpha2):
+    tablename = f'tfidf_day_agg_{alpha2.lower()}'
+    modelname = tablename.upper()
+    attributes = {
+        "__tablename__": tablename,
+        "__table_args__": (
+            sa.Index(f"{tablename}_date_id", "date_id"),
+        ),
+        "date_id":  sa.Column(sa.Integer, nullable=False),
+        "lemma": sa.Column(sa.String, primary_key=True, nullable=False),
+        "tfidf": sa.Column(sa.Float)
+
+    }
+    x = type(modelname, (MyBase,), attributes)
+    return x
+
+TFIDFDayAgg = {}
+for a2 in config.FEWS_COUNTRIES:
+    TFIDFDayAgg[a2] = TFIDFDayAggModelCreator(a2)

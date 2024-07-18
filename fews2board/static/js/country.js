@@ -225,7 +225,7 @@ async function WordCloud(containerId, stream){
     reflowCharts();
 
 }
-async function SSITimeline(containerId, domainId){
+async function SSITimeline(containerId, domainId, customOptions){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let base_endpoint = `/${window.country}/ssi_series`;
     let queryParams = $.param(
@@ -237,14 +237,13 @@ async function SSITimeline(containerId, domainId){
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: 'Food Insecurity SSI'}
     await renderLineChartFromUrl(
         containerId, url, customOptions, 'date'
     )
 
 };
 
-async function SSIFieldsTimeline(containerId, domainId){
+async function SSIFieldsTimeline(containerId, domainId, customOptions){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let base_endpoint = `/${window.country}/ssi_fields_series`;
     let queryParams = $.param(
@@ -256,7 +255,6 @@ async function SSIFieldsTimeline(containerId, domainId){
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: 'Food Insecurity SSI by topic'}
     await renderLineChartFromUrl(
         containerId, url, customOptions, 'date'
     )
@@ -653,8 +651,11 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
 $('#si-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
     window.siStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
     window.siEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
-    SSITimeline('si-food-insecurity', 3);
-    SSIFieldsTimeline('si-food-insecurity-fields', 3);
+    SSITimeline('si-food-insecurity', 3, {titleText: 'Food Insecurity SSI'});
+    SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: 'Food Insecurity SSI by topic'});
+    SSITimeline('si-conflict-total', 5, {titleText: 'Conflict SSI'});
+    SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: 'Conflict SSI by topic'});
+
 });
 
 
@@ -825,9 +826,8 @@ function MCStoryCard(author, storyUrl, body, timestamp, topics){
         </div>
     </div>
     `
-
-
 }
+
 function showMCPopup(evt) {
                   
     const fullText = $(this).find('.full-text').text();
@@ -1074,14 +1074,16 @@ $(document).ready(async function (){
         AttentionTrends('tg-attention-trends', 'tg');
         TalkingPoints('tg-talking-points', 'tg');
         DomainRanking('mc-domains-bar-chart', 'mc');
-        
         AttentionTrends('mc-attention-trends', 'mc');
         TalkingPoints('mc-talking-points', 'mc');
         MCLocations('mc-locations');
         MCPersons('mc-persons');
         MCOrgs('mc-orgs');
-        SSITimeline('si-food-insecurity', 3);
-        SSIFieldsTimeline('si-food-insecurity-fields', 3);
+        SSITimeline('si-food-insecurity', 3, {titleText: 'Food Insecurity SSI'});
+        SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: 'Food Insecurity SSI by topic'});
+        SSITimeline('si-conflict-total', 5, {titleText: 'Conflict SSI'});
+        SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: 'Conflict SSI by topic'});
+
         TgMessageWidget();
         MCStoryWidget();
     };
@@ -1117,8 +1119,11 @@ $(document).ready(async function (){
         MCLocations('mc-locations');
         MCPersons('mc-persons');
         MCOrgs('mc-orgs');
-        SSITimeline('si-food-insecurity', 3);
-        SSIFieldsTimeline('si-food-insecurity-fields', 3);
+        SSITimeline('si-food-insecurity', 3, {titleText: 'Food Insecurity SSI'});
+        SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: 'Food Insecurity SSI by topic'});
+        SSITimeline('si-conflict-total', 5, {titleText: 'Conflict SSI'});
+        SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: 'Conflict SSI by topic'});
+        
     };
 
     

@@ -1,0 +1,61 @@
+.tp-table {
+	border-collapse: collapse;
+	color: #ffffff;
+	font-family: "Montserrat", "Segoe UI", "Helvetica", "Arial", sans-serif;
+	padding-left: 8px;
+	padding-right: 8px;
+	width: 100%;
+	overflow-y: auto;
+	max-height: var(--card-max-height);
+	/* scrollbar-width: none; */
+}
+
+
+.tp-table thead {
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+}
+.tp-table caption {
+	font-size: 16px;
+	font-weight: 600;
+	padding-top: 3px;
+	text-align: left;
+	color: white;
+	caption-side: top;
+	
+}
+
+.tp-table td {
+	padding: 1rem 0rem 1rem 1rem;
+}
+
+.tp-table th {
+	
+	padding: 1rem 0rem 1.5rem 1.5rem;
+	text-align: left;
+}
+
+.tp-table tr {
+	border-bottom: 1px solid #A5ACBA;
+}
+
+.table-card {
+	background-color: #4A5975;
+	border-radius: 5px;
+	/* padding: 10px 10px; */
+	overflow-y: scroll;
+	height: 100%;
+	
+	/* max-height: 500px; */
+	/* width: 400px;
+	height: 300px; */
+}
+
+.customChart {
+	align-items: center;
+	align-content: center;
+}
+ 
+.widget-title, .mc-card, .card-separator, .tg-card {
+	color: white;
+}

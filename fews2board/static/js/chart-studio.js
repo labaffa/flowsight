@@ -5,7 +5,6 @@ import { renderWordCloud } from "./charts/wordcloud-module.js";
 
 Highcharts.setOptions({
 	chart: {
-		styledMode: true,
 		borderRadius: 5,
         //height: '100%'
 	},
@@ -26,6 +25,14 @@ Highcharts.setOptions({
 	yAxis: {
 		title: {
 			margin: 8,
+		},
+	},
+    // Set options for export module.
+	exporting: {
+		buttons: {
+			contextButton: {
+				menuItems: ["viewFullscreen", "separator", "downloadPNG", "downloadJPEG", "downloadPDF", "downloadSVG", "downloadCSV", "downloadXLS"],
+			},
 		},
 	},
 });
@@ -64,6 +71,20 @@ window.selectedChart = 0;
 window.selectedCountries = [];
 window.selectedFields = {};
 window.selectedVariables = {};
+
+window.chartBackground = '#4A5975';
+window.chartTextColor = 'white';
+
+window.MessagesOffset = {
+    "tg": 0, "mc": 0
+};
+window.MessagesLimit = {
+    "tg": 10, "mc": 10
+}
+
+window.tgMessageMaxLen = 300;
+window.mcStoryMaxLen = 300;
+
 
 function prettyPrintConditions(conditions){
     let grouped = conditions.reduce((acc, item) => {
@@ -293,13 +314,21 @@ function addSelectedListItem(listId, value, text){
     }
  };
  function addSelectedVariableListItem(listId, value, text){
+
     if (valueIsInList(listId, value)){  
         return 
     } else {
-    let liHtml =   `
+        let liHtml, inputType, dValue;
+        if ([3, 4].includes(parseInt(value)) ) {
+            inputType = 'color';
+        } else {
+            inputType = 'text';
+        }
+        dValue = studioFilterStructure["variables"][value].defaultValue;
+        liHtml =   `
          <li value=${value}>
              ${studioFilterStructure["variables"][value].name}
-             <input type="text" id="fname" name="fname" style=" margin-left: auto;"><br><br>
+             <input type="${inputType}" id="fname" name="fname" value="${dValue}" style=" margin-left: auto;"><br><br>
              <div class="condition-mod icon remove-variable" style="background-color: white;">
                      <img src="/static/img/trash-bin.svg"  alt="">
              </div>
@@ -526,7 +555,51 @@ $('#studio-generate-query-button').on('click', function(){
     $('#modal-overlay').hide();
 });
 
+function findCountryByCode(code) {
+    return Object.values(window.countries).find(country => country.country_id == code);
+}
 
+function showMCPopup(evt) {
+                  
+    const fullText = $(this).find('.full-text').text();
+    const topics = $(this).find('.detected-topics').text();
+    let popup = $('#mc-story-popup');
+    popup.find('.detected-topics span').text(`${topics}`);
+    popup.find('.full-text span').text(`${fullText}`);
+    
+    popup.css({
+      display: 'block',
+      top: `${evt.clientY + window.scrollY}px`,
+      left: `${evt.clientX + window.scrollX}px`
+    });
+  };
+
+  function hideMCPopup() {
+    $('#mc-story-popup').css('display', 'none');
+  };
+
+  function showTgPopup(evt) {
+                  
+    const fullText = $(this).find('.full-text').text();
+    const topics = $(this).find('.detected-topics').text();
+    let popup = $('#tg-message-popup');
+    popup.find('.detected-topics span').text(`${topics}`);
+    popup.find('.full-text span').text(`${fullText}`);
+    
+    popup.css({
+      display: 'block',
+      top: `${evt.clientY + window.scrollY}px`,
+      left: `${evt.clientX + window.scrollX}px`
+    });
+  };
+
+  function hideTgPopup() {
+    $('#tg-message-popup').css('display', 'none');
+  };
+
+  function containsStream(objects, targetStream) {
+    return objects.some(obj => obj.stream == targetStream);
+}
 $('#create-chart-button').on('click', function(){
     if (window.selectedCountries.length == 0) {
         alert('Select at least one country from dropdown menu')
@@ -539,6 +612,13 @@ $('#create-chart-button').on('click', function(){
     if (Object.keys(window.selectedFields).length == 0) {
         alert('Select at least one field from Available Fields')
     }
+    if (containsStream(Object.values(window.selectedFields), 'tg')) {
+        TgMessageWidget();
+    
+    }
+    if (containsStream(Object.values(window.selectedFields), 'mc')) {
+        MCStoryWidget();
+    }    
     let stream = 'studio';
     let start_date = $(`#${stream}-filter-bar .datepicker`).data(
         'daterangepicker').startDate.format('YYYYMMDD')
@@ -547,6 +627,7 @@ $('#create-chart-button').on('click', function(){
             'daterangepicker').endDate.format('YYYYMMDD')
     start_date = parseInt(start_date);
     end_date = parseInt(end_date);   
+
     let studio_endpoint = studioFilterStructure['charts'][window.selectedChart]['endpoint'];
     let studioQueryParams = $.param(
         {
@@ -563,10 +644,19 @@ $('#create-chart-button').on('click', function(){
     
     let customOptions = {};
     $('#selected-variables-list li').each(function() {
-        let value = studioFilterStructure['variables'][$(this).attr('value')]['value'];
-        let input = $(this).find('input').val();
-        customOptions[`${value}`] = input;
+        
+        if (parseInt($(this).attr('value')) == 3){ // background color
+            window.chartBackground = $(this).find('input').val();
+        } else if (parseInt($(this).attr('value')) == 4){  // text color
+            window.chartTextColor = $(this).find('input').val();
+        } 
+            let value = studioFilterStructure['variables'][$(this).attr('value')]['value'];
+            let input = $(this).find('input').val();
+            customOptions[`${value}`] = input;
+            console.log(customOptions)
+        
     });
+    
     // let customOptions = {titleText: 'Attention'};
     $(`#studio-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     if (window.selectedChart == 0) {
@@ -576,9 +666,204 @@ $('#create-chart-button').on('click', function(){
     } else if (window.selectedChart == 1){
         let mappingKeys = {'categoryKey': 'field', 'valueKey': 'frequency'};
         renderBarChartFromUrl('studio-chart', studioUrl, mappingKeys, customOptions)
+
     }
 });
 
+function truncate(str, n){
+    return (str.length > n) ? str.slice(0, n-1) + '&hellip;' : str;
+  };
+function TgMessageCard(author, url, body, timestamp, topics){
+    return `
+    <div class='mc-card mt-4 mb-4'>
+        <div class="mc-message mb-4 mt-2">
+            <div class="mb-2 tg-msg-text">
+                <span>${truncate(body, window.tgMessageMaxLen)}</span>
+                <span style="display: none;" class='full-text'>${body}</span>
+                <span style="display: none;" class='detected-topics'>${topics}</span>
+            <a href="${url}" target="_blank" style="margin-left: 1rem;">
+                <i class="fa fa-external-link" style="color: white;">
+                </i>
+            </a>
+            </div>
+        
+        </div>
+        <br>
+        <div class="mc-story-meta d-flex justify-content-between flex-wrap">
+            <div class="mc-author">${author.split("/").slice(-1)[0]}</div>
+            <br>
+            <div class="mc-timestamp">${timestamp.split(":").slice(0, -1).join(":")}</div>
+        </div>
+    </div>
+    `
+}
+
+async function TgMessageWidget(){
+    
+    if (window.MessagesOffset["tg"] == 0) {
+        $(`#tg-messages`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    }
+    let countries_list = window.selectedCountries
+    let country_id = countries_list[0]
+    let country = findCountryByCode(country_id).alpha_2.toLowerCase()
+
+    
+    let base_endpoint = `/${country}/tg_messages`;
+    let queryParams = $.param(
+        {
+            start_date: window.startDate,
+            end_date: window.endDate,
+            conditions: JSON.stringify(window.countryConditions["studio"]),
+            entity: 'location',
+            sorted_by: 'date',
+            limit: window.MessagesLimit["tg"],
+            offset: window.MessagesOffset["tg"],
+            countries_list: JSON.stringify(countries_list)
+            
+        },
+        true
+    );
+    
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {};
+    await fetch(url).then(
+        response => response.json()
+    ).then(data => {
+        if (data.length == 0 && window.MessagesOffset["tg"] == 0) {
+            $(`#tg-messages`).html(noDataHTML);
+        } else {
+            if (window.MessagesOffset["tg"] == 0) {
+                $(`#tg-messages`).html('');
+                $('#tg-messages').append(
+                    `<div class="widget-title">Social</div>
+                    <br>
+                    <br>
+                    <div class="table-container" id="scrollable-messages">
+                        <div id="tg-messages-content">
+                        </div>
+                    </div>
+                    `
+                )
+                $('#scrollable-messages').scroll(function() {
+                    
+                    if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+                        window.MessagesOffset["tg"] += window.MessagesLimit["tg"];
+                        TgMessageWidget();
+                    }
+                });
+                
+            }
+            data.forEach(function(d) {
+                let author_username = d.username ? d.username : '';
+                let body = d.body ? d.body : '';
+                let url = author_username + '/' + d.message_id.toString();
+                $('#tg-messages-content').append(
+                    TgMessageCard(author_username, url, body, d.timestamp, d.detected_topics)
+                );
+                $('#tg-messages-content').append(
+                    '<div class="cards-separator"></div>'
+                );
+            
+            });
+            document.querySelectorAll('.tg-msg-text').forEach((s) => s.removeEventListener('mouseenter', showTgPopup) )
+            document.querySelectorAll('.tg-msg-text').forEach((s) => s.removeEventListener('mouseleave', hideTgPopup) )
+            document.querySelectorAll('.tg-msg-text').forEach((s) => s.addEventListener('mouseenter', showTgPopup) )
+            document.querySelectorAll('.tg-msg-text').forEach((s) => s.addEventListener('mouseleave', hideTgPopup) )
+            // reflowCharts();
+        }
+    })
+};
+
+function MCStoryCard(author, storyUrl, body, timestamp, topics){
+    return `
+    <div class='mc-card mt-4 mb-4'>
+        <div class="mc-message mb-4 mt-2 mc-story-text">
+            <a href="${storyUrl}" style="color: white;" class="link" target="_blank" rel="noopener noreferrer">${truncate(body, window.mcStoryMaxLen)}</a>
+            <span style="display: none;" class='full-text'>${body}</span>
+            <span style="display: none;" class='detected-topics'>${topics}</span>
+        </div>
+        <br>
+        <div class="mc-story-meta d-flex justify-content-between">
+            <div class="mc-author">${author}</div>
+            <br>
+            <div class="mc-timestamp">${timestamp.split("T")[0]}</div>
+        </div>
+    </div>
+    `
+
+
+}
+async function MCStoryWidget(){
+    let MAX_LEN = 300;
+    if (window.MessagesOffset["mc"] == 0) {
+        $(`#mc-stories`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    }
+    let country_id = window.selectedCountries[0]
+    let country = findCountryByCode(country_id).alpha_2.toLowerCase()
+    let base_endpoint = `/${country}/mc_stories`;
+    let queryParams = $.param(
+        {
+            start_date: window.startDate,
+            end_date: window.endDate,
+            conditions: JSON.stringify(window.countryConditions["studio"]),
+            sorted_by: 'date',
+            limit: window.MessagesLimit["mc"],
+            offset: window.MessagesOffset["mc"]
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    let customOptions = {};
+    await fetch(url).then(
+        response => response.json()
+    ).then(data => {
+        if (data.length == 0 && window.MessagesOffset["mc"] == 0) {
+            $(`#mc-stories`).html(noDataHTML);
+        } else {
+            if (window.MessagesOffset["mc"] == 0){
+                $(`#mc-stories`).html('');
+                $('#mc-stories').append(
+                    `<div class="widget-title">Media</div>
+                    <br>
+                    <br>
+                    <div class="table-container" id="scrollable-stories">
+                        <div class="" id="mc-stories-content">
+                        </div>
+                    </div>
+                    `)
+                    $('#scrollable-stories').scroll(function() {
+                        if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+                            window.MessagesOffset["mc"] += window.MessagesLimit["mc"];
+                            MCStoryWidget();
+                        }
+                    });
+            }
+            data.forEach(function(d) {
+                let author_username = d.username ? d.username : '';
+                let body = d.body ? d.body : '';
+                let url = d.url ? d.url : '';
+                
+                $('#mc-stories-content').append(
+                    MCStoryCard(author_username, url, body, d.timestamp, d.detected_topics)
+
+                )
+                $('#mc-stories-content').append(
+                    '<div class="cards-separator"></div>'
+                )
+            
+            });
+            //$('.mc-story-text').off('hover');
+            document.querySelectorAll('.mc-story-text').forEach((s) => s.removeEventListener('mouseenter', showMCPopup) )
+            document.querySelectorAll('.mc-story-text').forEach((s) => s.removeEventListener('mouseleave', hideMCPopup) )
+            document.querySelectorAll('.mc-story-text').forEach((s) => s.addEventListener('mouseenter', showMCPopup) )
+            document.querySelectorAll('.mc-story-text').forEach((s) => s.addEventListener('mouseleave', hideMCPopup) )
+
+
+            // reflowCharts();
+        }
+    })    
+
+};
 $(document).ready(async function (){
     $('.form-open').on('click', function (){
         

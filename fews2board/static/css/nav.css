@@ -1025,7 +1025,7 @@ input.discard{
 }
 :root {
     --card-max-height: 450px;
-    --card-min-height: 400px;
+    --card-min-height: 450px;
 }
 
 .card {
@@ -1043,6 +1043,12 @@ input.discard{
     max-height: calc(2*var(--card-max-height));
     min-height: calc(2*var(--card-min-height));
 }
+
+.three-cards-long-card {
+    max-height: calc(3*var(--card-max-height));
+    min-height: calc(3*var(--card-min-height));
+}
+
 .table-card caption, .table-card tbody, .table-card thead, .widget-title, .mc-card, .tg-card, .cards-separator{
     padding: 5px;
 }

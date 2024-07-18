@@ -434,7 +434,7 @@ async def get_talking_points_on_conditions(
     stream:str="tg",
     limit: int=50
 ):
-    data = await utils.tfidf_top_terms(
+    data = await utils.tfidf_day_agg_top_terms(
         request.app.async_pool, alpha_2, start_date, end_date, stream, limit
     )
     return data
@@ -477,6 +477,42 @@ async def get_studio_time_series(
     for d in data:
         by_field[d["date"]][d["field"]] = d["value"]
         fields_set.add(d["field"])
+    for day in by_field:
+        day_data = {"date": day}
+        for field in fields_set:
+            day_data[field] = by_field[day].get(field)
+        response.append(day_data)
+    return response
+
+
+@router.get("/{alpha_2}/emotion_trends")
+async def get_studio_time_series(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    conditions: str=""
+):
+    try:
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )    
+    conditions = json.loads(conditions) if conditions else None
+    sql_data = await utils.time_series_emotions(
+        request.app.async_pool, conditions, country_id, start_date, end_date, stream)
+    by_field = defaultdict(dict)
+    fields_set = set()
+    response = []
+    for d in sql_data:
+        cou, _, stream = d["field"].split("-")
+        for emotion, value in d["value"].items():
+            field = emotion.title()
+            by_field[d["date"]][field] = value
+            fields_set.add(field)
     for day in by_field:
         day_data = {"date": day}
         for field in fields_set:

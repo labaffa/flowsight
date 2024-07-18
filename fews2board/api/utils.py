@@ -1701,6 +1701,33 @@ async def tfidf_top_terms(pool, alpha_2: str, start_date: int, end_date: int, st
     return result    
 
 
+async def tfidf_day_agg_top_terms(
+        pool, alpha_2: str, start_date: int, end_date: int, stream: str="tg", limit: int=50):
+    if stream == "tg":
+        model = models.TFIDFDayAgg[alpha_2]
+    # elif stream == "mc":
+    #     pass
+    else:
+        raise ValueError(f'Stream {stream} not allowed for tfidf')
+    q = (
+        f"""
+        select 	
+            tz.lemma as lemma
+            , avg(tz.tfidf) as mean_value
+        from {tablename(model)} tz 
+        where 
+           tz.date_id between {start_date} and {end_date}
+        group by tz.lemma 
+        order by avg(tz.tfidf) desc 
+        limit {limit}
+        """
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result    
+
 async def chart_studio_time_series_from_stream(
     pool, conditions, country_id, start_date, end_date, field
 ):
@@ -2009,3 +2036,84 @@ async def chart_studio_bar_chart_from_ssi(
             await cur.execute(q)
             result = await cur.fetchall()
     return result
+
+
+async def time_series_emotions(
+        pool, conditions, country_id, start_date, end_date, stream="tg"
+    ):
+    """
+    This function must be used only if topics are present in conditions, i.e. the variable topic_clause
+    is not an empty string
+
+    Args:
+        pool (_type_): _description_
+        conditions (_type_): _description_
+        country_id (_type_): _description_
+        start_date (_type_): _description_
+        end_date (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if conditions is not None:
+        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    else:
+        topic_clause, sentiment_clause, emotion_clause = "", "", ""
+    if stream == "tg":
+        topic_table = models.TgTopicIdPositive
+        sentiment_table = models.TgSentiment
+        record_col_name = "message_unique_id"
+    elif stream == "mc":
+        topic_table = models.MCTopicIdPositive
+        sentiment_table = models.MCSentiment
+        record_col_name = "story_id"
+    else:
+        raise ValueError(f'Stream {stream} not allowed')
+    value_clause = (
+            """, json_build_object(
+                    'anger', sum(anger::float)/tdc.count,
+                    'anticipation', sum(anticipation::float)/tdc.count,
+                    'disgust', sum(disgust::float)/tdc.count,
+                    'fear', sum(fear::float)/tdc.count,
+                    'joy', sum(joy::float)/tdc.count,
+                    'sadness', sum(sadness::float)/tdc.count,
+                    'surprise', sum(surprise::float)/tdc.count,
+                    'trust', sum(trust::float)/tdc.count
+                ) AS value  
+            """
+    )
+    distinct_clause = " distinct on (date_actual) "
+    field_clause = f", c.name  || ' - Emotion - ' || '{stream}' as field"
+    joint_topic_clause = " "
+    group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
+
+    q = (
+        f'''
+            select
+                -- {distinct_clause}
+                d.date_actual as date
+                {value_clause}
+                {field_clause}
+            from {tablename(topic_table)} ttip
+            join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
+                and ttip.country_id = ts.country_id
+            join {tablename(models.TgDailyCounts)} tdc on 
+                tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
+            join {tablename(models.Date)} d on ttip.date_id = d.id
+            join {tablename(models.Country)} c on c.country_code = {country_id}
+            {joint_topic_clause}
+            where 
+                (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
+                and ttip.country_id = {country_id}
+                {topic_clause}
+                {sentiment_clause}
+                {emotion_clause}
+            {group_by_clause}
+            ;
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result    

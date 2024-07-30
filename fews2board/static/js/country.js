@@ -7,12 +7,14 @@ import { renderWordCloud } from "./charts/wordcloud-module.js";
 
 
 window.dateRanges["si"] = [20111227, 20231231];  // check why I hardcoded this daterange
+
 try {
     window.tgStartDate = parseInt(moment(window.dateRanges.tg[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
     window.tgEndDate = window.dateRanges.tg[1];
 } catch {
     window.tgStartDate = 19000101;
     window.tgEndDate = 20000101;
+
 }
 try {
     window.mcStartDate = parseInt(moment(window.dateRanges.mc[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
@@ -42,6 +44,27 @@ try {
     window.siCalendarMin = moment('19000101');
     window.siCalendarMax = moment('20000101')
 }
+try {
+    let minRange, maxRange, dateMins, dateMaxs;
+    dateMins = [window.dateRanges.mc[0], window.dateRanges.tg[0], window.dateRanges.si[0]];
+    dateMaxs = [window.dateRanges.mc[1], window.dateRanges.tg[1], window.dateRanges.si[1]];
+    let dateMin = Math.min(...dateMins);
+    let dateMax = Math.max(...dateMaxs);
+    window.dateRanges['oa'] = [dateMin, dateMax]
+    window.oaCalendarMin = moment(window.dateRanges.oa[0].toString());
+    window.oaCalendarMax = moment(window.dateRanges.oa[1].toString());
+} catch {
+    window.dateRanges['oa'] = [19000101, 20000101];
+    window.oaCalendarMin = moment('19000101');
+    window.oaCalendarMax = moment('20000101')
+}
+try {
+    window.oaStartDate = parseInt(moment(window.dateRanges.oa[1].toString()).subtract(365, 'days').format('YYYYMMDD'));
+    window.oaEndDate = window.dateRanges.oa[1];
+} catch {
+    window.oaStartDate = 19000101;
+    window.oaEndDate = 20000101;
+}
 // hardcoding because mediacloud entities are less recent than metadata, so default is not empty
 // window.mcStartDate = 20240101
 // window.mcEndDate = 20240108
@@ -51,10 +74,10 @@ window.siStartDate = parseInt(moment(window.dateRanges.si[1].toString()).subtrac
 window.siEndDate = window.dateRanges.si[1];
 
 window.conditionCounter = {
-    "tg": 0, "mc": 0, "si": 0
+    "tg": 0, "mc": 0, "si": 0, "oa": 0
 };
 window.countryConditions = {
-    "tg": [], "mc": []
+    "tg": [], "mc": [], "oa": []
 }
 
 window.MessagesOffset = {
@@ -62,6 +85,12 @@ window.MessagesOffset = {
 };
 window.MessagesLimit = {
     "tg": 10, "mc": 10
+}
+window.startDates = {
+    'tg': [window.tgStartDate, window.tgEndDate],
+    'mc': [window.mcStartDate, window.mcEndDate],
+    'si': [window.siStartDate, window.siEndDate],
+    'oa': [window.oaStartDate, window.oaEndDate]
 }
 
 window.tgMessageMaxLen = 300;
@@ -162,23 +191,25 @@ async function DomainRanking(containerId, stream) {
         containerId, url, mappingKeys, customOptions);
 };
 
-async function AttentionTrends(containerId, stream) {
+async function AttentionTrends(containerId, stream, endpoint='/attention_trends', trendtype='', title='Attention', conditions=[]) {
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let startD, endD;
-    startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
-    endD = stream == "mc" ? window.mcEndDate : window.tgEndDate;
+    startD = window.startDates[stream][0];
+    endD = window.startDates[stream][1];
 
-    let base_endpoint = `/${window.country}/attention_trends`;
+    let base_endpoint = `/${window.country}${endpoint}`;
     let queryParams = $.param(
         {
             start_date: startD,
             end_date: endD,
-            stream: stream
+            stream: stream,
+            trend_type: trendtype,
+            conditions: JSON.stringify(conditions)
         },
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: 'Attention'}
+    let customOptions = {titleText: title}
     await renderLineChartFromUrl(
         containerId, url, customOptions, 'date'
     )
@@ -248,13 +279,19 @@ async function WordCloud(containerId, stream){
     reflowCharts();
 
 }
-async function SSITimeline(containerId, domainId, customOptions){
+async function SSITimeline(containerId, domainId, customOptions, stream='si'){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let base_endpoint = `/${window.country}/ssi_series`;
+    
+    
+    console.log()
+    if (Array.isArray(domainId)){
+        domainId = JSON.stringify(domainId)
+    }
     let queryParams = $.param(
         {
-            start_date: window.siStartDate,
-            end_date: window.siEndDate,
+            start_date: window.startDates[stream][0],
+            end_date: window.startDates[stream][1],
             domain_id: domainId
         },
         true
@@ -320,7 +357,7 @@ async function TalkingPoints(containerId, stream, endP='/talking_points_on_condi
         } else {
         let dataCopy = [...data]
         var r = {};
-        
+        console.log(dataCopy)
         dataCopy.forEach(function(i) {
             
             var layer = i.layer;
@@ -516,20 +553,19 @@ function initPicker(pickerId, stream) {
     if (stream === 'tg'){
         start = window.tgCalendarMin;
         end = window.tgCalendarMax;
-        startDate = moment(window.tgStartDate.toString());
-        endDate = moment(window.tgEndDate.toString());
     } else if (stream === 'mc') {
         start = window.mcCalendarMin;
         end = window.mcCalendarMax;
-        startDate = moment(window.mcStartDate.toString());
-        endDate = moment(window.mcEndDate.toString());
     } else if (stream === 'si') {
         start = window.siCalendarMin;
         end = window.siCalendarMax;
-        startDate = moment(window.siStartDate.toString());
-        endDate = moment(window.siEndDate.toString());
+    } else if (stream === 'oa') {
+        start = window.oaCalendarMin;
+        end = window.oaCalendarMax;
     }
-    
+    startDate = moment(window.startDates[stream][0].toString());
+    endDate = moment(window.startDates[stream][1].toString());
+
     function cb(start, end) {
         $(`#${pickerId} span`).html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
     }
@@ -585,6 +621,9 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     window.tgStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
     window.tgEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
 
+    window.startDates['tg'][0] = parseInt(picker.startDate.format('YYYYMMDD'));
+    window.startDates['tg'][1] = parseInt(picker.endDate.format('YYYYMMDD'));
+
     let start_date = window.tgStartDate;
     let end_date = window.tgEndDate;
     let stream = 'tg';
@@ -630,6 +669,9 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
 $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
     window.mcStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
     window.mcEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
+    window.startDates['mc'][0] = parseInt(picker.startDate.format('YYYYMMDD'));
+    window.startDates['mc'][1] = parseInt(picker.endDate.format('YYYYMMDD'));
+
     let start_date = window.mcStartDate;
     let end_date = window.mcEndDate;
     let stream = 'mc';
@@ -677,29 +719,57 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
 $('#si-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
     window.siStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
     window.siEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
+    window.startDates['si'][0] = parseInt(picker.startDate.format('YYYYMMDD'));
+    window.startDates['si'][1] = parseInt(picker.endDate.format('YYYYMMDD'));
+
     SSITimeline('si-food-insecurity', 3, {titleText: 'Food Insecurity SSI'});
     SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: 'Food Insecurity SSI by topic'});
     SSITimeline('si-conflict-total', 5, {titleText: 'Conflict SSI'});
     SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: 'Conflict SSI by topic'});
 
 });
+$('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
+    window.oaStartDate = parseInt(picker.startDate.format('YYYYMMDD'));
+    window.oaEndDate = parseInt(picker.endDate.format('YYYYMMDD'));
+    window.startDates['oa'][0] = parseInt(picker.startDate.format('YYYYMMDD'));
+    window.startDates['oa'][1] = parseInt(picker.endDate.format('YYYYMMDD'));
 
+    let start_date = window.oaStartDate;
+    let end_date = window.oaEndDate;
+    let stream = 'oa';
+    let conditions = window.countryConditions['oa'];
+    AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', 'Attention', conditions);
+    AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', 'Sentiment', conditions);
+    SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Search Synthetic Interest Index'}, stream);
+    fillSearchBar(stream);
+});
 
-
+$('#oa-tab').on('show.bs.tab', function (e) {
+    $('#oa-filter-bar').show();
+    $('#mc-filter-bar').hide();
+    $('#tg-filter-bar').hide();
+    $('#si-filter-bar').hide();
+});
 $('#tg-tab').on('show.bs.tab', function (e) {
     $('#tg-filter-bar').show();
     $('#mc-filter-bar').hide();
     $('#si-filter-bar').hide();
+    $('#oa-filter-bar').hide();
+
 });
 $('#mc-tab').on('show.bs.tab', function (e) {
     $('#mc-filter-bar').show();
     $('#tg-filter-bar').hide();
     $('#si-filter-bar').hide();
+    $('#oa-filter-bar').hide();
+
 });
 $('#si-tab').on('show.bs.tab', function (e) {
     $('#si-filter-bar').show();
     $('#mc-filter-bar').hide();
     $('#tg-filter-bar').hide();
+    $('#oa-filter-bar').hide();
+
 });
 
 function createOption(elementId, key, value){
@@ -1072,7 +1142,8 @@ function fillSearchBar(stream){
 
 
 $(document).ready(async function (){
-    $('#tg-filter-bar').show();
+    $('#oa-filter-bar').show();
+    $('#tg-filter-bar').hide();
     $('#mc-filter-bar').hide();
     $('#si-filter-bar').hide();
     $('.form-open').on('click', function (){
@@ -1096,6 +1167,10 @@ $(document).ready(async function (){
       });
 
     function renderCharts(){
+        AttentionTrends('oa-attention-trends', 'oa', '/overall_trend', 'attention', 'Attention', window.countryConditions['oa']);
+        AttentionTrends('oa-sentiment-trends', 'oa', '/overall_trend', 'sentiment', 'Sentiment', window.countryConditions['oa']);
+        SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Search Synthetic Interest Index'}, 'oa');
+
         DomainRanking('tg-domains-bar-chart', 'tg');
         AttentionTrends('tg-attention-trends', 'tg');
         TalkingPoints('tg-talking-points', 'tg');
@@ -1132,29 +1207,13 @@ $(document).ready(async function (){
     async function renderElements(){
         addCon('tg-query-form');
         addCon('mc-query-form');
+        addCon('oa-query-form');
         initPicker('tg-filter-bar .datepicker', 'tg');
         initPicker('mc-filter-bar .datepicker', 'mc');
-        initPicker('si-filter-bar .datepicker', 'si')
-        DomainRanking('tg-domains-bar-chart', 'tg');
-        AttentionTrends('tg-attention-trends', 'tg');
-        EmotionTrends(`tg-emotion-trends`, 'tg');
-        TalkingPoints('tg-talking-points', 'tg');
+        initPicker('si-filter-bar .datepicker', 'si');
+        initPicker('oa-filter-bar .datepicker', 'oa')
         WordCloud('tg-top-terms', 'tg');
-        TgMessageWidget();
-        
-        MCStoryWidget();
-        DomainRanking('mc-domains-bar-chart', 'mc');
-        AttentionTrends('mc-attention-trends', 'mc');
-        EmotionTrends(`mc-emotion-trends`, 'mc');
-
-        TalkingPoints('mc-talking-points', 'mc');
-        MCLocations('mc-locations');
-        MCPersons('mc-persons');
-        MCOrgs('mc-orgs');
-        SSITimeline('si-food-insecurity', 3, {titleText: 'Food Insecurity SSI'});
-        SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: 'Food Insecurity SSI by topic'});
-        SSITimeline('si-conflict-total', 5, {titleText: 'Conflict SSI'});
-        SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: 'Conflict SSI by topic'});
+        renderCharts();
         
     };
 
@@ -1251,45 +1310,51 @@ $(document).ready(async function (){
         window.MessagesOffset[stream] = 0;
         $('.builder-container').hide();
         $('#modal-overlay').hide();
-        let base_endpoint = `/${window.country}/filter_attention_trends`;
-        let queryParams = $.param(
-            {
-                start_date: start_date,
-                end_date: end_date,
-                conditions: JSON.stringify(window.countryConditions[stream]),
-                stream: stream
-            },
-            true
-        );
-        let url = base_endpoint + '?' + queryParams;
-        let customOptions = {titleText: 'Attention'}
-        $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-        renderLineChartFromUrl(
-            `${stream}-attention-trends`, url, customOptions, 'date'
-        )
+        if (['mc', 'tg'].includes(stream)){
+            let base_endpoint = `/${window.country}/filter_attention_trends`;
+            let queryParams = $.param(
+                {
+                    start_date: start_date,
+                    end_date: end_date,
+                    conditions: JSON.stringify(window.countryConditions[stream]),
+                    stream: stream
+                },
+                true
+            );
+            let url = base_endpoint + '?' + queryParams;
+            let customOptions = {titleText: 'Attention'}
+            $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+            renderLineChartFromUrl(
+                `${stream}-attention-trends`, url, customOptions, 'date'
+            )
 
-        let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
-        let hotUrl = hotTopicsEndpoint + '?' + queryParams;
-        customOptions = {titleText: 'Hot Topics'};
-        let hasTopic = window.countryConditions[stream].some(obj => obj.field === 'Topic');
-        let categoryKey = hasTopic ? 'topic' : 'domain';
-        let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
-        $(`#${stream}-domains-bar-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-        renderBarChartFromUrl(
-            `${stream}-domains-bar-chart`, hotUrl, mappingKeys, customOptions);
+            let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
+            let hotUrl = hotTopicsEndpoint + '?' + queryParams;
+            customOptions = {titleText: 'Hot Topics'};
+            let hasTopic = window.countryConditions[stream].some(obj => obj.field === 'Topic');
+            let categoryKey = hasTopic ? 'topic' : 'domain';
+            let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
+            $(`#${stream}-domains-bar-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+            renderBarChartFromUrl(
+                `${stream}-domains-bar-chart`, hotUrl, mappingKeys, customOptions);
 
-        
-        // let talkingPointsEndpoint = `/${window.country}/talking_points_on_conditions`;
-        // let talkingUrl = talkingPointsEndpoint + '?' + queryParams;
-        //     await fetch(talkingUrl).then((response) => response.json()).then(data => {console.log(data)})
+            
+            // let talkingPointsEndpoint = `/${window.country}/talking_points_on_conditions`;
+            // let talkingUrl = talkingPointsEndpoint + '?' + queryParams;
+            //     await fetch(talkingUrl).then((response) => response.json()).then(data => {console.log(data)})
 
-        $(`#${stream}-talking-points`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');        
-        TalkingPoints(
-            `${stream}-talking-points`, stream, 
-            '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
-        TgMessageWidget();
-        MCStoryWidget();
-        EmotionTrends(`${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]));
+            $(`#${stream}-talking-points`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');        
+            TalkingPoints(
+                `${stream}-talking-points`, stream, 
+                '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
+            TgMessageWidget();
+            MCStoryWidget();
+            EmotionTrends(`${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]));
+        } else if (stream == 'oa') {
+            AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', 'Attention', window.countryConditions[stream]);
+            AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', 'Sentiment', window.countryConditions[stream]);
+            SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Search Synthetic Interest Index'}, stream);
+        }
         fillSearchBar(stream);
         
     });

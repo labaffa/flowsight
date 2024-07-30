@@ -626,6 +626,7 @@ $('#create-chart-button').on('click', function(){
     if (Object.keys(window.selectedFields).length == 0) {
         alert('Select at least one field from Available Fields')
     }
+    window.MessagesOffset = {"tg": 0, "mc": 0};
     if (containsStream(Object.values(window.selectedFields), 'tg')) {
         TgMessageWidget();
     } else {
@@ -726,17 +727,16 @@ async function TgMessageWidget(){
     let country = findCountryByCode(country_id).alpha_2.toLowerCase()
 
     
-    let base_endpoint = `/${country}/tg_messages`;
+    let base_endpoint = `/tg_messages_from_many_countries`;
     let queryParams = $.param(
         {
             start_date: window.startDate,
             end_date: window.endDate,
             conditions: JSON.stringify(window.countryConditions["studio"]),
-            entity: 'location',
             sorted_by: 'date',
             limit: window.MessagesLimit["tg"],
             offset: window.MessagesOffset["tg"],
-            countries_list: JSON.stringify(countries_list)
+            countries: JSON.stringify(countries_list)
             
         },
         true
@@ -816,9 +816,8 @@ async function MCStoryWidget(){
     if (window.MessagesOffset["mc"] == 0) {
         $(`#mc-stories`).html('<div class="h-100 d-flex justify-content-center align-items-center"><div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     }
-    let country_id = window.selectedCountries[0]
-    let country = findCountryByCode(country_id).alpha_2.toLowerCase()
-    let base_endpoint = `/${country}/mc_stories`;
+    let countries = window.selectedCountries;
+    let base_endpoint = `/mc_stories_from_many_countries`;
     let queryParams = $.param(
         {
             start_date: window.startDate,
@@ -826,7 +825,8 @@ async function MCStoryWidget(){
             conditions: JSON.stringify(window.countryConditions["studio"]),
             sorted_by: 'date',
             limit: window.MessagesLimit["mc"],
-            offset: window.MessagesOffset["mc"]
+            offset: window.MessagesOffset["mc"],
+            countries: JSON.stringify(countries)
         },
         true
     );

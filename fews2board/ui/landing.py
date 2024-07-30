@@ -64,7 +64,9 @@ async def read_landing(
         "domains": domains,
         "map_data_dict": map_data_dict,
         "map_input": map_input,
-        "avg_input": d
+        "avg_input": d,
+        "countries": request.app.countries,
+        "fews_countries": config.FEWS_COUNTRIES
     }
     
     return templates.TemplateResponse(

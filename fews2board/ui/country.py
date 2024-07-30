@@ -54,7 +54,9 @@ async def read_country(
         "latest_updates": latest_updates,
         "date_ranges": date_ranges,
         "topics": topics, 
-        "domains": domains
+        "domains": domains,
+        "countries": request.app.countries,
+        "fews_countries": config.FEWS_COUNTRIES
         }
     return templates.TemplateResponse(
         "country.html", data

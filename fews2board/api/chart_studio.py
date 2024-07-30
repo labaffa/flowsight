@@ -24,6 +24,7 @@ router = fastapi.APIRouter()
 templates = Jinja2Templates(directory="fews2board/templates")
 EMOTIONS = ['anger', 'anticipation', 'disgust', 'fear', 'joy', 'sadness', 'surprise', 'trust']
 
+
 @router.get("/studio_line_chart")
 async def get_studio_time_series(
     request: fastapi.Request,
@@ -115,4 +116,61 @@ async def get_studio_time_series(
                 response.append({"field": field, "frequency": value})
         else:
             response.append(d)
+    return response
+
+
+@router.get("/tg_messages_from_many_countries")
+async def get_telegram_messages_from_many_countries(
+    request: fastapi.Request,
+    start_date: int,
+    end_date: int,
+    countries,
+    conditions: str="",
+    sorted_by: str="date",
+    limit: int = 10,
+    offset: int = 0
+):
+    conditions = json.loads(conditions) if conditions else None
+    countries = json.loads(countries)
+    sql_coros = []
+    countries_by_id = request.app.countries_by_id
+    for c in countries:
+        alpha_2 = countries_by_id.get(int(c), {}).get("alpha_2")
+        if alpha_2 is None:
+            print(f'{c} code is not present in country list.')
+            continue
+        
+        sql_coros.append(utils.tg_messages_no_duplicates(
+            request.app.async_pool, alpha_2.lower(), start_date, end_date, sorted_by, limit, conditions, offset,
+        ))
+        
+    sql_responses = await gather(*sql_coros)
+    response = [x for r in sql_responses for x in r]
+    return response
+
+
+@router.get("/mc_stories_from_many_countries")
+async def get_telegram_messages_from_many_countries(
+    request: fastapi.Request,
+    start_date: int,
+    end_date: int,
+    countries,
+    conditions: str="",
+    sorted_by: str="date",
+    limit: int = 10,
+    offset: int = 0
+):
+    conditions = json.loads(conditions) if conditions else None
+    countries = json.loads(countries)
+    sql_coros = []
+    for c in countries:
+        alpha_2 = request.app.countries_by_id.get(int(c), {}).get("alpha_2")
+        if alpha_2 is None:
+            print(f'{c} code is not present in country list.')
+            continue
+        sql_coros.append(utils.mc_stories(
+            request.app.async_pool, alpha_2.lower(), start_date, end_date, sorted_by, limit, conditions, offset,
+        ))
+    sql_responses = await gather(*sql_coros)
+    response = [x for r in sql_responses for x in r]
     return response

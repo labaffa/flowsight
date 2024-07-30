@@ -6,6 +6,7 @@ from psycopg.rows import dict_row
 import datetime as dt
 from collections import defaultdict
 from dateutil.parser import parse
+import json
 
 
 SQL_GEN_MAPPING = {
@@ -563,7 +564,6 @@ async def mc_talking_points_with_delta(pool, country_id: int, start_date: int, e
         ;
         '''
     )
-    print(q)
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -779,19 +779,27 @@ async def mc_entity_in_period_for_country(
 
 
 async def ssi_w_series(
-    pool, country_id: int, start_date: int, end_date: int, ssi_domain_id: int = 3
-):
+    pool, country_id: int, start_date: int, end_date: int, ssi_domain_id = 3
+):  
+    try:
+        ssi_domain_id = int(ssi_domain_id)
+        domains_clause = f' sda.ssi_domain_id = {ssi_domain_id} '
+    except Exception:
+        domains = [str(x) for x in json.loads(ssi_domain_id)]
+        domains_clause = f' sda.ssi_domain_id in ({", ".join(domains)})'
     q = (
         f'''
         select
             d.date_actual as date
             , sda.value as ssi_w
+            , dom.domain as domain
         from {tablename(models.SSIDayAgg)} sda
         join {tablename(models.Date)} d on sda.date_id = d.id
+        join {tablename(models.SSIDomain)} dom on sda.ssi_domain_id = dom.id
         where 
             sda.date_id >= {start_date} and sda.date_id <= {end_date}
             and sda.country_id = {country_id}
-            and sda.ssi_domain_id = {ssi_domain_id}
+            and {domains_clause}
             and sda.is_ssi_w = TRUE
         ;
         '''
@@ -832,25 +840,21 @@ async def ssi_fields_series(
 
 
 async def tg_messages_no_duplicates(
-    pool, country_id: int, alpha_2: str, 
-    start_date: int, end_date: int, sorted_by: str="date", 
+    pool,  
+    alpha_2: str, 
+    start_date: int, 
+    end_date: int,
+    sorted_by: str="date", 
     limit: int=10, 
     conditions=None, 
     offset: int=10,
-    countries_list = None
 ):
     
     model = models.TgMessageCountry[alpha_2]
-    if countries_list is None:
-        country_ids = [country_id]
-    else:
-        country_ids = countries_list
-    country_clause = " (" + ", ".join([str(x) for x in country_ids]) + ") "
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
         topic_clause, sentiment_clause, emotion_clause = "", "", ""
-    
     sorted_by = sorted_by.strip().lower()
     if sorted_by not in ["date", "sentiment"]:
         sorted_by = "date"
@@ -866,26 +870,30 @@ async def tg_messages_no_duplicates(
     q = (
         f'''
             select 
-                -- distinct 
+                distinct 
                 ms.unique_id as unique_id
                 , ms.username as username
                 , ms.author_username as author_username
                 , ms.message_id as message_id
                 , ms.timestamp as timestamp
-                , ms.body as body
+                , case
+                    when lower(tc.language) = 'english' then ms.body
+                    else ms.body_en
+                end as body
                 , array_agg(t.topic) AS detected_topics
             from {tablename(models.TgTopicIdPositive)} ttip 
             join {tablename(models.TgSentiment)} ts on ttip.message_unique_id  = ts.message_unique_id
                 and (ttip.country_id = ts.country_id)
-            join {tablename(model)} ms on ttip.message_unique_id = ms.unique_id
+            join {tablename(model)} ms on ttip.message_unique_id = ms.unique_id 
+                and (ms.country_id = ttip.country_id)
             join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
+            join {tablename(models.TgChannel)} tc on ms.username = tc.url
             where 
-                ttip.country_id in {country_clause} and 
                 ttip.date_id  BETWEEN {start_date} and {end_date}
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
-            group by ms.unique_id, ms.author_username, ms.username, ms.message_id, ms.timestamp, ms.body
+            group by ms.unique_id, ms.author_username, ms.username, ms.message_id, ms.timestamp, ms.body, tc.language
             order by {col} desc 
         limit {limit}
         offset {offset}
@@ -893,7 +901,6 @@ async def tg_messages_no_duplicates(
 
         '''
     )
-    print(q)
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -1107,17 +1114,13 @@ def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_ali
 
 async def mc_stories(
     pool, 
-    country_id: int, start_date: int, end_date: int, sorted_by: str="date", 
+    alpha_2: str,
+    start_date: int, end_date: int, 
+    sorted_by: str="date", 
     limit: int=10, 
     conditions=None, 
     offset: int = 0,
-    countries_list = None
 ):
-    if countries_list is None:
-        country_ids = [country_id]
-    else:
-        country_ids = countries_list
-    country_clause = " (" + ", ".join([str(x) for x in country_ids]) + ") "
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
@@ -1134,20 +1137,21 @@ async def mc_stories(
     q = (
         f'''
         select 
-            -- distinct
+            distinct
             ms.id
             , ms.media_name as username
             , ms.url as url
             , ms.publish_date as timestamp
+            , ms.indexed_date
             , ms.title as body
             , array_agg(t.topic) AS detected_topics
         from {tablename(models.MCSentiment)} ts 
         join {tablename(models.MCTopicIdPositive)} ttip on ts.story_id = ttip.story_id
-            -- and (ttip.country_id = ts.country_id)
-        join {tablename(models.MCStory)} ms on ms.id = ts.story_id
+            and (ttip.country_id = ts.country_id)
+        join {tablename(models.MCStoryCountry[alpha_2])} ms on ms.id = ts.story_id
+            and (ttip.country_id = ms.country_id)
         join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
         where 
-            ms.country_id in {country_clause} and 
             ms.publish_date::DATE between '{start_date}' and '{end_date}' 
            {topic_clause} 
            {sentiment_clause} 
@@ -1291,7 +1295,6 @@ async def time_series_from_filtered_messages(
             ;
         '''
     )
-    
 
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
@@ -1728,8 +1731,9 @@ async def tfidf_day_agg_top_terms(
             result = await cur.fetchall()
     return result    
 
+
 async def chart_studio_time_series_from_stream(
-    pool, conditions, country_id, start_date, end_date, field
+    pool, conditions, country_id, start_date, end_date, field, aggr=False
 ):
     """
     This function must be used only if topics are present in conditions, i.e. the variable topic_clause
@@ -1765,13 +1769,18 @@ async def chart_studio_time_series_from_stream(
     if field_type == "attention":
         value_clause = ", sum(ttip.topic_norm_prevalence)/tdc.count as value"
         distinct_clause = ""
-        field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
-        joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"
-        group_by_clause = "group by ttip.country_id, d.date_actual, ttip.topic_unique_id, tdc.count, c.name, t.topic"
+        if not aggr:
+            field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
+            joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"
+            group_by_clause = "group by ttip.country_id, d.date_actual, ttip.topic_unique_id, tdc.count, c.name, t.topic"
+        else:
+            field_clause = f", {suffix.replace('(', '').replace(')', '').replace(' ', '')}  as field"
+            joint_topic_clause = " "
+            group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
     elif field_type == "sentiment":
         value_clause = ", avg(ts.sentiment) as value"
         distinct_clause = " distinct on (date_actual) "
-        field_clause = f", c.name  || ' - Sentiment - ' || {suffix} as field"
+        field_clause = f", {suffix.replace('(', '').replace(')', '').replace(' ', '')}  as field"
         joint_topic_clause = " "
         group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
     elif field_type == "emotion":
@@ -2071,14 +2080,14 @@ async def time_series_emotions(
         raise ValueError(f'Stream {stream} not allowed')
     value_clause = (
             """, json_build_object(
-                    'anger', sum(anger::float)/tdc.count,
-                    'anticipation', sum(anticipation::float)/tdc.count,
-                    'disgust', sum(disgust::float)/tdc.count,
-                    'fear', sum(fear::float)/tdc.count,
-                    'joy', sum(joy::float)/tdc.count,
-                    'sadness', sum(sadness::float)/tdc.count,
-                    'surprise', sum(surprise::float)/tdc.count,
-                    'trust', sum(trust::float)/tdc.count
+                    'anger', avg(anger::float),
+                    'anticipation', avg(anticipation::float),
+                    'disgust', avg(disgust::float),
+                    'fear', avg(fear::float),
+                    'joy', avg(joy::float),
+                    'sadness', avg(sadness::float),
+                    'surprise', avg(surprise::float),
+                    'trust', avg(trust::float)
                 ) AS value  
             """
     )
@@ -2117,3 +2126,4 @@ async def time_series_emotions(
             await cur.execute(q)
             result = await cur.fetchall()
     return result    
+

@@ -50,6 +50,27 @@ export var filterStructure = {
         //     "value": []
         // }
     },
+    "oa": {
+        
+        "Topic": {
+                "operators": ["IS"],
+                "value": Object.keys(window.topicsByName)
+            },
+        "Sentiment": {
+            "operators": ["IS", "IS NOT"],
+            "value": ["negative", "positive"]
+        },
+        "Emotion": {
+            "operators": ["IS", "IS NOT"],
+            "value": ["anger", 
+            "anticipation", "disgust", "fear", "joy",
+            "sadness", "surprise", "trust"]
+        },
+        // "Keyword": {
+        //     "operators": ["CONTAINS", "DOES NOT CONTAIN"],
+        //     "value": []
+        // }
+    },
     "studio": {
         
         "Topic": {

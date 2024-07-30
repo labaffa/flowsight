@@ -14,18 +14,23 @@
             {% include "base/toggler.html" %}
             <!-- TAB CONTENT -->
             <div class="tab-content  bs-none" id="pills-tabContent">
-                <!-- Thematic Trends -->
-                <div class="tab-pane fade show active bs-none" id="pills-thematic-trends" role="tabpanel"
+                <!-- Overall -->
+                <div class="tab-pane fade show active bs-none" id="pills-overall" role="tabpanel"
+                    aria-labelledby="pills-overall">
+                    {% include "country/overall.html" %}
+                </div>
+                <!-- Social listening/Telegram -->
+                <div class="tab-pane fade show bs-none" id="pills-thematic-trends" role="tabpanel"
                     aria-labelledby="pills-thematic-trends">
                     {% include "country/social_listening.html" %}
                 </div>
-                <!-- Thematic Interactions -->
+                <!-- Media Monitoring/Mediacloud -->
                 <div class="tab-pane fade bs-none" id="pills-thematic-interactions" role="tabpanel"
                     aria-labelledby="pills-thematic-interactions">
                     {% include "country/media_monitoring_grid.html" %}
                 </div>
 
-                <!-- Emerging Trends -->
+                <!-- SSI Search synthetic interest index -->
                 <div class="tab-pane fade bs-none" id="pills-emerging-trends" role="tabpanel"
                     aria-labelledby="pills-emerging-trends">
                     {% include "country/search_interest.html" %}

@@ -17,7 +17,7 @@ from fews2board.db.models.telegram import TgMessage, TgChannel, TgSentiment, TgT
     TgTopicIdPositive, TgMessageCountry
 from fews2board.db.models.luigi import MarkerTable
 from fews2board.db.models.media_monitoring import MCStory, MCSentiment, MCTopicId, \
-    MCTopicIdPositive
+    MCTopicIdPositive, MCStoryCountry
 from fews2board.db.models.framework import Topic, Date, Country, Domain, SSIDomain, \
     SSIField
 from fews2board.db.models.facts import TopicIdDayAggTg, TopicIdDayDomainAggTg, \

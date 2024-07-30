@@ -22,6 +22,7 @@ async def lifespan(app: FastAPI):
     countries_in_db = await utils.get_country_codes(app.async_pool)
     domains_in_db = await utils.get_domains(app.async_pool)
     app.countries = {c["alpha_2"].lower().strip(): c for c in countries_in_db}
+    app.countries_by_id = {c["country_id"]: c for c in countries_in_db}
     app.domains = domains_in_db
     yield
     await app.async_pool.close()

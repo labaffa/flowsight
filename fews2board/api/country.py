@@ -193,7 +193,7 @@ async def get_ssi_series(
     alpha_2: str,
     start_date: int,
     end_date: int,
-    domain_id: int=3
+    domain_id=3
 ):
     try:
         country_id = int(
@@ -202,9 +202,20 @@ async def get_ssi_series(
         raise fastapi.HTTPException(
             status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
         )
-    response = await utils.ssi_w_series(
+    data = await utils.ssi_w_series(
         request.app.async_pool, country_id, start_date, end_date, domain_id
     )
+    by_field = defaultdict(dict)
+    fields_set = set()
+    response = []
+    for d in data:
+        by_field[d["date"]][d["domain"]] = d["ssi_w"]
+        fields_set.add(d["domain"])
+    for day in by_field:
+        day_data = {"date": day}
+        for field in fields_set:
+            day_data[field] = by_field[day].get(field)
+        response.append(day_data)
     return response
 
 
@@ -217,24 +228,13 @@ async def get_telegram_messages(
     conditions: str="",
     sorted_by: str="date",
     limit: int = 10,
-    offset: int = 0,
-    countries_list = None
-    
+    offset: int = 0
 ):
-    try:    
-        country_id = int(
-            request.app.countries[alpha_2.strip().lower()]["country_id"])
-    except KeyError:
-        raise fastapi.HTTPException(
-            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
-        )
     conditions = json.loads(conditions) if conditions else None
-    countries_list = json.loads(countries_list) if countries_list else None
     response = await utils.tg_messages_no_duplicates(
-        request.app.async_pool, country_id, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset,
-        countries_list
+        request.app.async_pool, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset,
     )
-    response = list({x["unique_id"]: x for x in response}.values())
+    # response = list({x["unique_id"]: x for x in response}.values())
     return response
 
 
@@ -301,23 +301,14 @@ async def get_mediacloud_stories(
     limit: int = 10,
     conditions: str="",
     offset: int = 0,
-    countries_list = None
+    
 ):  
     conditions = json.loads(conditions) if conditions else None
-    countries_list = json.loads(countries_list) if countries_list else None
-    try:    
-        country_id = int(
-            request.app.countries[alpha_2.strip().lower()]["country_id"])
-    except KeyError:
-        raise fastapi.HTTPException(
-            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
-        )
     response = await utils.mc_stories(
-        request.app.async_pool, country_id, start_date, end_date, sorted_by, limit, conditions, offset,
-        countries_list
+        request.app.async_pool, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset
     )
     # remove duplicates
-    response = list({x["id"]: x for x in response}.values())
+    # response = list({x["id"]: x for x in response}.values())
     return response
 
 
@@ -421,6 +412,7 @@ async def get_talking_points_on_conditions(
             }
 
             response.append(o)
+    print(response)
     response = [x for x in response if x["latest_value"]]
     return response
 
@@ -513,6 +505,45 @@ async def get_studio_time_series(
             field = emotion.title()
             by_field[d["date"]][field] = value
             fields_set.add(field)
+    for day in by_field:
+        day_data = {"date": day}
+        for field in fields_set:
+            day_data[field] = by_field[day].get(field)
+        response.append(day_data)
+    return response
+
+
+@router.get("/{alpha_2}/overall_trend")
+async def get_overall_trend(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    trend_type: str,
+    conditions: str="",
+):
+    try:
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )
+    conditions = json.loads(conditions) if conditions else None
+    sql_coros = []
+    for stream in ['mc', 'tg']:
+        field = {"stream": stream, "type": trend_type}
+        sql_coros.append(utils.chart_studio_time_series_from_stream(
+            request.app.async_pool, conditions, country_id, start_date, end_date, field, aggr=True
+        ))
+    sql_responses = await gather(*sql_coros)
+    data = [x for r in sql_responses for x in r]
+    by_field = defaultdict(dict)
+    fields_set = set()
+    response = []
+    for d in data:
+        by_field[d["date"]][d["field"]] = d["value"]
+        fields_set.add(d["field"])
     for day in by_field:
         day_data = {"date": day}
         for field in fields_set:

@@ -10,6 +10,7 @@ class TopicIdDayAggTg(MyBase):
     topic_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     topic_norm_prevalence = sa.Column(sa.Float)
+    is_anomaly = sa.Column(sa.Boolean, nullable=True)
 
 
 class TopicIdDayDomainAggTg(MyBase):
@@ -19,6 +20,7 @@ class TopicIdDayDomainAggTg(MyBase):
     domain_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     topic_norm_prevalence = sa.Column(sa.Float)
+    is_anomaly = sa.Column(sa.Boolean, nullable=True)
 
 
 class TgSentimentDayAgg(MyBase):
@@ -46,6 +48,7 @@ class MCTopicIdDayAgg(MyBase):
     topic_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     topic_norm_prevalence = sa.Column(sa.Float)
+    is_anomaly = sa.Column(sa.Boolean, nullable=True)
 
 
 class MCTopicIdDayDomainAgg(MyBase):
@@ -55,7 +58,8 @@ class MCTopicIdDayDomainAgg(MyBase):
     domain_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
     topic_norm_prevalence = sa.Column(sa.Float)
-
+    is_anomaly = sa.Column(sa.Boolean, nullable=True)
+    
 
 class MCSentimentDayAgg(MyBase):
     __tablename__ = "mc_sentiment_day_agg"

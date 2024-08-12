@@ -107,6 +107,44 @@ async def latest_attention_and_sentiment_per_domain(pool):
                 , 'mc' as data_stream
             from {tablename(MCTopicIdDayDomainAgg)} tti
             join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+
+            union all
+
+            SELECT 
+                dense_rank() over (
+                    partition by tti.country_id, top.domain_id
+                    order by (tti.date_id) desc
+                ) as row_num
+                , top.domain_id as domain_id 
+                , tti.date_id as date_id 
+                , tti.country_id as country_id 
+                , lower(cou.alpha_2) as alpha_2
+                , count(*) filter(where is_anomaly) as value  
+                , 'anomaly' as analysis
+                , 'tg' as data_stream
+            from {tablename(models.TopicIdDayAggTg)} tti
+            join {tablename(models.Topic)} top on tti.topic_id = top.id
+            join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+            group by tti.country_id, top.domain_id, tti.date_id, cou.alpha_2
+
+            union all
+
+            SELECT 
+                dense_rank() over (
+                    partition by tti.country_id, top.domain_id
+                    order by (tti.date_id) desc
+                ) as row_num
+                , top.domain_id as domain_id 
+                , tti.date_id as date_id 
+                , tti.country_id as country_id 
+                , lower(cou.alpha_2) as alpha_2
+                , count(*) filter(where is_anomaly) as value  
+                , 'anomaly' as analysis
+                , 'mc' as data_stream
+            from {tablename(models.MCTopicIdDayAgg)} tti
+            join {tablename(models.Topic)} top on tti.topic_id = top.id
+            join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+            group by tti.country_id, top.domain_id, tti.date_id, cou.alpha_2            
             
     )
     select domain_id, date_id, country_id, value, analysis, data_stream, alpha_2 from row_numbers 
@@ -1067,7 +1105,7 @@ async def mc_stories_no_duplicates(
     return result
 
 
-def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_alias="ts"):
+def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_alias="ts", topic_col='topic_unique_id'):
     nested_dicts = lambda: defaultdict(nested_dicts)
     topic_clause, notin_clause, sentiment_clause, emotion_clause = "", "", "", ""
     if not conditions:
@@ -1082,7 +1120,7 @@ def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_ali
         else:
             b[cond["field"]][cond["operator"]].append(cond["value"])
     if b["Topic"].get("IS"):
-        topic_clause = f' AND ({" OR ".join(f"{topic_table_alias}.topic_unique_id = {f} " for f in b["Topic"]["IS"])})'
+        topic_clause = f' AND ({" OR ".join(f"{topic_table_alias}.{topic_col} = {f} " for f in b["Topic"]["IS"])})'
     if b["Sentiment"].get("IS") or b["Sentiment"].get("IS NOT"):
         sentiment_sub_conds = []
         for key, values in b["Sentiment"].items():
@@ -1143,7 +1181,10 @@ async def mc_stories(
             , ms.url as url
             , ms.publish_date as timestamp
             , ms.indexed_date
-            , ms.title as body
+            , case
+                    when lower(ms.language) = 'en' then ms.title
+                    else ms.body_en
+            end as body
             , array_agg(t.topic) AS detected_topics
         from {tablename(models.MCSentiment)} ts 
         join {tablename(models.MCTopicIdPositive)} ttip on ts.story_id = ttip.story_id
@@ -1749,21 +1790,36 @@ async def chart_studio_time_series_from_stream(
     Returns:
         _type_: _description_
     """
+    stream, field_type = field["stream"], field["type"]
+    topic_col = "topic_id" if field_type == "anomaly" else "topic_unique_id"
     if conditions is not None:
-        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions, topic_col=topic_col)
     else:
         topic_clause, sentiment_clause, emotion_clause = "", "", ""
-    stream, field_type = field["stream"], field["type"]
     if stream == "tg":
         topic_table = models.TgTopicIdPositive
         sentiment_table = models.TgSentiment
+        count_table = models.TgDailyCounts
         record_col_name = "message_unique_id"
         suffix = "' (Social)'"
+        join_additional_clause = ''
+        if field_type == 'anomaly':
+            topic_table = models.TopicIdDayAggTg
+            sentiment_table = models.TgSentimentDayAgg
+            record_col_name = "date_id"
+            join_additional_clause = " and ttip.topic_id = ts.topic_id "
     elif stream == "mc":
         topic_table = models.MCTopicIdPositive
         sentiment_table = models.MCSentiment
+        count_table = models.MCDailyCounts
         record_col_name = "story_id"
         suffix = "' (Media)'"
+        join_additional_clause = ''
+        if field_type == 'anomaly':
+            topic_table = models.MCTopicIdDayAgg
+            sentiment_table = models.MCSentimentDayAgg
+            record_col_name = "date_id"
+            join_additional_clause = " and ttip.topic_id = ts.topic_id "
     else:
         raise ValueError(f'Stream {stream} not allowed')
     if field_type == "attention":
@@ -1801,18 +1857,30 @@ async def chart_studio_time_series_from_stream(
         field_clause = f", c.name  || ' - Emotion - ' || {suffix} as field"
         joint_topic_clause = " "
         group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
+    elif field_type == "anomaly":
+        value_clause = ", count(*) filter (where is_anomaly) as value"
+        distinct_clause = ""
+        if not aggr:
+            field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
+            joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"
+            group_by_clause = "group by ttip.country_id, d.date_actual, ttip.topic_unique_id, tdc.count, c.name, t.topic"
+        else:
+            field_clause = f", {suffix.replace('(', '').replace(')', '').replace(' ', '')}  as field"
+            joint_topic_clause = " "
+            group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
 
     q = (
         f'''
             select
-                -- {distinct_clause}
+                 {distinct_clause}
                 d.date_actual as date
                 {value_clause}
                 {field_clause}
             from {tablename(topic_table)} ttip
             join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
-                and ttip.country_id = ts.country_id
-            join {tablename(models.TgDailyCounts)} tdc on 
+                and ttip.country_id = ts.country_id 
+                {join_additional_clause}
+            join {tablename(count_table)} tdc on 
                 tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
             join {tablename(models.Date)} d on ttip.date_id = d.id
             join {tablename(models.Country)} c on c.country_code = {country_id}

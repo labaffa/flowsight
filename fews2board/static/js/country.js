@@ -738,9 +738,10 @@ $('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     let end_date = window.oaEndDate;
     let stream = 'oa';
     let conditions = window.countryConditions['oa'];
+    AttentionTrends('oa-anomaly-trends', stream, '/overall_trend', 'anomaly', 'Anomaly', conditions);
     AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', 'Attention', conditions);
     AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', 'Sentiment', conditions);
-    SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Search Synthetic Interest Index'}, stream);
+    SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, stream);
     fillSearchBar(stream);
 });
 
@@ -1167,9 +1168,10 @@ $(document).ready(async function (){
       });
 
     function renderCharts(){
+        AttentionTrends('oa-anomaly-trends', 'oa', '/overall_trend', 'anomaly', 'Anomaly', window.countryConditions['oa']);
         AttentionTrends('oa-attention-trends', 'oa', '/overall_trend', 'attention', 'Attention', window.countryConditions['oa']);
         AttentionTrends('oa-sentiment-trends', 'oa', '/overall_trend', 'sentiment', 'Sentiment', window.countryConditions['oa']);
-        SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Search Synthetic Interest Index'}, 'oa');
+        SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, 'oa');
 
         DomainRanking('tg-domains-bar-chart', 'tg');
         AttentionTrends('tg-attention-trends', 'tg');
@@ -1351,9 +1353,10 @@ $(document).ready(async function (){
             MCStoryWidget();
             EmotionTrends(`${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]));
         } else if (stream == 'oa') {
+            AttentionTrends('oa-anomaly-trends', stream, '/overall_trend', 'anomaly', 'Anomaly', window.countryConditions[stream]);
             AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', 'Attention', window.countryConditions[stream]);
             AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', 'Sentiment', window.countryConditions[stream]);
-            SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Search Synthetic Interest Index'}, stream);
+            SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, stream);
         }
         fillSearchBar(stream);
         

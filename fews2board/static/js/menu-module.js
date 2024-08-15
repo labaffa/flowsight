@@ -1,5 +1,5 @@
 import { renderBarChart, renderBarChartFromUrl } from "./charts/bar-chart-module.js";
-import { renderLineChart, renderLineChartFromUrl } from "./charts/line-chart-module.js";
+import { renderTimeSeries, renderTimeSeriesFromUrl } from "./charts/line-chart-module.js";
 import { renderWordCloud } from "./charts/wordcloud-module.js";
 
 
@@ -96,7 +96,7 @@ export var filterStructure = {
 
 export var studioFilterStructure = {
     "charts": {
-        0: {"name": "Line Chart", "endpoint": "/studio_line_chart", "chart": renderLineChartFromUrl}, 
+        0: {"name": "Line Chart", "endpoint": "/studio_line_chart", "chart": renderTimeSeriesFromUrl}, 
         1: {"name": "Bar Chart", "endpoint": "/studio_bar_chart", "chart": renderBarChartFromUrl}
     },
     "fields": {
@@ -116,4 +116,5 @@ export var studioFilterStructure = {
         4: {"name": "Text Color", "value": "textColor", "defaultValue": '#ffffff'}
     }
 };
+
 

@@ -117,7 +117,7 @@ export function renderLineChartb(chartId, data, customOptions) {
 
 	Highcharts.chart(chartId, chartOptions);
 }
-export function renderLineChart(chartId, data, customOptions) {
+export function renderTimeSeries(chartId, data, customOptions) {
 	const defaultOptions = {
 		// chartHeightRatio: 7 / 16,
 		chartType: 'line',
@@ -133,7 +133,8 @@ export function renderLineChart(chartId, data, customOptions) {
 		yAxisTitleEnabled: true,
 		yAxisTitleText: undefined,
 		backgroundColor: '#4A5975',
-		textColor: '#ffffff'
+		textColor: '#ffffff',
+		tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}'
 	};
 
 	const opts = { ...defaultOptions, ...customOptions };
@@ -164,9 +165,14 @@ export function renderLineChart(chartId, data, customOptions) {
 			}
 		},
 		plotOptions: {
+			column: {
+                pointPadding: 0.2,
+                borderWidth: 0,
+                grouping: true
+            },
 			series: {
 				marker: {
-					enabled: false
+					enabled: false,
 				},
 			},
 		},
@@ -224,7 +230,8 @@ export function renderLineChart(chartId, data, customOptions) {
 
 		},
 		tooltip: {
-			// pointFormat: opts.tooltipPointText + '{point.y:.2f}',
+			pointFormat: opts.tooltipPointFormat,
+			
 		},
 		series: seriesData,
 		responsive: {
@@ -283,12 +290,46 @@ export function renderLineChart(chartId, data, customOptions) {
 	
 
 }
-export function processChartData(data, dateKey) {
+
+export function processOverallChartData(data, dateKey, customKeys=[]) {
 	if (data.length === 0){
 		return [];
 	}
+	
 	const seriesData = [];
-	const topics = Object.keys(data[0]).filter(key => key !== dateKey);
+	for (const series of data) {
+		
+		series.data = series.data.map(item => {
+			return {
+				x: item[dateKey],
+				y: item.value,
+				...item
+			};
+		}).sort(function(a, b) {
+			return a.x - b.x;
+		});
+		seriesData.push(series);
+	}
+	seriesData.sort((a, b) => {
+		if (a.name < b.name) {
+			return 1;
+		}
+		if (a.name > b.name) {
+			return -1;
+		}
+		return 0;
+	});
+	return seriesData;
+};
+
+
+export function processChartData(data, dateKey, customKeys=[]) {
+	if (data.length === 0){
+		return [];
+	}
+	const colsToExclude = [dateKey, ...customKeys];
+	const seriesData = [];
+	const topics = Object.keys(data[0]).filter(key => !colsToExclude.includes(key));
 	for (const topic of topics) {
 		const series = {
 			name: topic,
@@ -299,16 +340,17 @@ export function processChartData(data, dateKey) {
 			const date = Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]);
 			
 			const value = parseFloat(item[topic]) ? item[topic] : 0;
-			series.data.push([date, value]);
+			series.data.push({x: date, y: value});
 		}
-		series.data = series.data.sort(function(a, b) { return a[0] - b[0]; });
+		series.data = series.data.sort(function(a, b) { return a.x - b.x; });
 		seriesData.push(series);
 	}
+	console.log(seriesData)
 	return seriesData;
 };
 
-export async function renderLineChartFromUrl(
-    chartId, url, customOptions, dateKey
+export async function renderTimeSeriesFromUrl(
+    chartId, url, customOptions, dateKey, customKeys=[]
 ){
    let data = await fetch(url)
    	.then(response => response.json())
@@ -317,8 +359,28 @@ export async function renderLineChartFromUrl(
 			$(`#${chartId}`).html(noDataHTML);
 		} else {
 
-			data = processChartData(data, dateKey);
-			renderLineChart(chartId, data, customOptions);
+			data = processChartData(data, dateKey, customKeys);
+			renderTimeSeries(chartId, data, customOptions);
+			// $('.highcharts-background').css('fill', window.chartBackground);
+			// $(`#${chartId} text`).css('fill', window.chartTextColor);
+		}
+	});
+	
+    
+};
+
+export async function renderOverallTimeSeriesFromUrl(
+    chartId, url, customOptions, dateKey, customKeys=[]
+){
+   let data = await fetch(url)
+   	.then(response => response.json())
+	.then(data => {
+		if (data.length == 0 ) {
+			$(`#${chartId}`).html(noDataHTML);
+		} else {
+
+			data = processOverallChartData(data, dateKey, customKeys);
+			renderTimeSeries(chartId, data, customOptions);
 			// $('.highcharts-background').css('fill', window.chartBackground);
 			// $(`#${chartId} text`).css('fill', window.chartTextColor);
 		}

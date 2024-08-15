@@ -542,11 +542,53 @@ async def get_overall_trend(
     fields_set = set()
     response = []
     for d in data:
-        by_field[d["date"]][d["field"]] = d["value"]
+        by_field[d["date"]][d["field"]] = {"value": d["value"], "stream": d["stream"]}
+        if trend_type == "anomaly":
+            by_field[d["date"]][d["field"]]["topic_ids"] = d['topic_ids'] if d['topic_ids'] else []
         fields_set.add(d["field"])
     for day in by_field:
         day_data = {"date": day}
         for field in fields_set:
-            day_data[field] = by_field[day].get(field)
+            day_data[field] = by_field[day].get(field, {}).get("value")
+            if trend_type == "anomaly":
+                topics_alias = f'{by_field[day].get(field, {}).get("stream", "")}_topic_ids'
+                day_data[topics_alias] = by_field[day].get(field, {}).get('topic_ids', [])
         response.append(day_data)
+    return response
+
+
+@router.get("/{alpha_2}/overall_trend_hc")
+async def get_overall_trend(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    trend_type: str,
+    conditions: str="",
+):
+    try:
+        country_id = int(
+            request.app.countries[alpha_2.strip().lower()]["country_id"])
+    except KeyError:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{alpha_2} is not a valid alpha_2 code"
+        )
+    conditions = json.loads(conditions) if conditions else None
+    sql_coros = []
+    for stream in ['mc', 'tg']:
+        field = {"stream": stream, "type": trend_type}
+        sql_coros.append(utils.chart_studio_time_series_from_stream(
+            request.app.async_pool, conditions, country_id, start_date, end_date, field, aggr=True
+        ))
+    sql_responses = await gather(*sql_coros)
+    data = [x for r in sql_responses for x in r]
+    by_field = defaultdict(list)
+    response = []
+    for d in data:
+        record = {"date": int(dt.datetime.strptime(str(d["date"]), "%Y-%m-%d").replace(tzinfo=dt.timezone.utc).timestamp() * 1000), "value": d["value"]}
+        if trend_type == "anomaly":
+            record["topic_names"] = d['topic_names'] if d['topic_names'] else []
+        by_field[d["field"]].append(record)
+    for series_name, series_data in by_field.items():
+        response.append({"name": series_name, "data": series_data})
     return response

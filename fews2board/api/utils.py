@@ -158,6 +158,112 @@ async def latest_attention_and_sentiment_per_domain(pool):
     return result
 
 
+async def layers_data_for_given_time_period(pool, start_date, end_date):
+    date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
+    date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
+    day_difference = (date2 - date1).days + 1
+
+    q = (f'''
+        SELECT 
+            tti.domain_id as domain_id 
+            , tti.country_id as country_id 
+            , lower(cou.alpha_2) as alpha_2
+            , avg(tti.topic_norm_prevalence) as value  
+            , ARRAY[]::text[] as topic_names 
+            , 'attention' as analysis
+            , 'tg' as data_stream
+        from {tablename(TopicIdDayDomainAggTg)} tti
+        join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+        WHERE tti.date_id BETWEEN {start_date} AND {end_date}
+        group by tti.country_id , tti.domain_id , cou.alpha_2 
+
+        union all
+
+        SELECT 
+            tti.domain_id as domain_id 
+            , tti.country_id as country_id 
+            , lower(cou.alpha_2) as alpha_2
+            , avg(tti.topic_norm_prevalence) as value  
+            , ARRAY[]::text[] as topic_names 
+            , 'attention' as analysis
+            , 'mc' as data_stream
+        from {tablename(MCTopicIdDayDomainAgg)} tti
+        join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+        WHERE tti.date_id BETWEEN {start_date} AND {end_date}
+        group by tti.country_id , tti.domain_id , cou.alpha_2 
+
+        union all
+
+        SELECT 
+            tti.domain_id as domain_id 
+            , tti.country_id as country_id 
+            , lower(cou.alpha_2) as alpha_2
+            , avg(tti.sentiment) as value  
+            , ARRAY[]::text[] as topic_names 
+            , 'sentiment' as analysis
+            , 'tg' as data_stream
+        from {tablename(models.TgSentimentDayDomainAgg)} tti
+        join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+        WHERE tti.date_id BETWEEN {start_date} AND {end_date}
+        group by tti.country_id , tti.domain_id , cou.alpha_2 
+
+       
+        union all    
+ 
+        SELECT 
+            tti.domain_id as domain_id 
+            , tti.country_id as country_id 
+            , lower(cou.alpha_2) as alpha_2
+            , avg(tti.sentiment) as value 
+            , ARRAY[]::text[] as topic_names 
+            , 'sentiment' as analysis
+            , 'mc' as data_stream
+        from {tablename(MCSentimentDayDomainAgg)} tti
+        join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+        WHERE tti.date_id BETWEEN {start_date} AND {end_date}
+        group by tti.country_id , tti.domain_id , cou.alpha_2 
+            
+        union all
+           
+        SELECT 
+            top.domain_id as domain_id 
+            , tti.country_id as country_id 
+            , lower(cou.alpha_2) as alpha_2
+            , (count(*) filter(where is_anomaly)) as value  
+            , ARRAY_AGG(top.topic) FILTER (WHERE is_anomaly) AS topic_names
+            , 'anomaly' as analysis
+            , 'tg' as data_stream
+        from {tablename(models.TopicIdDayAggTg)} tti
+        join {tablename(models.Topic)} top on tti.topic_id = top.id
+        join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+        WHERE tti.date_id BETWEEN {start_date} AND {end_date}
+        group by tti.country_id , top.domain_id , cou.alpha_2 
+
+        union all
+           
+        SELECT 
+            top.domain_id as domain_id 
+            , tti.country_id as country_id 
+            , lower(cou.alpha_2) as alpha_2
+            , (count(*) filter(where is_anomaly)) as value  
+            , ARRAY_AGG(top.topic) FILTER (WHERE is_anomaly) AS topic_names 
+            , 'anomaly' as analysis
+            , 'mc' as data_stream
+        from {tablename(models.MCTopicIdDayAgg)} tti
+        join {tablename(models.Topic)} top on tti.topic_id = top.id
+        join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+        WHERE tti.date_id BETWEEN {start_date} AND {end_date}
+        group by tti.country_id , top.domain_id , cou.alpha_2 
+    
+    ;
+    ''')
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
+
 async def top_topics_on_latest(pool, top_n=3, stream: str="tg"):
     """ this query gets results from the most recent date present in 
     topic aggregated table, but we should get them from tg_message or not
@@ -1794,6 +1900,8 @@ async def chart_studio_time_series_from_stream(
     topic_col = "topic_id" if field_type == "anomaly" else "topic_unique_id"
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions, topic_col=topic_col)
+        if field_type == "anomaly":  # TODO: fix this in the future
+            emotion_clause = ""
     else:
         topic_clause, sentiment_clause, emotion_clause = "", "", ""
     if stream == "tg":
@@ -1858,15 +1966,14 @@ async def chart_studio_time_series_from_stream(
         joint_topic_clause = " "
         group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
     elif field_type == "anomaly":
-        value_clause = ", count(*) filter (where is_anomaly) as value"
+        value_clause = f", count(*) filter (where is_anomaly) as value, ARRAY_AGG(t.topic) FILTER (WHERE is_anomaly) AS topic_names "
         distinct_clause = ""
+        joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_id"
         if not aggr:
             field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
-            joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"
             group_by_clause = "group by ttip.country_id, d.date_actual, ttip.topic_unique_id, tdc.count, c.name, t.topic"
         else:
             field_clause = f", {suffix.replace('(', '').replace(')', '').replace(' ', '')}  as field"
-            joint_topic_clause = " "
             group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
 
     q = (
@@ -1874,6 +1981,7 @@ async def chart_studio_time_series_from_stream(
             select
                  {distinct_clause}
                 d.date_actual as date
+                , '{stream}' as stream
                 {value_clause}
                 {field_clause}
             from {tablename(topic_table)} ttip

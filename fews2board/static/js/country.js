@@ -1,9 +1,10 @@
 import { renderBarChartFromUrl } from "./charts/bar-chart-module.js";
-import { renderLineChartFromUrl } from "./charts/line-chart-module.js";
+import { renderTimeSeriesFromUrl } from "./charts/line-chart-module.js";
 import { renderHTMLTableFromUrl } from "./charts/html-table.js";
 import { renderHTMLTable } from "./charts/html-table.js";
 import { filterStructure } from "./menu-module.js";
 import { renderWordCloud } from "./charts/wordcloud-module.js";
+import { renderOverallTimeSeriesFromUrl } from "./charts/line-chart-module.js";
 
 
 window.dateRanges["si"] = [20111227, 20231231];  // check why I hardcoded this daterange
@@ -191,7 +192,7 @@ async function DomainRanking(containerId, stream) {
         containerId, url, mappingKeys, customOptions);
 };
 
-async function AttentionTrends(containerId, stream, endpoint='/attention_trends', trendtype='', title='Attention', conditions=[]) {
+async function AttentionTrends(containerId, stream, endpoint='/attention_trends', trendtype='', title='Attention', conditions=[], chartType='line', customKeys=[]) {
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let startD, endD;
     startD = window.startDates[stream][0];
@@ -209,11 +210,42 @@ async function AttentionTrends(containerId, stream, endpoint='/attention_trends'
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: title}
-    await renderLineChartFromUrl(
-        containerId, url, customOptions, 'date'
+    let customOptions = {titleText: title, chartType: chartType}
+    await renderTimeSeriesFromUrl(
+        containerId, url, customOptions, 'date', customKeys
     )
 };
+
+
+async function overallTrends(containerId, stream, endpoint='/attention_trends', trendtype='', title='Attention', conditions=[], chartType='line', customKeys=[]) {
+    $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    let startD, endD;
+    startD = window.startDates[stream][0];
+    endD = window.startDates[stream][1];
+
+    let base_endpoint = `/${window.country}${endpoint}`;
+    let queryParams = $.param(
+        {
+            start_date: startD,
+            end_date: endD,
+            stream: stream,
+            trend_type: trendtype,
+            conditions: JSON.stringify(conditions)
+        },
+        true
+    );
+    let url = base_endpoint + '?' + queryParams;
+    
+    let customOptions = {
+        titleText: title, 
+        chartType: chartType,
+        tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}</b><br/>Anomalous Topics: {point.topic_names}'
+    }
+    await renderOverallTimeSeriesFromUrl(
+        containerId, url, customOptions, 'date', customKeys
+    )
+};
+
 
 async function EmotionTrends(containerId, stream, conditions='') {
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
@@ -233,10 +265,11 @@ async function EmotionTrends(containerId, stream, conditions='') {
     );
     let url = base_endpoint + '?' + queryParams;
     let customOptions = {titleText: 'Emotion Trends'}
-    await renderLineChartFromUrl(
+    await renderTimeSeriesFromUrl(
         containerId, url, customOptions, 'date'
     )
 };
+
 
 async function WordCloud(containerId, stream){
 
@@ -297,7 +330,7 @@ async function SSITimeline(containerId, domainId, customOptions, stream='si'){
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    await renderLineChartFromUrl(
+    await renderTimeSeriesFromUrl(
         containerId, url, customOptions, 'date'
     )
 
@@ -315,7 +348,7 @@ async function SSIFieldsTimeline(containerId, domainId, customOptions){
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    await renderLineChartFromUrl(
+    await renderTimeSeriesFromUrl(
         containerId, url, customOptions, 'date'
     )
 
@@ -357,7 +390,6 @@ async function TalkingPoints(containerId, stream, endP='/talking_points_on_condi
         } else {
         let dataCopy = [...data]
         var r = {};
-        console.log(dataCopy)
         dataCopy.forEach(function(i) {
             
             var layer = i.layer;
@@ -641,7 +673,7 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     let customOptions = {titleText: 'Attention'}
     TgMessageWidget();
     $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-    renderLineChartFromUrl(
+    renderTimeSeriesFromUrl(
         `${stream}-attention-trends`, url, customOptions, 'date'
     )
 
@@ -688,7 +720,7 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     let url = base_endpoint + '?' + queryParams;
     let customOptions = {titleText: 'Attention'}
     $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-    renderLineChartFromUrl(
+    renderTimeSeriesFromUrl(
         `${stream}-attention-trends`, url, customOptions, 'date'
     )
 
@@ -738,7 +770,7 @@ $('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     let end_date = window.oaEndDate;
     let stream = 'oa';
     let conditions = window.countryConditions['oa'];
-    AttentionTrends('oa-anomaly-trends', stream, '/overall_trend', 'anomaly', 'Anomaly', conditions);
+    overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', 'Topic Anomalies', conditions, 'column');
     AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', 'Attention', conditions);
     AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', 'Sentiment', conditions);
     SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, stream);
@@ -1168,7 +1200,7 @@ $(document).ready(async function (){
       });
 
     function renderCharts(){
-        AttentionTrends('oa-anomaly-trends', 'oa', '/overall_trend', 'anomaly', 'Anomaly', window.countryConditions['oa']);
+        overallTrends('oa-anomaly-trends', 'oa', '/overall_trend_hc', 'anomaly', 'Topic Anomalies', window.countryConditions['oa'], 'column');
         AttentionTrends('oa-attention-trends', 'oa', '/overall_trend', 'attention', 'Attention', window.countryConditions['oa']);
         AttentionTrends('oa-sentiment-trends', 'oa', '/overall_trend', 'sentiment', 'Sentiment', window.countryConditions['oa']);
         SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, 'oa');
@@ -1326,7 +1358,7 @@ $(document).ready(async function (){
             let url = base_endpoint + '?' + queryParams;
             let customOptions = {titleText: 'Attention'}
             $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-            renderLineChartFromUrl(
+            renderTimeSeriesFromUrl(
                 `${stream}-attention-trends`, url, customOptions, 'date'
             )
 
@@ -1353,7 +1385,7 @@ $(document).ready(async function (){
             MCStoryWidget();
             EmotionTrends(`${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]));
         } else if (stream == 'oa') {
-            AttentionTrends('oa-anomaly-trends', stream, '/overall_trend', 'anomaly', 'Anomaly', window.countryConditions[stream]);
+            overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', 'Topic Anomalies', window.countryConditions[stream], 'column');
             AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', 'Attention', window.countryConditions[stream]);
             AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', 'Sentiment', window.countryConditions[stream]);
             SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, stream);

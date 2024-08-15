@@ -34,10 +34,19 @@
     var domainsObj = JSON.parse('{{domains|tojson}}');
     var mapDataObj = JSON.parse('{{map_data_dict|tojson}}');
     var mapInput = JSON.parse('{{avg_input|tojson}}');
+    var dateRange = JSON.parse('{{date_range|tojson}}');
     var mapTooltipData;
     fetch('/tooltip_stats')
         .then(res =>  res.json())
         .then(data => {mapTooltipData = data;})
+    var LayersMap = {
+    "sentiment": {
+        "text": "Sentiment"},
+    "attention": {
+        "text": "Attention"},
+    "anomaly": {
+        "text": "Topic Anomalies"},
+}
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>

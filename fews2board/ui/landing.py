@@ -7,6 +7,8 @@ from fews2board.api import utils
 from collections import defaultdict
 import copy
 from asyncio import gather
+import datetime as dt
+
 
 router = fastapi.APIRouter()
 templates = Jinja2Templates(directory="fews2board/templates")
@@ -17,7 +19,10 @@ def averages(d):
         if isinstance(v, dict):
             averages(v)
         else:
-            d[k] = sum(v)/len(v)
+            new_v = {"value": sum([x["value"] for x in v]) / len(v)}
+            if "topic_names" in v[0]:
+                new_v["topic_names"] = list(set([x for t in v for x in t["topic_names"]]))
+            d[k] = new_v
 
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -26,10 +31,16 @@ async def read_landing(
 ):  
     nested_dicts = lambda: defaultdict(nested_dicts)
     map_input = nested_dicts()
+    global_date_range = await utils.date_ranges_overall(request.app.async_pool)
+    max_date_id = global_date_range[0]["max_date"]
+    max_datetime = dt.datetime.strptime(str(max_date_id), '%Y%m%d')
+    min_datetime = max_datetime - dt.timedelta(days=7)
+    start_date = int(min_datetime.strftime("%Y%m%d"))
+    end_date = max_date_id
     
     sql_coros = [
         utils.get_framework(request.app.async_pool),
-        utils.latest_attention_and_sentiment_per_domain(request.app.async_pool)
+        utils.layers_data_for_given_time_period(request.app.async_pool, start_date, end_date),
     ]
     sql_result = await gather(*sql_coros)
     topics = sql_result[0]
@@ -47,13 +58,24 @@ async def read_landing(
 
         for k in ["all", "tg", "mc"]:
             if k == "all":
-                map_input[r["domain_id"]][r["analysis"]][k][r["alpha_2"]].append(
-                    r["value"]
-                )
+                if r["analysis"] != "anomaly":
+                    map_input[r["domain_id"]][r["analysis"]][k][r["alpha_2"]].append(
+                        {"value": r["value"]}
+                    )
+                else:
+                    t_names = r["topic_names"] if r["topic_names"] else []
+                    map_input[r["domain_id"]][r["analysis"]][k][r["alpha_2"]].append(
+                        {"value": r["value"], "topic_names": t_names})
             elif k == r["data_stream"]:
-                map_input[r["domain_id"]][
-                    r["analysis"]][k][r["alpha_2"]] = [r["value"]]
-            
+                if r["analysis"] != "anomaly":
+
+                    map_input[r["domain_id"]][
+                        r["analysis"]][k][r["alpha_2"]] = [{"value": r["value"]}]
+                else:
+                    t_names = r["topic_names"] if r["topic_names"] else []
+                    map_input[r["domain_id"]][r["analysis"]][k][r["alpha_2"]] = [
+                        {"value": r["value"], "topic_names": t_names}
+                    ]
                 
     d = copy.deepcopy(map_input)
     averages(d)
@@ -66,7 +88,8 @@ async def read_landing(
         "map_input": map_input,
         "avg_input": d,
         "countries": request.app.countries,
-        "fews_countries": config.FEWS_COUNTRIES
+        "fews_countries": config.FEWS_COUNTRIES,
+        "date_range": [min_datetime.strftime("%Y-%m-%d"), max_datetime.strftime("%Y-%m-%d")],
     }
     
     return templates.TemplateResponse(

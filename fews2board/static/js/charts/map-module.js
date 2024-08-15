@@ -1,3 +1,6 @@
+// TODO: Remove use of window variables
+
+
 function parseTooltipValue(v, d=false){
 	// d is a flag to separate 'from previous report' (d=true) from main value
 	let vf = parseFloat(v);
@@ -75,6 +78,7 @@ function tooltipCallBack(){
 	} catch {
 		mcLatestSentiment = {};
 	}
+
     if (window.streamKey == 'tg'){
 		label = 'Social';
 		toptopics = tgTopTopics;
@@ -127,8 +131,26 @@ function tooltipCallBack(){
 			${getTooltipChangeHTML(latest_sentiment.delta)}
 		</div>
 	</div>
-</div>
-	`;
+
+	`
+	html += `
+	<div class="row mt-3" style="margin: 0">
+		<p class="h6 border-bottom" style="padding: 0">Anomalous Topics:</p>
+	</div>
+	<div class="row">
+		<div class="col">`
+		let anTopics = window.mapInput[window.selectedDomain]['anomaly'][window.streamKey][this.point['hc-key']]['topic_names'];
+		console.log(anTopics)
+        for (let i=0; i < anTopics.length; i++){
+			let tid = anTopics[i];
+			
+			html += `<span class="badge rounded-pill badge-theme-${i}">${tid}</span>`
+			
+			}
+	html += `
+			</div>
+		</div>
+	</div>`
     return html
 };
 
@@ -160,7 +182,13 @@ export async function renderMap(chartId, data, customOptions, topology) {
 			className: 'highcharts-map'
 		},
 		title: {
-			text: '',
+			text: ``,
+		},
+		legend: {
+            title: {
+                text: `${LayersMap[window.selectedLayer].text} from ${window.dateRange[0]} to ${window.dateRange[1]}`
+				
+            }
 		},
 		mapNavigation: {
 			enabled: false,
@@ -201,94 +229,7 @@ export async function renderMap(chartId, data, customOptions, topology) {
 				}
 			}
 		}
-		//
-		//
-		// NEW OPTIONS
-		//chart: {
-		//	map: topology,
-		//	height: (9 / 16 * 100) + '%' // 16:9 ratio
-		//},
-		//title: {
-		//	text: '',
-		//},
-		//caption: {
-		//	align: 'center',
-		//	text: '<div style="max-width: 700px;"><p class="chart-source text-wrap">Using the sentiment score for each document, the map displays the variation in score between documents. Significant negative variations can signal a new or exacerbated shock, whereas positive variations can indicate improvements in a country&#39;s situation. By default, map displays the variation in sentiment score from the latest report available (difference from previous), by country. If filtering for period, map displays the variation for last report in period, by country.</p></div>',
-		//	useHTML: true,
-		//},
-		//mapNavigation: {
-		//	enabled: false,
-		//	enableButtons: true,
-		//	enableDoubleClickZoom: true,
-		//	buttonOptions: {
-		//		theme: {
-		//			fill: 'white',
-		//			'stroke-width': 1,
-		//			stroke: 'silver',
-		//			r: 0,
-		//			states: {
-		//				hover: {
-		//					fill: '#a4edba'
-		//				},
-		//				select: {
-		//					stroke: '#039',
-		//					fill: '#a4edba'
-		//				}
-		//			}
-		//		},
-		//		verticalAlign: 'bottom',
-		//	}
-		//},
-		//colorAxis: {
-		//	tickPositions: legendData["tickPositions"],
-		//	stops: legendData["stops"]
-		//},
-		//series: [{
-		//	data: seriesData,
-		//	name: 'Latest change of Sentiment Score',
-		//	mainMap: 'sentiment',
-		//	states: {
-		//		hover: {
-		//			color: '#BADA55'
-		//		}
-		//	},
-		//	dataLabels: {
-		//		enabled: true,
-		//		format: '{point.name}'
-		//	}
-		//}],
-		//tooltip: {
-		//	useHTML: true,
-		//	formatter: tooltipCallBackTemplate
-		//},
-		//responsive: {
-		//	rules: [{
-		//		condition: {
-		//			maxWidth: 500
-		//		},
-		//		chartOptions: {
-		//			chart: {
-		//				height: '190%'
-		//			},
-		//			mapView: {
-		//				//fitToGeometry: polygonGeometry,
-		//				center: [14, 1],
-		//				zoom: 2.2,
-		//				padding: 15
-		//			},
-		//			legend: {
-		//				align: 'center',
-		//				//verticalAlign: 'top',
-		//				floating: false
-		//			},
-		//			mapNavigation: {
-		//				buttonOptions: {
-		//					verticalAlign: 'top'
-		//				}
-		//			},
-		//		}
-		//	}]
-		//}
+		
 
 	};
 

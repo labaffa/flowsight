@@ -1,6 +1,8 @@
 import { renderMap } from "./charts/map-module.js";
 
 
+
+
 Highcharts.setOptions({
 	// Set options for the chart backgrounds.
 	chart: {
@@ -117,11 +119,12 @@ async function updateMap() {
         let countries = window.mapInput[window.selectedDomain][
             window.selectedLayer][window.streamKey]
         mapInp =  Object.keys(countries).map(key => {
-            return {'hc-key': key, 'value': countries[key]};
+            return {'hc-key': key, 'value': countries[key]['value'], 'topic_names': countries[key]['topic_names']};
         });
         await $("#sentiment-map").highcharts().series[0].update({
             data: mapInp
         });
+        $("#sentiment-map").highcharts().legend.update({title: {text: `${LayersMap[window.selectedLayer].text} from ${window.dateRange[0]} to ${window.dateRange[1]}`}})
     } else {
         window.streamKey = "";
         mapInp = {};
@@ -265,7 +268,7 @@ $(document).ready(async function(){
     let countries = window.mapInput[window.selectedDomain][
         window.selectedLayer][window.streamKey]
     let mapInp =  Object.keys(countries).map(key => {
-        return {'hc-key': key, 'value': countries[key]};
+        return {'hc-key': key, 'value': countries[key]['value'], 'topic_names': countries[key]['topic_names']};
     });
     showAccordionItem($(`[domain_id=${selectedDomain}]`).first().attr('id'));
      renderMap(

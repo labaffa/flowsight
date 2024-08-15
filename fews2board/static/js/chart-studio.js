@@ -1,6 +1,6 @@
 import { filterStructure, studioFilterStructure } from "./menu-module.js";
 import { renderBarChart, renderBarChartFromUrl } from "./charts/bar-chart-module.js";
-import { processChartData, renderLineChart, renderLineChartFromUrl } from "./charts/line-chart-module.js";
+import { processChartData, renderTimeSeries, renderTimeSeriesFromUrl } from "./charts/line-chart-module.js";
 import { renderWordCloud } from "./charts/wordcloud-module.js";
 
 Highcharts.setOptions({
@@ -679,7 +679,7 @@ $('#create-chart-button').on('click', function(){
     // let customOptions = {titleText: 'Attention'};
     $(`#studio-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     if (window.selectedChart == 0) {
-        renderLineChartFromUrl(
+        renderTimeSeriesFromUrl(
             `studio-chart`, studioUrl, customOptions, 'date'
         )
     } else if (window.selectedChart == 1){

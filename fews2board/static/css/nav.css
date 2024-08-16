@@ -1268,6 +1268,13 @@ li a,  .dropbtn{
     display: block;
   }
   
+  .about-body {
+    background-color: var(--phase2-bg-chart);
+    color: white
+  }
+    .about-body table {
+        color: white;
+    }
   /* .dropbtn {
     border-bottom: 3px solid red;
    } */
@@ -1277,3 +1284,7 @@ li a,  .dropbtn{
     color: red;
     padding-left: 5px;
   } */
+
+  .bold {
+    font-weight: bold;
+  }

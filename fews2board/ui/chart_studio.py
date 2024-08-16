@@ -32,3 +32,12 @@ async def render_chart_studio(
     return templates.TemplateResponse(
         "chart_studio.html", data
     )
+
+
+@router.get("/about", response_class=HTMLResponse)
+async def read_country(request: fastapi.Request):
+    return templates.TemplateResponse(
+        "about.html",
+        {"request": request}
+
+    )

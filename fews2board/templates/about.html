@@ -13,366 +13,235 @@
         {% include "base/navbar.html" %}
     </header>
 
-    <div class="flex-fill justify-content-center">
-        <div class="container">
+    <div class="flex-fill justify-content-center fews-tab-content">
+        <div class="container about-body">
             <div class="mt-4 mb-4">
+            <!-- <h1>Getting started</h1>
+            <p>Welcome to the user guide for the dashboard FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS, a pioneering interactive tool dedicated to monitoring digital spaces for conversations, news coverage and search engine interest related to FEWS NET’s dimensions of food security early warning.</p>
+            <p>This short guide covers the basics of using the tool. To access the dashboard, click here.</p>
+            <p>The visualizations have been developed with High Charts. While users familiar with High Charts might have an easier time navigating the functionalities of the dashboard, each feature is described in detail below.</p>
+            <p>Scroll through the guide for a full review of the dashboard or use the menu on the right to skip to a specific topic.</p>
+        
+         -->
+                    <h1 class="fews-text mb-4 text-capitalize bold">About</h1>
+                    <p>The objective of this dashboard is to support food security analysts and practitioners to explore and understand how food security shocks and outcomes are represented in different platforms, focusing on digital content disseminated in FEWS NET-covered countries. The dashboard’s insights complement traditional quantitative and qualitative monitoring by enhancing localized knowledge about areas of concern, informing ongoing analysis, enabling the identification of potential early warning signals arising from the data, and supporting early action.</p>
+                
+                    <h2 class="bold mb-4">About the dashboard’s conceptual framework</h2>
+                    <p>Given the growing significance of internet-based information flows, the FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS dashboard applies a conceptual framework that integrates digital platforms to nowcast food security in FEWS NET-covered countries.</p>
+                    <p>The multi-platform framework for nowcasting food insecurity establishes a multi-modal, multi-media model that leverages various data streams to monitor events from different perspectives. The framework relies on the foundations of Digital Methods, which seeks to explain social phenomena through online dynamics, and specifically on the online issue mapping approach. Online issue mapping comprises digital techniques to detect, analyze and visualize topical affairs. It explores how issues are formed in digital environments.</p>
+                    <p>Online spaces offer opportunities for analyzing and visualizing contemporary issue dynamics due to several aspects: issue traces are accessible online; the analytics leverage on the dynamic features and affordances of online media; and digital platforms provide data (for instance, metadata, links, hashtags, mentions, etc.) that can be structured for systematic analysis.</p>
+                    <p>The framework and resulting dashboard deploy three analytical processes. First, social listening and, second, media monitoring cover different dimensions of public discourse. While social media provides insights into the interests, concerns, and opinions of the general public, news media enables insights into “traditional” event coverage, with more established actors and framings. Thirdly, as the Google search engine is the most visited website in the world, understanding what people are searching in it can reveal the level of interest or concern in a particular topic. The predictive potential of Google Trends supports social listening and media monitoring for nowcasting.</p>
+                
+                    <h2 class="bold mb-4">Data sources</h2>
+                    <p>For the social listening component, Telegram has been selected. Launched as a messaging app in 2013, Telegram is a currently a digital platform that allows users to create and subscribe to broadcasting channels and create and join discussion groups. It currently has 900 million active users on average, per month. Most importantly, Telegram provides an open API, which enables the extraction of publicly available data from channels and groups. For each country, a list of relevant public groups and channels has been curated for data ingestion and monitoring.</p>
+                    <p>Media monitoring is performed through data provided by Media Cloud, an open-source platform for media analysis aimed at academic research. The platform monitors more than 60 thousand online media sources, with stories processed daily. It also contains curated country collections, enabling granularity in local news collection. For each country, all available national collections have been selected for data ingestion and monitoring.</p>
+                    <p>Lastly, search engine data is collected though Google Trends, a platform provided by Google that analyzes the popularity of search queries in Google Search across various regions and languages.</p>
+                
+                    <h2 class="bold mb-4">Data analysis</h2>
+                    <p>Each data source requires custom analytical approaches to consider their affordances.</p>
+                    <p>A text mining model developed for topic classification of FEWS NET’s food security reporting was refined to monitor and identify the prevalence of food insecurity drivers and outcomes present on news and social media.</p>
+                    <p>This model is applied to all textual data, detecting topics related to three overarching themes and 11 sub-themes grounded in FEWS NET’s conceptual dimensions of food security and early warning of food insecurity:</p>
+                    <ol>
+                        <li>“Shocks and hazards” describe events that pose a potential threat to life, health, property, physical security, or the environment, and can have a significant impact on food security. These were grouped into the sub-themes: Climate, Conflict, Markets, Diseases, and Governance.</li>
+                        <li>“Food Security Indicators” contains indicators related to three of the four pillars of food security: food availability, food access, and food utilization. The fourth pillar – stability – is represented through the shocks from the first theme and the outcomes in the third theme.</li>
+                        <li>“Food, nutrition, and livelihood security outcomes” comprise sub-themes related to food security status, health, and nutrition indicators, as well as concepts related to livelihood strategies.</li>
+                    </ol>
+                    <p>Sentiment analysis is performed using the algorithms Syuzhet (Jockers, 2015) and SentimentR, which identify not only positive and negative associations, but also a broader range of emotions.</p>
+                    <p>TF-IDF analysis is performed to identify significant and emerging terminology. Specifically for news media, existing Media Cloud algorithms for entity recognition are used to detect people, organizations, and geographic coverage of news stories.</p>
+                    <p>For search interest, the final time series constructed for each country represents a synthetic search interest (SSI) index for food insecurity based on Google Trends data. In the final step of the procedure, weights are applied to allow for cross-country comparison. The first weight considers the worldwide Google Trends interest of each topic while the second one relies on yearly data of internet penetration (WB, 2024) to compensate for the digital divide among countries.</p>
+                
+                    <h2 class="bold mb-4">Navigation</h2>
+                    <p>The dashboard FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS is structured as follows:</p>
+                    <ol>
+                        <li>Home page</li>
+                        <li>Country pages, structured into the following tabs:
+                            <ul>
+                                <li>Social Listening</li>
+                                <li>Media Monitoring</li>
+                                <li>Search Interest</li>
+                            </ul>
+                        </li>
+                        <li>Chart Studio</li>
+                    </ol>
+                
+                    <h2 class="bold mb-4">Steps for using the dashboard</h2>
+                    <h4 class="bold mb-4">Cross-country analysis on home page</h4>
+                    <p>The user begins exploring the dashboard through the map displayed on the home page.</p>
+                    <p>By default, the map displays the aggregated sentiment score for Media Monitoring and Social Listening for the domain “Climate”, for the latest week, per country.</p>
+                    <p>To visualize another domain, click on the options in the side menu on the left of the page. Clicking on a domain will change the map results and expand a drop-down panel with FEWS NET’s definition of that particular theme.</p>
+                    <p>To visualize filtering options, click the icon on the top right corner. The following variables are available in the drop-down menu:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Visualization type</th>
+                                <th>Variable</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Map</td>
+                                <td>Sentiment score</td>
+                                <td>Map displays the average sentiment score for the selected domain, for the selected data streams, for the latest week’s data, by country. If filtering for data stream, the map displays the average sentiment score only for countries where the domain was detected in that data stream within the period. Scale: -1 to 1.</td>
+                            </tr>
+                            <tr>
+                                <td>Map</td>
+                                <td>Attention</td>
+                                <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the map displays the aggregated Attention of selected domains, for the selected data streams, for the latest week’s data, by country. The attention metric for each domain is calculated from the aggregated presence of terms associated to particular topics in a data stream, normalized on the value of the total word count and scaled on a range from 0 to 1. Default displays the sum of averages for both data streams for the latest week’s data. If filtering for data stream, the map displays the average attention score only for countries where the domain was detected in that data stream within the period. Scale: 0 to 1.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                
+                    <h4 class="bold mb-4">Country tooltips</h4>
+                    <p>When the user hovers over a country, a tooltip will appear with key metrics from the analysis for that country.</p>
+                    <p>Below the country name, the average value of the selected variable (Attention or Sentiment) is displayed.</p>
+                    <p>The Trending Topics displays the most prevalent topics in the latest week’s data.</p>
+                    <p>The Last Sentiment displays the sentiment score for the latest week, and the change in score compared to the previous week.</p>
+                
+                    <h4 class="bold mb-4">Country-level analysis on dedicated pages</h4>
+                    <p>To access the country level analysis, the user must click on the desired country on the landing page map.</p>
+                    <p>The country level analysis is divided into three tabs: Social Listening, Media Monitoring, and Search Interest. They are described below.</p>
+                    <p>At the top of the country page, a query filter bar and a period selector are available. Clicking on the field Build a query... will open a window with several filtering options:</p>
+                    <ul>
+                        <li>Field: user can select to filter the analysis by Topic, Sentiment, or Emotion.</li>
+                        <li>Operator: currently, only the operator “IS” has been implemented, which indicates that both field on either side of the operator must be true to produce a result.</li>
+                        <li>Value: user can select desired topics for analysis. Selecting the Domain will auto select all topics within the domain.</li>
+                    </ul>
+                    <p>Clicking the icon next to the filters adds another filtering row. Clicking on the trash can icon deletes the respective filter row.</p>
+                    <p>Once the filters have been selected, the user can click Apply to update the visualizations on the selected tab. To clear all filters, click Reset.</p>
+                    <p>By default, the period selected is the last week of data available. The user can custom select a period of analysis by clicking on the date filter, which will open a calendar.</p>
+            <h2 class="bold mb-4">Social Listening</h2>
+            <p>This tab displays the analysis from Telegram data, based on the curated lists of public groups and channels per country. The following visualizations are available:</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Visualization type</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Bar chart</td>
+                        <td>Hot Topics</td>
+                        <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the bar chart displays the aggregated Attention for each domain, as represented in public Telegram groups and channels. The attention metric for each domain is calculated from the aggregated presence of terms associated to particular topics, normalized on the value of the total word count and scaled on a range from 0 to 1. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                    </tr>
+                    <tr>
+                        <td>Table</td>
+                        <td>Talking Points</td>
+                        <td>This table presents the fluctuation of Attention and Sentiment per Domain. The first figure per metric is the aggregated domain Attention and Sentiment. To their right, the percentage change in relation to the same period prior to the selected timespan is presented. For the Attention metric, figures in green indicate a rise in the variable, whereas figures in red indicate a drop in attention. For Sentiment, green figures indicate sentiment change was positive, whereas red figures indicate the sentiment change was negative. The visualization interacts with the filter bar. Scale: 0 to 1 for the metric values, 0-100% for period fluctuations.</td>
+                    </tr>
+                    <tr>
+                        <td>Word cloud</td>
+                        <td>Significant Terms</td>
+                        <td>The word cloud displays the 50 words with the highest average TF-IDF scores, for the selected period. The "term frequency-inverse document frequency" (TF-IDF) is a common unsupervised text mining metric that identifies how important a word is to a document in a collection or corpus. In this analysis, the TF-IDF is calculated based on the collection of Telegram posts for each country, by period, in order to identify emerging topics in the conversations.</td>
+                    </tr>
+                    <tr>
+                        <td>Widget</td>
+                        <td>Conversations</td>
+                        <td>The widget presents the posts ingested from Telegram groups and channels that is driving the analysis. The user can “follow the story” and access the original content. By hovering over each post, a tooltip opens the topic identified in the post and the full text. By clicking the external link icon, the user will be taken to a new tab, which will open the content in Telegram. The visualization does not interact with the filter bar, but does interact with the period filtering.</td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Attention</td>
+                        <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for the for each Domain. Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a Telegram post, normalized on the value of the total word count of that post and scaled on a range from 0 to 1. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Emotion trend</td>
+                        <td>The default timeline displays the overall value over time for the for each emotion: Anger, Anticipation, Disgust, Fear, Joy, Sadness, Surprise, and Trust. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <h2 class="bold mb-4">Media Monitoring</h2>
+            <p>This tab displays the analysis from News Media data, based on the national lists of news sources curated by Media Cloud, per country. The following visualizations are available:</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Visualization type</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Bar chart</td>
+                        <td>Hot Topics</td>
+                        <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the bar chart displays the aggregated Attention for each domain, as represented in the headlines of news stories. The attention metric for each domain is calculated from the aggregated presence of terms associated to particular topics, normalized on the value of the total word count and scaled on a range from 0 to 1. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                    </tr>
+                    <tr>
+                        <td>Table</td>
+                        <td>Talking Points</td>
+                        <td>This table presents the fluctuation of Attention and Sentiment per Domain. The first figure per metric is the aggregated domain Attention and Sentiment. To their right, the percentage change in relation to the same period prior to the selected timespan is presented. For the Attention metric, figures in green indicate a rise in the variable, whereas figures in red indicate a drop in attention. For Sentiment, green figures indicate sentiment change was positive, whereas red figures indicate the sentiment change was negative. The visualization interacts with the filter bar. Scale: 0 to 1 for the metric values, 0-100% for period fluctuations.</td>
+                    </tr>
+                    <tr>
+                        <td>Widget</td>
+                        <td>News Stories</td>
+                        <td>The widget presents the metadata for the news stories driving the analysis. The user can “follow the story” and access the original content. By hovering over each news item, a tooltip displays the topic identified in the post and the full headline. By clicking the headline, the user will be taken to a new tab, which will open the content in its original source. The visualization does not interact with the filter bar, but does interact with the period filtering.</td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Attention</td>
+                        <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for the for each Domain. Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a news item’s headline, normalized on the value of the total word count of that headline and scaled on a range from 0 to 1. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Emotion trend</td>
+                        <td>The default timeline displays the overall value over time for the for each emotion: Anger, Anticipation, Disgust, Fear, Joy, Sadness, Surprise, and Trust. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <h2 class="bold mb-4">Search Interest</h2>
+            <p>This tab displays the analysis from Google Trends data, based on the Synthetic Search Interest Indices (SSI) for Food Insecurity and Conflict, per country. In this tab, only the period selector is available. The following visualizations are presented:</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Visualization type</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Food Insecurity SSI</td>
+                        <td>The default timeline displays the Synthetic Search Interest Index for Food Insecurity for the last year. Scale: 0 to 100.</td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Food Insecurity SSI by topic</td>
+                        <td>This visualization displays the time trend for each topic that comprises the Synthetic Search Interest Index for Food Insecurity for the last year. Scale: 0 to 100.</td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Conflict SSI</td>
+                        <td>The default timeline displays the Synthetic Search Interest Index for Conflict for the last year. Scale: 0 to 100.</td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Conflict SSI by topic</td>
+                        <td>This visualization displays the time trend for each topic that comprises the Synthetic Search Interest Index for Conflict for the last year. Scale: 0 to 100.</td>
+                    </tr>
+                </tbody>
+            </table>
 
-                <h3 class="fews-text mb-4 text-capitalize">About</h3>
-                <p>
-                    The periodic country analyses elaborated by FEWS NET have enabled the creation of a comprehensive
-                    historical database comprising consistent triannual reporting on over two dozen countries. The
-                    longitudinal breadth of this dataset has the potential to provide information and insights into
-                    long-term trends regarding shocks over time, coping capacity, and livelihoods.
-                </p>
-                <p>
-                    Systematically assessing this documentation from a historical perspective not only provides a
-                    comprehensive overview of food insecurity in FEWS NET covered countries, but also provides an
-                    additional evidence-base to support analysis.
-                </p>
-                <p>
-                    Machine-driven content analysis techniques stand as effective approaches to make sense of all the
-                    data available, as extracting knowledge from extensive text-based sources through conventional
-                    approaches is a challenge. In particular, text mining seeks to automate the retrieval of
-                    high-quality information from text by finding patterns and trends through machine learning,
-                    statistics and linguistics. The aim of this technique is to enable the analysis of large amounts of
-                    unstructured text.
-                </p>
-                <p>
-                    Using publicly available reports from the FEWS NET website, this interactive dashboard presents
-                    results from an integrated machine learning model that systematically analyzes textual documents to
-                    derive insights.
-                </p>
-                <p>
-                    The analytical model employs supervised and unsupervised text mining to selected FEWS NET
-                    documentation. A custom analytical framework was developed considering the dimensions of FEWS NET’s
-                    framework for food insecurity, from which analysis detects historical trends, associations, and
-                    thematic dynamics, as represented in the documents.
-                </p>
-                <p>
-                    The main questions this dashboad intends to explore are:
-                <ol class="list-group-numbered">
-                    <li class="list-group-item">What historical trends (or anomalies) can be identified regarding the
-                        prevalence of various dimensions from the FEWS NET framework for food insecurity?</li>
-                    <li class="list-group-item">How do trends compare by region and type of indicators?</li>
-                    <li class="list-group-item">How are the dynamics, such as the interactions within and between the
-                        different dimensions, represented? How do these representations transform in time and space?
-                    </li>
-                </ol>
-                </p>
-                <p>
-                    With data since 2000, the dashboard is integrated with FEWS NET's reporting system to update as new
-                    documentation is published.
-                </p>
-            </div>
-            <div class="mt-4 mb-4">
+            <h2 class="bold mb-4">Exporting the visualization and data</h2>
+        <p>The visualizations present several options for exporting the image and its background data. On the top right corner of the graph, click the icon. Graphs can be expanded to full screen, or downloaded in PNG, JPEG, PDF and SVG formats. A data table can be downloaded in CSV and XLS formats with the processed data driving the plot.</p>
 
-                <h3 class="fews-text mb-4 text-capitalize">Framework</h3>
-                <ul class="nav nav-pills justify-content-center grid gap-3 mb-3" id="themeTab" role="tablist">
-                    {% for theme_key, theme_val in framework.items() %}
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link food_security_ind {% if loop.index0 == 0 %}active{% endif %}"
-                            id="pills-{{ theme_key }}-tab" data-bs-toggle="pill" data-bs-target="#pills-{{ theme_key }}"
-                            type="button" role="tab" aria-controls="pills-{{ theme_key }}"
-                            aria-selected="{% if index0 == 0 %}true{% else %}false{% endif %}">{{ theme_val.name
-                            }}</button>
-                    </li>
-                    {% endfor %}
-                </ul>
-                <div class="tab-content" id="theme-pills-TabContent">
-                    <div class="tab-pane fade show active"
-                        id="pills-hazards" role="tabpanel" aria-labelledby="pills-hazards-tab"
-                        tabindex="0">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Conflict</th>
-                                    <th scope="col">Markets</th>
-                                    <th scope="col">Diseases</th>
-                                    <th scope="col">Governance</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Abductions</td>
-                                    <td>Animal prices</td>
-                                    <td>Cholera</td>
-                                    <td>Aid programs</td>
-                                </tr>
-                                <tr>
-                                    <td>Armed conflict</td>
-                                    <td>Commodity scarcity</td>
-                                    <td>Covid 19</td>
-                                    <td>Border closures</td>
-                                </tr>
-                                <tr>
-                                    <td>Civil conflict</td>
-                                    <td>Exchange rate</td>
-                                    <td>Diarrhea</td>
-                                    <td>Corruption</td>
-                                </tr>
-                                <tr>
-                                    <td>Conflict</td>
-                                    <td>Food exports</td>
-                                    <td>Disease</td>
-                                    <td>Trade barriers</td>
-                                </tr>
-                                <tr>
-                                    <td>Coup</td>
-                                    <td>Food imports</td>
-                                    <td>Ebola</td>
-                                    <td>Trade policies</td>
-                                </tr>
-                                <tr>
-                                    <td>Dispute</td>
-                                    <td>Food prices</td>
-                                    <td>HIV</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Ethnic conflict </td>
-                                    <td>Food shortages</td>
-                                    <td>Malaria</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Farmer herder conflict</td>
-                                    <td>Grain prices</td>
-                                    <td>Tuberculosis</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Gangs</td>
-                                    <td>Inflation</td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Guerilla</td>
-                                    <td>Market failure</td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Insurgency</td>
-                                    <td>Market prices</td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Land conflict</td>
-                                    <td>Price volatility</td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Political violence</td>
-                                    <td>Transport</td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Riot</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Sectarian violence</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Social unrest</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Terrorism </td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Violence</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>War</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="tab-pane fade" id="pills-food_security_ind" role="tabpanel"
-                        aria-labelledby="pills-food_security_ind-tab" tabindex="0">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Food Availability</th>
-                                    <th scope="col">Food Access</th>
-                                    <th scope="col">Food Utilization</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Animal health</td>
-                                    <td>Animal product sales</td>
-                                    <td>Dietary diversity</td>
-                                </tr>
-                                <tr>
-                                    <td>Cereal production</td>
-                                    <td>Animal sales</td>
-                                    <td>Health services</td>
-                                </tr>
-                                <tr>
-                                    <td>Crop pests</td>
-                                    <td>Crop sales</td>
-                                    <td>Pest control</td>
-                                </tr>
-                                <tr>
-                                    <td>Farm inputs</td>
-                                    <td>Farm income</td>
-                                    <td>Sanitation</td>
-                                </tr>
-                                <tr>
-                                    <td>Food production</td>
-                                    <td>Food aid</td>
-                                    <td>Vaccinations</td>
-                                </tr>
-                                <tr>
-                                    <td>Food stocks</td>
-                                    <td>Food assistance</td>
-                                    <td>Water quality</td>
-                                </tr>
-                                <tr>
-                                    <td>Grazing land rights </td>
-                                    <td>Household assets</td>
-                                    <td>Water levels</td>
-                                </tr>
-                                <tr>
-                                    <td>Harvest outcome</td>
-                                    <td>Household income</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Irrigation</td>
-                                    <td>Income transfers</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Labor supply</td>
-                                    <td>Land tenure</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Water rights</td>
-                                    <td>Nonfarm income</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>Water availability</td>
-                                    <td>Seasonal labor</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td>Remittances </td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td>Social safety nets</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td>Terms of trade</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td>Unemployment</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td>Wage labor opportunities</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="tab-pane fade" id="pills-food_outcomes" role="tabpanel"
-                        aria-labelledby="pills-food_outcomes-tab" tabindex="0">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Food Security Status</th>
-                                    <th scope="col">Health and Nutrition</th>
-                                    <th scope="col">Livlihoods</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Famine</td>
-                                    <td>Caloric intake</td>
-                                    <td>Coping capacity</td>
-                                </tr>
-                                <tr>
-                                    <td>Food insecurity</td>
-                                    <td>Food intake</td>
-                                    <td>Displacement</td>
-                                </tr>
-                                <tr>
-                                    <td>Hunger</td>
-                                    <td>Malnutrition</td>
-                                    <td>Humanitarian assistance</td>
-                                </tr>
-                                <tr>
-                                    <td>Starvation</td>
-                                    <td>Morbidity</td>
-                                    <td>IDP</td>
-                                </tr>
-                                <tr>
-                                    <td>Vulnerability</td>
-                                    <td>Mortality</td>
-                                    <td>Livelihod diversification</td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td>Nutrient deficiencies</td>
-                                    <td>Livelihood viability</td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td>Nutrient intake</td>
-                                    <td>Migrant labor</td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td>Migration</td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td>Refugees</td>
-                                </tr>
-                                <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td>Resilience</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <h2 class="bold mb-4">Acknowledgements</h2>
+        <p>The dashboard <em>FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS</em> and this user guide are outputs of the research project “Supporting Food Insecurity Early Warning Through Digital Media”, funded by USAID and carried out by a team of researchers and consultants led by Bia Carneiro, Research Team Leader, CGIAR FOCUS Climate Security, Alliance of Bioversity International and CIAT.</p>
+        <p>We would like to thank the FEWS NET team for their support, namely Kevin Coffey, Kiersten Johnson, Gary Eilerts, Roger Hunwicks and the Data Hub team for the constructive feedback and support throughout the development and execution of this project.</p>
+        <p>Many of the initial ideas and concepts have been developed within the CGIAR Initiative on Climate Resilience, ClimBeR, and the CGIAR Initiative on Fragility, Conflict, and Migration. We would like to thank all funders who supported this research through their contributions to the CGIAR Trust Fund: <a href="https://www.cgiar.org/funders/">https://www.cgiar.org/funders/</a></p>
 
     </div>
+
+    </div>
+            
+
+</div>
 
     <!-- FOOTER -->
     {% include "base/footer.html" %}

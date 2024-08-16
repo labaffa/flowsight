@@ -134,6 +134,7 @@ export function renderTimeSeries(chartId, data, customOptions) {
 		yAxisTitleText: undefined,
 		backgroundColor: '#4A5975',
 		textColor: '#ffffff',
+		turboThreshold: 10000,
 		tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}'
 	};
 
@@ -174,6 +175,7 @@ export function renderTimeSeries(chartId, data, customOptions) {
 				marker: {
 					enabled: false,
 				},
+				turboThreshold: opts.turboThreshold,
 			},
 		},
 		xAxis: {

@@ -248,6 +248,9 @@
 
 </body>
 
-<script src="{{ url_for('static', path='/js/theme/main.js' ) }}"></script>
+<script>
+    var countries = JSON.parse('{{countries|tojson}}');
+    var fews_countries = JSON.parse('{{fews_countries|tojson}}');
+</script>
 
 </html>

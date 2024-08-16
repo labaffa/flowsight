@@ -38,6 +38,10 @@ async def render_chart_studio(
 async def read_country(request: fastapi.Request):
     return templates.TemplateResponse(
         "about.html",
-        {"request": request}
+        {
+            "request": request,
+            "countries": request.app.countries,
+            "fews_countries": config.FEWS_COUNTRIES
+        }
 
     )

@@ -1973,8 +1973,10 @@ async def chart_studio_time_series_from_stream(
         distinct_clause = ""
         joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_id"
         if not aggr:
-            field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
-            group_by_clause = "group by ttip.country_id, d.date_actual, ttip.topic_unique_id, tdc.count, c.name, t.topic"
+            # field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
+            # group_by_clause = "group by ttip.country_id, d.date_actual, ttip.topic_id, tdc.count, c.name, t.topic"
+            field_clause = f", c.name || ' - ' || {suffix}  as field"
+            group_by_clause = "group by ttip.country_id, d.date_actual,  tdc.count, c.name"
         else:
             field_clause = f", {suffix.replace('(', '').replace(')', '').replace(' ', '')}  as field"
             group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"

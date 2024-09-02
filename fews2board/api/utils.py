@@ -1831,11 +1831,14 @@ async def tfidf_top_terms(pool, alpha_2: str, start_date: int, end_date: int, st
         pass
     else:
         raise ValueError(f'Stream {stream} not allowed')
+    date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
+    date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
+    day_difference = (date2 - date1).days + 1
     q = (
         f"""
         select 	
             tz.lemma as lemma
-            , avg(tz.tfidf) as mean_value
+            , sum(tz.tfidf)/{day_difference} as mean_value
         from {tablename(model)} tz 
         where 
            tz.date_Id between {start_date} and {end_date}

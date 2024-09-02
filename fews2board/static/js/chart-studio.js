@@ -678,15 +678,27 @@ $('#create-chart-button').on('click', function(){
     
     // let customOptions = {titleText: 'Attention'};
     $(`#studio-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
-    if (window.selectedChart == 0) {
-        renderTimeSeriesFromUrl(
-            `studio-chart`, studioUrl, customOptions, 'date'
-        )
-    } else if (window.selectedChart == 1){
-        let mappingKeys = {'categoryKey': 'field', 'valueKey': 'frequency'};
-        renderBarChartFromUrl('studio-chart', studioUrl, mappingKeys, customOptions)
-
+    
+    switch (window.selectedChart) {
+        case 0:
+            renderTimeSeriesFromUrl(
+                'studio-chart', studioUrl, customOptions, 'date'
+            );
+            break;
+        case 1:
+            let mappingKeys = {'categoryKey': 'field', 'valueKey': 'frequency'};
+            renderBarChartFromUrl('studio-chart', studioUrl, mappingKeys, customOptions);
+            break;
+        case 2:
+            customOptions['chartType'] = 'column';
+            renderTimeSeriesFromUrl(
+                'studio-chart', studioUrl, customOptions, 'date'
+            );
+            break;
+        default:
+            console.log('Invalid chart selection');
     }
+   
 });
 
 function truncate(str, n){

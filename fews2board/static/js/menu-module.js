@@ -97,7 +97,11 @@ export var filterStructure = {
 export var studioFilterStructure = {
     "charts": {
         0: {"name": "Line Chart", "endpoint": "/studio_line_chart", "chart": renderTimeSeriesFromUrl}, 
-        1: {"name": "Bar Chart", "endpoint": "/studio_bar_chart", "chart": renderBarChartFromUrl}
+        1: {"name": "Bar Chart", "endpoint": "/studio_bar_chart", "chart": renderBarChartFromUrl},
+        2: {"name": "Column Chart", "endpoint": "/studio_line_chart", "chart": renderTimeSeriesFromUrl}, 
+
+
+
     },
     "fields": {
         0: {"name": "Attention (social)", "stream": "tg", "type": "attention"}, 
@@ -106,7 +110,9 @@ export var studioFilterStructure = {
         3: {"name": "Synthetic Search Index", "stream": "si", "type": "ssi_index"},
         4: {"name": "Attention (media)", "stream": "mc", "type": "attention"},
         5: {"name": "Sentiment (media)", "stream": "mc", "type": "sentiment"},
-        6: {"name": "Emotion (media)", "stream": "mc", "type": "emotion"}
+        6: {"name": "Emotion (media)", "stream": "mc", "type": "emotion"},
+        7: {"name": "Topic Anomalies (social)", "stream": "tg", "type": "anomaly"},
+        8: {"name": "Topic Anomalies (media)", "stream": "mc", "type": "anomaly"},
     },
     "variables": {
         0: {"name": "Title", "value": "titleText", "defaultValue": ""}, 

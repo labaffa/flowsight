@@ -2080,23 +2080,39 @@ async def chart_studio_bar_chart_from_stream(
     Returns:
         _type_: _description_
     """
+    stream, field_type = field["stream"], field["type"]
+    topic_col = "topic_id" if field_type == "anomaly" else "topic_unique_id"
     if conditions is not None:
-        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+        topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions, topic_col=topic_col)
+        if field_type == "anomaly":  # TODO: fix this in the future
+            emotion_clause = ""
     else:
         topic_clause, sentiment_clause, emotion_clause = "", "", ""
-    stream, field_type = field["stream"], field["type"]
+        
     if stream == "tg":
         topic_model = models.TgTopicIdPositive
         sentiment_model = models.TgSentiment
         record_col_name = "message_unique_id"
         suffix = "' (Social)'"
         count_model = models.TgDailyCounts
+        join_additional_clause = ''
+        if field_type == 'anomaly':
+            topic_model = models.TopicIdDayAggTg
+            sentiment_model = models.TgSentimentDayAgg
+            record_col_name = "date_id"
+            join_additional_clause = " and ttip.topic_id = ts.topic_id "
     elif stream == "mc":
         topic_model = models.MCTopicIdPositive
         sentiment_model = models.MCSentiment
         record_col_name = "story_id"
         suffix = "' (Media)'"
         count_model = models.MCDailyCounts
+        join_additional_clause = ''
+        if field_type == 'anomaly':
+            topic_model = models.MCTopicIdDayAgg
+            sentiment_model = models.MCSentimentDayAgg
+            record_col_name = "date_id"
+            join_additional_clause = " and ttip.topic_id = ts.topic_id "
     else:
         raise ValueError(f'Stream {stream} not allowed')
     if field_type == "attention":
@@ -2141,6 +2157,17 @@ async def chart_studio_bar_chart_from_stream(
         joint_topic_clause = " "
         group_by_clause = "group by ttip.country_id, c.name"
         order_clause = ' '
+    elif field_type == "anomaly":
+        date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
+        date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
+        day_difference = (date2 - date1).days + 1
+        frequency_clause = f" (count(*) filter (where is_anomaly))::float/{day_difference} AS frequency "
+        distinct_clause = ""
+        joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_id"
+    
+        field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
+        group_by_clause = "group by ttip.country_id, ttip.topic_id, t.topic, c.name"
+        order_clause = ' order by frequency desc '
     q = (
         f'''
             WITH total_count AS (
@@ -2158,6 +2185,7 @@ async def chart_studio_bar_chart_from_stream(
             from {tablename(topic_model)} ttip
             join {tablename(sentiment_model)} ts on ttip.{record_col_name} = ts.{record_col_name}
                 and (ts.country_id = {country_id})
+                {join_additional_clause}
             join {tablename(models.Country)} c on c.country_code = ttip.country_Id
             join {tablename(models.Date)} d on d.id = ttip.date_id
             {joint_topic_clause}

@@ -185,6 +185,7 @@ export async function renderMap(chartId, data, customOptions, topology) {
 			text: ``,
 		},
 		legend: {
+			verticalAlign: 'top',
             title: {
                 text: `${LayersMap[window.selectedLayer].text} from ${window.dateRange[0]} to ${window.dateRange[1]}`
 				

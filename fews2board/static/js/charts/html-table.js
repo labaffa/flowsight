@@ -15,7 +15,7 @@
 
 export function renderHTMLTable(tableId, data, customOptions) {
 	const defaultOptions = {
-		titleText: 'Data Table',
+		titleText: '',
 		headerRow: true, // Option to include a header row
 		columnStyles: {}, // { columnName: 'style-string', ...}
 		// ... Add more default options as desired

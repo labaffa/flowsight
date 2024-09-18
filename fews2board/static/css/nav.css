@@ -35,25 +35,23 @@
         fill: #D5742F;
     }
 
-.modal-content{
+/* .modal-content{
     position: relative;
-    display: table; /* This is important */ 
+    display: table; 
     overflow-y: auto;    
     overflow-x: hidden;
     width: auto;
-    /* min-width: 90vw; */
-    /* max-width: 90vw; */
+    
   }
 .modal-dialog{
     position: relative;
-    display: table; /* This is important */ 
+    display: table;
     overflow-y: auto;    
     overflow-x: hidden;
     width: auto;
-    /* min-width: auto; */
-    /* max-width: 90vw; */
+    
 
-  }
+  } */
   
   
   .page-item.active .page-link {
@@ -1483,5 +1481,19 @@ li a,  .dropbtn{
 .info-icon-filters {
     stroke: var(--phase2-blue-light);
     opacity: 1;
+}
+
+.modal-header-landing-main {
+    background-color: var(--phase2-blue-light);
+    color: white;
+}
+
+.no-bg {
+    background: none;
+    border: none;
+}
+
+.white {
+    color: white;
 }
 

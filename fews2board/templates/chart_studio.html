@@ -23,6 +23,25 @@
     <!-- FOOTER -->
     {% include "base/footer.html" %}
 
+    <!-- POPUPS -->
+    <div id="main-pu" class="popup-container">
+        {% include "info_boxes/studio_main.html" %}
+    </div>
+    <div id="charts-pu" class="popup-container">
+        {% include "info_boxes/studio_chart_type.html" %}
+    </div>
+    <div id="countries-pu" class="popup-container">
+        {% include "info_boxes/studio_countries.html" %}
+    </div>
+    <div id="available-fields-pu" class="popup-container">
+        {% include "info_boxes/studio_available_fields.html" %}
+    </div>
+    <div id="selected-fields-pu" class="popup-container">
+        {% include "info_boxes/studio_selected_fields.html" %}
+    </div>
+    <div id="filters-pu" class="popup-container">
+        {% include "info_boxes/filters.html" %}
+    </div>
 
     <!-- JAVASCRIPT -->
     <script>

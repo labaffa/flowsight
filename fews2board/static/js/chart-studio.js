@@ -2,6 +2,8 @@ import { filterStructure, studioFilterStructure } from "./menu-module.js";
 import { renderBarChart, renderBarChartFromUrl } from "./charts/bar-chart-module.js";
 import { processChartData, renderTimeSeries, renderTimeSeriesFromUrl } from "./charts/line-chart-module.js";
 import { renderWordCloud } from "./charts/wordcloud-module.js";
+import { showInfoPopup, hideInfoPopup } from "./utils.js";
+
 
 Highcharts.setOptions({
 	chart: {
@@ -157,13 +159,13 @@ const noDataHTML = `
 
 
 const noDataHTMLSocial = `
-    <div class="widget-title">Social</div>
+    
     <div class="d-flex justify-content-center align-items-center h-100">
         <div class="fews-country"> NO DATA AVAILABLE</div>
     </div>
 `;
 const noDataHTMLMedia = `
-    <div class="widget-title">Media</div>
+    
     <div class="d-flex justify-content-center align-items-center h-100">
         <div class="fews-country"> NO DATA AVAILABLE</div>
     </div>
@@ -630,12 +632,12 @@ $('#create-chart-button').on('click', function(){
     if (containsStream(Object.values(window.selectedFields), 'tg')) {
         TgMessageWidget();
     } else {
-        $(`#tg-messages`).html('<div class="widget-title">Social</div>');  
+        $(`#tg-messages`).html('');  
     }
     if (containsStream(Object.values(window.selectedFields), 'mc')) {
         MCStoryWidget();
     }  else {
-        $(`#mc-stories`).html('<div class="widget-title">Media</div>');
+        $(`#mc-stories`).html('');
     }
 
     let stream = 'studio';
@@ -765,9 +767,7 @@ async function TgMessageWidget(){
             if (window.MessagesOffset["tg"] == 0) {
                 $(`#tg-messages`).html('');
                 $('#tg-messages').append(
-                    `<div class="widget-title">Social</div>
-                    <br>
-                    <br>
+                    `
                     <div class="table-container" id="scrollable-messages">
                         <div id="tg-messages-content">
                         </div>
@@ -853,9 +853,7 @@ async function MCStoryWidget(){
             if (window.MessagesOffset["mc"] == 0){
                 $(`#mc-stories`).html('');
                 $('#mc-stories').append(
-                    `<div class="widget-title">Media</div>
-                    <br>
-                    <br>
+                    `
                     <div class="table-container" id="scrollable-stories">
                         <div class="" id="mc-stories-content">
                         </div>
@@ -895,6 +893,8 @@ async function MCStoryWidget(){
 
 };
 $(document).ready(async function (){
+    document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseenter', showInfoPopup) )
+    document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseleave', hideInfoPopup) )
     $('.form-open').on('click', function (){
         
         let formOpen = $(this).closest('.filter-bar');

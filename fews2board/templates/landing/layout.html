@@ -4,7 +4,24 @@
 
 {% block content %}
 <div id="domains">
+  <div class="accordion-title">
+      Food Security Domains
+      <span popup-id="main-pu" class="popup-trigger">
+          <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" /></svg>
+
+      </span>
+  </div>
   <div class="accordion accordion-flush" id="domainsAcc">
+    <!-- <div class="accordion-item">
+      <h2 class="accordion-header" id="f-title-header">
+        <button  class="accordion-button collapsed phase2-text-menu" type="button" data-bs-toggle="collapse" data-bs-target="#f-title-collapse" aria-expanded="false" aria-controls="f-title-collapse">
+          Food Security Domains
+        </button>
+      </h2>
+      <div id="f-title-collapse" class="accordion-collapse collapse phase2-text-menu-reverse" aria-labelledby="f-title-header" data-bs-parent="#domainsAcc">
+        <div class="accordion-body">Description of the menu</div>
+      </div>
+    </div> -->
     {% for domain_id, domain in domains.items() %}
       {% set heading_id = "f-head" + domain_id|string %}
       {% set collapse_id = "f-coll" + domain_id|string %}      
@@ -30,7 +47,7 @@
     </div>
   </div>
   <div 
-  class="p-3 filter-body"
+    class="p-3 filter-body"
   >
       <!-- <div class="row" id="tt-header">
         <h2>Filters</h2>
@@ -39,13 +56,6 @@
         <div class="row mt-3 section-name" style="margin: 0">
           <p class="h6 border-bottom" style="padding: 0">Data Streams</p>
         </div>
-        <!-- <div class="row">
-          <div class="col">
-            <span class="badge rounded-pill badge-theme-0"> Media Monitoring</span>
-            <span class="badge rounded-pill badge-theme-1"> Social Listening</span>
-            
-          </div>
-        </div> -->
         <div class="form-check form-check-inline">
           <input class="form-check-input stream" type="checkbox" value="" id="flexCheckDefault" data-stream="mc" checked>
           <label class="form-check-label" for="flexCheckDefault">
@@ -59,12 +69,13 @@
           </label>
         </div>
       </div>
+
       <div class="filter-body-section">
         <div class="row mt-3 section-name" style="margin: 0">
           <p class="h6 border-bottom" style="padding: 0"> Layers </p>
         </div>
         <div class="form-check">
-          <input class="form-check-input a-layer" type="radio" name="flexRadioDefault" id="flexRadioDefault2" layer="sentiment" checked>
+          <input class="form-check-input a-layer" type="radio" name="flexRadioDefault" id="flexRadioDefault2" layer="sentiment">
           <label class="form-check-label" for="flexRadioDefault2">
             Sentiment
           </label>
@@ -76,12 +87,27 @@
           </label>
         </div>
         <div class="form-check">
-          <input class="form-check-input a-layer" type="radio" name="flexRadioDefault" id="flexRadioDefault1" layer="anomaly">
+          <input class="form-check-input a-layer" type="radio" name="flexRadioDefault" id="flexRadioDefault1" layer="anomaly" checked>
           <label class="form-check-label" for="flexRadioDefault1">
             Topic Anomalies
           </label>
         </div>
-    </div>
+      </div>
+
+      <div class="filter-body-section accordion accordion-flush" id="info-acc">
+        
+          <div class="mt-3 accordion-item section-name" id="info-acc-header">
+            <p class="accordion-button phase2-text-menu h6 border-bottom p-0" type="button" data-bs-toggle="collapse" data-bs-target="#info-acc-collapse" aria-expanded="false" aria-controls="info-acc-collapse">
+              Information
+            </p>
+          
+            <div  id="info-acc-collapse" class="accordion-collapse show" aria-labelledby="info-acc-header" data-bs-parent="#info-acc">
+              <div class="accordion-body"></div>
+            </div>
+          </div>
+        </div>
+        
+      </div>
       
       
   </div>

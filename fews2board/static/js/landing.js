@@ -345,6 +345,11 @@ function showAccordionItem(itemId) {
   
 
 $(document).ready(async function(){
+    // $('#myModal').on('shown.bs.modal', function () {
+    //     $('#myInput').trigger('focus')
+    //   })
+    $('#main-modal').modal('show')
+
     document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseenter', showInfoPopup) )
     document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseleave', hideInfoPopup) )
     window.selectedDomain = 1;

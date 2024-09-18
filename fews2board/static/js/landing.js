@@ -1,7 +1,91 @@
 import { renderMap } from "./charts/map-module.js";
+import { showInfoPopup, hideInfoPopup } from "./utils.js";
 
+const layerDescriptions = {
+    "attention": `
+        <div class='info-box-content'>
+            <div class="info-box-section">
+                <p>
+                    <strong>
+                        Based on the custom taxonomy developed for topics of interest to FEWS NET, 
+                        the map displays the aggregated Attention of selected domains, 
+                        for the selected data streams, for the latest week’s data, by country.
+                    </strong>
+                <p>
+            </div>
+            
+            <div class="info-box-section">
+                <p>
+                    The attention metric for each domain is calculated from the aggregated presence of 
+                    terms associated to particular topics in a data stream, normalized on the value of 
+                    the total word count and scaled on a range from 0 to 1. 
+                </p>
+            </div>
 
+            <div class="info-box-section">
+                <p>
+                    Default displays the sum of averages for both data streams for the latest week’s data. 
+                    If filtering for data stream, the map displays the average attention score only for 
+                    countries where the domain was detected in that data stream within the period. 
+                    Scale: 0 to 1. 
+                </p>
+            </div>
+        </div>
+    `,
+    "sentiment": `
+        <div class='info-box-content'>
 
+            <div class="info-box-section">
+                <p>
+                    <strong>
+                        Average sentiment score for the selected domain, 
+                        for the selected data streams, for the latest week’s data, by country.
+                    </strong>
+                <p>
+            </div>
+            
+            <div class="info-box-section">
+                <p>
+                If filtering for data stream, the map displays the average sentiment score only 
+                for countries where the domain was detected in that data stream within the period. 
+                    Scale: -1 to 1.
+                </p>
+            </div>
+        </div>
+
+    `,
+    "anomaly": `
+        <div class='info-box-content'>
+
+            <div class="info-box-section">
+                <p>
+                    <strong>
+                        This metric identifies any anomalies in the topic prevalence, 
+                        i.e. topics that are presenting a different attention than usual, per country.   
+                    </strong>
+                <p>
+            </div>
+            
+            <div class="info-box-section">
+                <p>
+                They are presented as the count of anomalous topics for the selected domain and data stream during 
+                the last week. 
+                When both data streams are selected, the count is an average between telegram and mediacloud. 
+                </p>
+            </div>
+
+            <div class="info-box-section">
+                <p>
+                For every topic, the average and standard deviation of the daily normalized prevalences 
+                are calculated considering the whole dataset; a topic is then tagged as anomalous on a 
+                specific date when 
+                its topic normalized prevalence is larger than the average + standard deviation.
+                </p>
+            </div>
+        </div>
+    `,
+
+}
 
 Highcharts.setOptions({
 	// Set options for the chart backgrounds.
@@ -246,6 +330,7 @@ $('.a-layer').on('change', function(event){
         return $(this).attr("layer");
     }).get();
     window.selectedLayer = selLayer[0];
+    $('#info-acc-collapse .accordion-body').html(layerDescriptions[window.selectedLayer]);
     updateMap();
 });
 function showAccordionItem(itemId) {
@@ -255,12 +340,19 @@ function showAccordionItem(itemId) {
     $(`#${itemId}`).collapse('show');
     $(`#${itemId}`).closest('.accordion-item').find('.accordion-button').addClass('clicked');
   }
+
+
+  
+
 $(document).ready(async function(){
+    document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseenter', showInfoPopup) )
+    document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseleave', hideInfoPopup) )
     window.selectedDomain = 1;
     window.selectedStreams = ["tg", "mc"];
     window.streamKey = "all";
-    window.selectedAnalysis = ["sentiment"];
-    window.selectedLayer = "sentiment";
+    window.selectedAnalysis = ["anomaly"];
+    window.selectedLayer = "anomaly";
+    $('#info-acc-collapse .accordion-body').html(layerDescriptions[window.selectedLayer]);
     $('#ham-filter .filter-icon').on('click', function (){
         $('#ham-filter .filter-body').toggle();
     })

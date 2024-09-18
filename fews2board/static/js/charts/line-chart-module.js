@@ -117,6 +117,57 @@ export function renderLineChartb(chartId, data, customOptions) {
 
 	Highcharts.chart(chartId, chartOptions);
 }
+
+const infoCallBack = function() {
+	// https://www.highcharts.com/forum/viewtopic.php?t=49354
+
+	const chart = this;
+	let info = $(chart.userOptions.title.text).find('.info-icon').first();
+	
+	// console.log(chart);
+	
+    if (info.length == 0) {
+		return;
+	}
+	const iconId = info.attr('id');
+	if (!iconId) {
+		return;
+	}
+	info = document.querySelector(`#${iconId}`);
+    info.addEventListener('mouseover', function() {
+		const titleBBox = chart.title.getBBox()
+        if (!chart.infoTooltip) {
+			
+            chart.infoTooltip = chart.renderer.label(
+				chart.userOptions.nonHCOptions.infoTooltipText, 
+				10, 10, 
+				'rect', 
+				chart.title.alignAttr.x + titleBBox.width, chart.title.alignAttr.y / 2, 
+				true, false, 
+				'info-label'  // https://www.highcharts.com/forum/viewtopic.php?t=38130
+			)
+			.attr({
+                zIndex: 12,
+                fill: 'rgba(0, 0, 0) !important',
+                'stroke-width': 1,
+                stroke: 'white',
+                padding: 8,
+                r: 3,
+            })
+			.add();
+        }
+        
+        const bBox = chart.infoTooltip.getBBox(),
+            x = chart.title.alignAttr.x + titleBBox.width + 24,
+            y = chart.title.alignAttr.y / 2;
+        chart.infoTooltip.show();
+        chart.infoTooltip.attr({x, y})
+    });
+    info.addEventListener('mouseout', function() {
+        chart.infoTooltip.hide();
+    });
+}
+
 export function renderTimeSeries(chartId, data, customOptions) {
 	const defaultOptions = {
 		// chartHeightRatio: 7 / 16,
@@ -126,6 +177,7 @@ export function renderTimeSeries(chartId, data, customOptions) {
 		maxWidth: 800,
 		seriesName: 'Series Name',
 		titleText: 'Timeline Title',
+		titleUseHTML: false,
 		tooltipPointText: 'Correlation: ',
 		xAxisType: 'datetime',
 		xAxisTitleText: undefined,
@@ -135,7 +187,9 @@ export function renderTimeSeries(chartId, data, customOptions) {
 		backgroundColor: '#4A5975',
 		textColor: '#ffffff',
 		turboThreshold: 10000,
-		tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}'
+		tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}',
+		infoTooltipText: 'This is a chart tooltip for time series data.',
+		marginLeft: 150
 	};
 
 	const opts = { ...defaultOptions, ...customOptions };
@@ -143,6 +197,9 @@ export function renderTimeSeries(chartId, data, customOptions) {
 	let seriesData = data;
 
 	const chartOptions = {
+		nonHCOptions: {
+			infoTooltipText: opts.infoTooltipText
+		},
 		chart: {
 			// className: 'hc-line-chart',
 			height: null,
@@ -150,15 +207,21 @@ export function renderTimeSeries(chartId, data, customOptions) {
 			type: opts.chartType,
 			// width: opts.chartWidth,
 			zoomType: 'x',
-			marginLeft: 150,
+			marginLeft: opts.marginLeft,
 			backgroundColor: opts.backgroundColor,
 			style: {
 				//fontFamily: 'serif',
 				color: opts.textColor
 				
-			  }
+			},
+			events: {
+				load: infoCallBack
+			},
+			
+			
 		},
 		title: {
+			useHTML: opts.titleUseHTML,
 			text: opts.titleText,
 			style: {
 				font: 'bold 20px "Trebuchet MS", Verdana, sans-serif',
@@ -176,6 +239,7 @@ export function renderTimeSeries(chartId, data, customOptions) {
 					enabled: false,
 				},
 				turboThreshold: opts.turboThreshold,
+				
 			},
 		},
 		xAxis: {
@@ -219,7 +283,8 @@ export function renderTimeSeries(chartId, data, customOptions) {
 				style: {
 				   color: opts.textColor,
 				   font: '11px Trebuchet MS, Verdana, sans-serif'
-				}
+				},
+				align: 'left'
 			 },
 		},
 		legend: {
@@ -347,7 +412,6 @@ export function processChartData(data, dateKey, customKeys=[]) {
 		series.data = series.data.sort(function(a, b) { return a.x - b.x; });
 		seriesData.push(series);
 	}
-	console.log(seriesData)
 	return seriesData;
 };
 

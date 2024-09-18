@@ -11,6 +11,58 @@ function remapData(data, mappingKeys) {
     }));
 }
 
+const infoCallBack = function() {
+	// https://www.highcharts.com/forum/viewtopic.php?t=49354
+
+	const chart = this;
+	let info = $(chart.userOptions.title.text).find('.info-icon').first();
+	
+	// console.log(chart);
+	
+    if (info.length == 0) {
+		return;
+	}
+	const iconId = info.attr('id');
+	if (!iconId) {
+		return;
+	}
+	info = document.querySelector(`#${iconId}`);
+    info.addEventListener('mouseover', function() {
+		const titleBBox = chart.title.getBBox()
+        if (!chart.infoTooltip) {
+			
+            chart.infoTooltip = chart.renderer.label(
+				chart.userOptions.nonHCOptions.infoTooltipText, 
+				10, 10, 
+				'rect', 
+				chart.title.alignAttr.x + titleBBox.width, chart.title.alignAttr.y / 2, 
+				true, false, 
+				'info-label'  // https://www.highcharts.com/forum/viewtopic.php?t=38130
+			)
+			.attr({
+                zIndex: 12,
+                fill: 'rgba(0, 0, 0) !important',
+                'stroke-width': 1,
+                stroke: 'white',
+                padding: 8,
+                r: 3,
+            })
+			.add();
+        }
+        
+        const bBox = chart.infoTooltip.getBBox(),
+            x = chart.title.alignAttr.x + titleBBox.width + 24,
+            y = chart.title.alignAttr.y / 2;
+        chart.infoTooltip.show();
+        chart.infoTooltip.attr({x, y})
+    });
+    info.addEventListener('mouseout', function() {
+        chart.infoTooltip.hide();
+    });
+}
+
+
+
 
 export function renderWordCloud(chartId, data, mappingKeys, customOptions) {
     const defaultOptions = {
@@ -23,11 +75,14 @@ export function renderWordCloud(chartId, data, mappingKeys, customOptions) {
 		maxWidthBreakpoint: 680,
 		//mobileChartHeight: 350,
 		titleText: 'Significat Terms',
+        titleUseHTML: false,
 		xAxisLabelsEnabled: false,
 		xAxisRotationAngle: 0,
 		xAxisTitleEnabled: false,
 		yAxisTitleEnabled: false,
 		yAxisTitleText: 'Value',
+        infoTooltipText: 'This is a chart tooltip for wordcloud data.'
+
 	};
     // Merge custom options with default options
 	const opts = { ...defaultOptions, ...customOptions };
@@ -37,13 +92,20 @@ export function renderWordCloud(chartId, data, mappingKeys, customOptions) {
 	const remappedData = remapData(data, mappingKeys);
 	
     const chartOptions = {
+        nonHCOptions: {
+			infoTooltipText: opts.infoTooltipText
+		},
         chart: {
             type: 'wordcloud',
             height: height,
-            width: width
+            width: width,
+            events: {
+				load: infoCallBack
+			}
         },
         title: {
 			text: opts.titleText,
+            useHTML: opts.titleUseHTML
 		},
         xAxis: {
             visible: false,

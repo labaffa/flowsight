@@ -1,11 +1,104 @@
 import { renderBarChartFromUrl } from "./charts/bar-chart-module.js";
-import { renderTimeSeriesFromUrl } from "./charts/line-chart-module.js";
+import { renderTimeSeriesFromUrl, renderTimeSeries, processChartData, processOverallChartData } from "./charts/line-chart-module.js";
 import { renderHTMLTableFromUrl } from "./charts/html-table.js";
 import { renderHTMLTable } from "./charts/html-table.js";
 import { filterStructure } from "./menu-module.js";
 import { renderWordCloud } from "./charts/wordcloud-module.js";
 import { renderOverallTimeSeriesFromUrl } from "./charts/line-chart-module.js";
+import { showInfoPopup, hideInfoPopup } from "./utils.js";
 
+
+Highcharts.AST.allowedAttributes.push('viewBox');  // https://www.highcharts.com/forum/viewtopic.php?t=50646
+
+
+const htmlTitleInfo = function(title, iconId){
+    return `
+    <div style="display: flex; align-items: center">
+        <span class="hc-title" style="margin-right: 8px">${title}</span>
+        <svg id="${iconId}" class="info-icon" style="cursor: pointer;" fill="#fefefe" xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" width="1rem" height="1rem">    <path d="M 12 2 C 6.4889971 2 2 6.4889971 2 12 C 2 17.511003 6.4889971 22 12 22 C 17.511003 22 22 17.511003 22 12 C 22 6.4889971 17.511003 2 12 2 z M 12 4 C 16.430123 4 20 7.5698774 20 12 C 20 16.430123 16.430123 20 12 20 C 7.5698774 20 4 16.430123 4 12 C 4 7.5698774 7.5698774 4 12 4 z M 11 7 L 11 9 L 13 9 L 13 7 L 11 7 z M 11 11 L 11 17 L 13 17 L 13 11 L 11 11 z"/></svg>
+    </div>
+`
+}
+const nonHCTitleInfo = function(title, tooltipText){ return `
+    <div>
+        <span >${title}</span>
+        <span data-bs-toggle="tooltip" data-bs-html="true" title="${tooltipText}">
+            <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+        </span>
+    </div>
+
+    `
+}
+
+const nonHCTitleInfos = function(title, content){ return `
+    <div>
+        <span class="hc-title" style="margin-right: 8px">${title}</span>
+        <div class="popover__wrapper">
+            <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+            <div class="popover__content">
+                ${content}
+            </div>
+        </div>
+    </div>
+
+    `
+}
+
+async function loadFile(path){
+    fetch(path)  // Specifica il percorso al tuo file JSON
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Errore nel caricamento del file JSON');
+        }
+        console.log(response)
+        return response.json();  // Converte la risposta in formato JSON
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+    });
+}
+
+const TgTalkingPointsTitle = nonHCTitleInfo(
+    'Talking Points', 
+    "This table shows attention and sentiment values for all domains in the selected period. The values are compared to the previous period."
+)
+
+const TgAttentionTitle = nonHCTitleInfo(
+    'Attention',
+    'This chart shows the attention values for all domains in the selected period. The values are compared to the previous period.' 
+)
+
+
+const TgAttentionTrendsInfo = `
+    test
+`
+const TgHotTopicsInfo = `
+    Based on a custom taxonomy developed for 117 topics of interest to FEWS NET, the Hot Topics visualization presents the distribution of topics by calculating the frequency of a topic in a data stream, where any value above 0 counts as presence. 
+`
+
+var tooltipTriggerList, tooltipList;
+
+function initializeBootstrapTooltips(){
+    tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        }); 
+}
+
+function deleteAllBoostrapTooltips(){
+    // this is due to the fact that tooltips in non highcharts elements are created every time
+    // a chart (like Talking point) is reloaded, so they accumulate (I think this would mess up things)
+
+
+    // Assicurati che tooltipList contenga tutti i tooltip creati
+    if (tooltipList && Array.isArray(tooltipList)) {
+        tooltipList.forEach(function (tooltip) {
+            tooltip.dispose();
+    });
+    // Pulisci l'array tooltipList
+    tooltipList = [];
+    }
+}
 
 window.dateRanges["si"] = [20111227, 20231231];  // check why I hardcoded this daterange
 
@@ -133,6 +226,46 @@ Highcharts.setOptions({
 	},
 });
 
+function isHTML(str) {
+    // Crea un elemento DOM temporaneo
+    let doc = new DOMParser().parseFromString(str, 'text/html');
+
+    // Controlla se l'elemento ha figli
+    return Array.from(doc.body.childNodes).some(node => node.nodeType === 1);
+}
+
+const infoCallBack = function() {
+    const chart = this,
+        info = document.querySelector('#info');
+        
+        console.log(chart);
+        
+    info.addEventListener('mouseover', function() {
+        if (!chart.infoTooltip) {
+            chart.infoTooltip = chart.renderer.label('Title tooltip info', 10, 10).attr({
+                zIndex: 12,
+                fill: '#fff',
+                'stroke-width': 1,
+                stroke: 'black',
+                padding: 8,
+                r: 3,
+            }).add();
+        }
+        
+        const bBox = chart.infoTooltip.getBBox(),
+            titleBBox = chart.title.getBBox(),
+            x = chart.title.x + titleBBox.width / 2 - bBox.width / 2 - 12,
+            y = chart.title.y + titleBBox.height / 2;
+        
+        chart.infoTooltip.show();
+        chart.infoTooltip.attr({x, y})
+    });
+    info.addEventListener('mouseout', function() {
+        chart.infoTooltip.hide();
+    });
+}
+
+
 function initTopicField(eleId){
     const a = {};
     window.topics.forEach( t => {
@@ -168,7 +301,7 @@ function reflowCharts(){
             }
 })};
 
-async function DomainRanking(containerId, stream) {
+async function DomainRanking(containerId, stream, title='Hot Topics') {
     let hashContainerId = '#' + containerId;
     $(hashContainerId).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let startD, endD; 
@@ -186,7 +319,11 @@ async function DomainRanking(containerId, stream) {
     ); 
     let mappingKeys = {'categoryKey': 'domain', 'valueKey': 'frequency'};
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: 'Hot Topics'};
+    let customOptions = {
+        titleText: title,
+        titleUseHTML: isHTML(title),
+        infoTooltipText: TgHotTopicsInfo
+    };
 
     await renderBarChartFromUrl(
         containerId, url, mappingKeys, customOptions);
@@ -210,10 +347,14 @@ async function AttentionTrends(containerId, stream, endpoint='/attention_trends'
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: title, chartType: chartType}
+    let customOptions = {
+        titleText: title,
+        titleUseHTML: isHTML(title),
+        chartType: chartType}
     await renderTimeSeriesFromUrl(
         containerId, url, customOptions, 'date', customKeys
     )
+    
 };
 
 
@@ -238,6 +379,7 @@ async function overallTrends(containerId, stream, endpoint='/attention_trends', 
     
     let customOptions = {
         titleText: title, 
+        titleUseHTML: isHTML(title),
         chartType: chartType,
         tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}</b><br/>Anomalous Topics: {point.topic_names}'
     }
@@ -247,7 +389,7 @@ async function overallTrends(containerId, stream, endpoint='/attention_trends', 
 };
 
 
-async function EmotionTrends(containerId, stream, conditions='') {
+async function EmotionTrends(containerId, stream, conditions='', customOptions={}) {
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let startD, endD;
     startD = stream == "mc" ? window.mcStartDate : window.tgStartDate;
@@ -264,14 +406,16 @@ async function EmotionTrends(containerId, stream, conditions='') {
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: 'Emotion Trends'}
+    let emotionOptions = {titleText: 'Emotion Trends'}
+    let combinedOptions = {...emotionOptions, ...customOptions}
+    combinedOptions['titleUseHTML'] = isHTML(combinedOptions.titleText);
     await renderTimeSeriesFromUrl(
-        containerId, url, customOptions, 'date'
+        containerId, url, combinedOptions, 'date'
     )
 };
 
 
-async function WordCloud(containerId, stream){
+async function WordCloud(containerId, stream, title='Significant Terms') {
 
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let startD, endD;
@@ -290,7 +434,8 @@ async function WordCloud(containerId, stream){
     );
     let url = base_endpoint + '?' + queryParams;
     let customOptions = {
-        titleText: 'Significant Terms',
+        titleText: title,
+        titleUseHTML: isHTML(title),
         chartHeightRatio: null,
         chartWidth: null
     }
@@ -317,7 +462,6 @@ async function SSITimeline(containerId, domainId, customOptions, stream='si'){
     let base_endpoint = `/${window.country}/ssi_series`;
     
     
-    console.log()
     if (Array.isArray(domainId)){
         domainId = JSON.stringify(domainId)
     }
@@ -330,6 +474,7 @@ async function SSITimeline(containerId, domainId, customOptions, stream='si'){
         true
     );
     let url = base_endpoint + '?' + queryParams;
+    customOptions['titleUseHTML'] = isHTML(customOptions.titleText);
     await renderTimeSeriesFromUrl(
         containerId, url, customOptions, 'date'
     )
@@ -348,6 +493,7 @@ async function SSIFieldsTimeline(containerId, domainId, customOptions){
         true
     );
     let url = base_endpoint + '?' + queryParams;
+    customOptions['titleUseHTML'] = isHTML(customOptions.titleText);
     await renderTimeSeriesFromUrl(
         containerId, url, customOptions, 'date'
     )
@@ -381,7 +527,8 @@ async function TalkingPoints(containerId, stream, endP='/talking_points_on_condi
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: "Talking Points"};
+    // let customOptions = {titleText: TgTalkingPointsTitle};
+    let customOptions = {};
     await fetch(url).then(
         response => response.json()
     ).then(data => {
@@ -467,6 +614,8 @@ async function TalkingPoints(containerId, stream, endP='/talking_points_on_condi
         
         renderHTMLTable(containerId, out, customOptions);
         reflowCharts();
+        deleteAllBoostrapTooltips();
+        initializeBootstrapTooltips();
     }
     })
 
@@ -670,7 +819,7 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: 'Attention'}
+    let customOptions = {titleText: ''}
     TgMessageWidget();
     $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     renderTimeSeriesFromUrl(
@@ -679,7 +828,7 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
 
     let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
     let hotUrl = hotTopicsEndpoint + '?' + queryParams;
-    customOptions = {titleText: 'Hot Topics'};
+    customOptions = {titleText: ''};
     let hasTopic = window.countryConditions[stream].some(obj => obj.field === 'Topic');
     let categoryKey = hasTopic ? 'topic' : 'domain';
     let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
@@ -691,9 +840,12 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     TalkingPoints(
         `${stream}-talking-points`, stream, 
         '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]));
-    EmotionTrends(`${stream}-emotion-trends`, stream,  JSON.stringify(window.countryConditions[stream]));
+    EmotionTrends(
+        `${stream}-emotion-trends`, stream,  JSON.stringify(window.countryConditions[stream]),
+        {titleText: ''}
+    );
 
-    WordCloud('tg-top-terms', 'tg');
+    WordCloud('tg-top-terms', 'tg', '');
     fillSearchBar(stream);
 
 });
@@ -718,7 +870,7 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
         true
     );
     let url = base_endpoint + '?' + queryParams;
-    let customOptions = {titleText: 'Attention'}
+    let customOptions = {titleText: ''}
     $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     renderTimeSeriesFromUrl(
         `${stream}-attention-trends`, url, customOptions, 'date'
@@ -726,7 +878,7 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
 
     let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
     let hotUrl = hotTopicsEndpoint + '?' + queryParams;
-    customOptions = {titleText: 'Hot Topics'};
+    customOptions = {titleText: ''};
     let hasTopic = window.countryConditions[stream].some(obj => obj.field === 'Topic');
     let categoryKey = hasTopic ? 'topic' : 'domain';
     let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
@@ -741,7 +893,10 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     
     MCStoryWidget();
     fillSearchBar(stream);
-    EmotionTrends(`${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]));
+    EmotionTrends(
+        `${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]),
+        {titleText: ''}
+    );
 
     MCPersons('mc-persons');
     MCLocations('mc-locations');
@@ -754,10 +909,10 @@ $('#si-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     window.startDates['si'][0] = parseInt(picker.startDate.format('YYYYMMDD'));
     window.startDates['si'][1] = parseInt(picker.endDate.format('YYYYMMDD'));
 
-    SSITimeline('si-food-insecurity', 3, {titleText: 'Food Insecurity SSI'});
-    SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: 'Food Insecurity SSI by topic'});
-    SSITimeline('si-conflict-total', 5, {titleText: 'Conflict SSI'});
-    SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: 'Conflict SSI by topic'});
+    SSITimeline('si-food-insecurity', 3, {titleText: ''});
+    SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: ''});
+    SSITimeline('si-conflict-total', 5, {titleText: ''});
+    SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: ''});
 
 });
 $('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
@@ -770,10 +925,10 @@ $('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     let end_date = window.oaEndDate;
     let stream = 'oa';
     let conditions = window.countryConditions['oa'];
-    overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', 'Topic Anomalies', conditions, 'column');
-    AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', 'Attention', conditions);
-    AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', 'Sentiment', conditions);
-    SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, stream);
+    overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', '', conditions, 'column');
+    AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', '', conditions);
+    AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', '', conditions);
+    SSITimeline('oa-ssi-trends', [3, 5], {titleText: ''}, stream);
     fillSearchBar(stream);
 });
 
@@ -962,13 +1117,51 @@ function showMCPopup(evt) {
     const fullText = $(this).find('.full-text').text();
     const topics = $(this).find('.detected-topics').text();
     let popup = $('#mc-story-popup');
+
     popup.find('.detected-topics span').text(`${topics}`);
     popup.find('.full-text span').text(`${fullText}`);
+    // Ottieni le dimensioni del popup
+    const popupWidth = popup.outerWidth();
+    const popupHeight = popup.outerHeight();
+
+    // Ottieni le dimensioni della finestra
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Ottieni la posizione del click
+    const clickX = evt.clientX;
+    const clickY = evt.clientY;
+
+    // Calcola lo spazio disponibile
+    const spaceRight = windowWidth - clickX;
+    const spaceBottom = windowHeight - clickY;
+
+    let top, left;
+
     
+    // Determina dove posizionare il popup
+    if (spaceRight >= popupWidth) {
+        // C'è spazio a destra
+        left = clickX;
+    } else {
+        // Posiziona a sinistra del click
+        left = clickX - popupWidth;
+    }
+
+    if (spaceBottom >= popupHeight) {
+        // C'è spazio in basso
+        top = clickY;
+    } else {
+        // Posiziona sopra il click
+        top = clickY - popupHeight;
+    }
+
     popup.css({
       display: 'block',
-      top: `${evt.clientY + window.scrollY}px`,
-      left: `${evt.clientX + window.scrollX}px`
+    //   top: `${evt.clientY + window.scrollY}px`,
+    //   left: `${evt.clientX + window.scrollX}px`,
+        top: `${top + window.scrollY}px`,
+      left: `${left + window.scrollX}px`
     });
   };
 
@@ -976,18 +1169,59 @@ function showMCPopup(evt) {
     $('#mc-story-popup').css('display', 'none');
   };
 
+
   function showTgPopup(evt) {
                   
     const fullText = $(this).find('.full-text').text();
     const topics = $(this).find('.detected-topics').text();
     let popup = $('#tg-message-popup');
+    // const popup = document.getElementById('tg-message-popup');
     popup.find('.detected-topics span').text(`${topics}`);
     popup.find('.full-text span').text(`${fullText}`);
+
+    // Ottieni le dimensioni del popup
+    const popupWidth = popup.outerWidth();
+    const popupHeight = popup.outerHeight();
+
+    // Ottieni le dimensioni della finestra
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Ottieni la posizione del click
+    const clickX = evt.clientX;
+    const clickY = evt.clientY;
+
+    // Calcola lo spazio disponibile
+    const spaceRight = windowWidth - clickX;
+    const spaceBottom = windowHeight - clickY;
+
+    let top, left;
+
+    
+    // Determina dove posizionare il popup
+    if (spaceRight >= popupWidth) {
+        // C'è spazio a destra
+        left = clickX;
+    } else {
+        // Posiziona a sinistra del click
+        left = clickX - popupWidth;
+    }
+
+    if (spaceBottom >= popupHeight) {
+        // C'è spazio in basso
+        top = clickY;
+    } else {
+        // Posiziona sopra il click
+        top = clickY - popupHeight;
+    }
+
     
     popup.css({
       display: 'block',
-      top: `${evt.clientY + window.scrollY}px`,
-      left: `${evt.clientX + window.scrollX}px`
+    //   top: `${evt.clientY + window.scrollY}px`,
+    //   left: `${evt.clientX + window.scrollX}px`
+      top: `${top + window.scrollY}px`,
+      left: `${left + window.scrollX}px`
     });
   };
 
@@ -1023,9 +1257,7 @@ async function MCStoryWidget(){
             if (window.MessagesOffset["mc"] == 0){
                 $(`#mc-stories`).html('');
                 $('#mc-stories').append(
-                    `<div class="widget-title">News Stories</div>
-                    <br>
-                    <br>
+                    `
                     <div class="table-container" id="scrollable-stories">
                         <div class="" id="mc-stories-content">
                         </div>
@@ -1098,9 +1330,7 @@ async function TgMessageWidget(){
             if (window.MessagesOffset["tg"] == 0) {
                 $(`#tg-messages`).html('');
                 $('#tg-messages').append(
-                    `<div class="widget-title">Conversations</div>
-                    <br>
-                    <br>
+                    `
                     <div class="table-container" id="scrollable-messages">
                         <div id="tg-messages-content">
                         </div>
@@ -1174,7 +1404,11 @@ function fillSearchBar(stream){
 }
 
 
+
+
 $(document).ready(async function (){
+    
+
     $('#oa-filter-bar').show();
     $('#tg-filter-bar').hide();
     $('#mc-filter-bar').hide();
@@ -1200,27 +1434,51 @@ $(document).ready(async function (){
       });
 
     function renderCharts(){
-        overallTrends('oa-anomaly-trends', 'oa', '/overall_trend_hc', 'anomaly', 'Topic Anomalies', window.countryConditions['oa'], 'column');
-        AttentionTrends('oa-attention-trends', 'oa', '/overall_trend', 'attention', 'Attention', window.countryConditions['oa']);
-        AttentionTrends('oa-sentiment-trends', 'oa', '/overall_trend', 'sentiment', 'Sentiment', window.countryConditions['oa']);
-        SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, 'oa');
+        overallTrends('oa-anomaly-trends', 'oa', '/overall_trend_hc', 'anomaly', "", window.countryConditions['oa'], 'column');
+        AttentionTrends('oa-attention-trends', 'oa', '/overall_trend', 'attention', "", window.countryConditions['oa']);
+        AttentionTrends('oa-sentiment-trends', 'oa', '/overall_trend', 'sentiment', "", window.countryConditions['oa']);
+        SSITimeline('oa-ssi-trends', [3, 5], {titleText: ""}, 'oa');
+        // fetch('/static/hc/oa-anomaly.json')  // Specifica il percorso al tuo file JSON
+        //     .then(response => {
+        //         if (!response.ok) {
+        //             throw new Error('Errore nel caricamento del file JSON');
+        //         }
+        //         return response.json();  // Converte la risposta in formato JSON
+        //     })
+        //     .then(data => {
+        //         console.log(data)
+        //         data = processOverallChartData(data, 'date', [])
+        //         let customOptions = {
+        //             titleText: 'Topic Anomalies Example', 
+        //             marginLeft: 10,
+        //             chartType: 'column',
+        //             tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}</b><br/>Anomalous Topics: {point.topic_names}'
 
-        DomainRanking('tg-domains-bar-chart', 'tg');
-        AttentionTrends('tg-attention-trends', 'tg');
+        //         };
+        //         renderTimeSeries('oa-anomaly-example', data, customOptions);
+
+        //     })
+        //     .catch(error => {
+        //         console.error('Errore:', error);
+        //     });
+        
+
+        DomainRanking('tg-domains-bar-chart', 'tg', '');
+        AttentionTrends('tg-attention-trends', 'tg', '/attention_trends', 'attention', '');
         TalkingPoints('tg-talking-points', 'tg');
-        EmotionTrends(`tg-emotion-trends`, 'tg', JSON.stringify(window.countryConditions['tg']));
-        EmotionTrends(`mc-emotion-trends`, 'mc', JSON.stringify(window.countryConditions['mc']));
+        EmotionTrends(`tg-emotion-trends`, 'tg', JSON.stringify(window.countryConditions['tg']), {titleText: ''});
+        EmotionTrends(`mc-emotion-trends`, 'mc', JSON.stringify(window.countryConditions['mc']), {titleText: ''});
 
-        DomainRanking('mc-domains-bar-chart', 'mc');
-        AttentionTrends('mc-attention-trends', 'mc');
+        DomainRanking('mc-domains-bar-chart', 'mc', '');
+        AttentionTrends('mc-attention-trends', 'mc', '/attention_trends', 'attention', '');
         TalkingPoints('mc-talking-points', 'mc');
         MCLocations('mc-locations');
         MCPersons('mc-persons');
         MCOrgs('mc-orgs');
-        SSITimeline('si-food-insecurity', 3, {titleText: 'Food Insecurity SSI'});
-        SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: 'Food Insecurity SSI by topic'});
-        SSITimeline('si-conflict-total', 5, {titleText: 'Conflict SSI'});
-        SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: 'Conflict SSI by topic'});
+        SSITimeline('si-food-insecurity', 3, {titleText: ''});
+        SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: ''});
+        SSITimeline('si-conflict-total', 5, {titleText: ''});
+        SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: ''});
 
         TgMessageWidget();
         MCStoryWidget();
@@ -1246,7 +1504,7 @@ $(document).ready(async function (){
         initPicker('mc-filter-bar .datepicker', 'mc');
         initPicker('si-filter-bar .datepicker', 'si');
         initPicker('oa-filter-bar .datepicker', 'oa')
-        WordCloud('tg-top-terms', 'tg');
+        WordCloud('tg-top-terms', 'tg', '');
         renderCharts();
         
     };
@@ -1356,7 +1614,10 @@ $(document).ready(async function (){
                 true
             );
             let url = base_endpoint + '?' + queryParams;
-            let customOptions = {titleText: 'Attention'}
+            let customOptions = {
+                titleText: '',
+                titleUseHTML: false
+            }
             $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
             renderTimeSeriesFromUrl(
                 `${stream}-attention-trends`, url, customOptions, 'date'
@@ -1364,7 +1625,10 @@ $(document).ready(async function (){
 
             let hotTopicsEndpoint = `/${window.country}/domain_ranking`;
             let hotUrl = hotTopicsEndpoint + '?' + queryParams;
-            customOptions = {titleText: 'Hot Topics'};
+            customOptions = {
+                titleText: '',
+                titleUseHTML: false
+            };
             let hasTopic = window.countryConditions[stream].some(obj => obj.field === 'Topic');
             let categoryKey = hasTopic ? 'topic' : 'domain';
             let mappingKeys = {'categoryKey': categoryKey, 'valueKey': 'frequency'};
@@ -1383,12 +1647,15 @@ $(document).ready(async function (){
                 '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
             TgMessageWidget();
             MCStoryWidget();
-            EmotionTrends(`${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]));
+            EmotionTrends(
+                `${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]),
+                {titleText: ''}
+            );
         } else if (stream == 'oa') {
-            overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', 'Topic Anomalies', window.countryConditions[stream], 'column');
-            AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', 'Attention', window.countryConditions[stream]);
-            AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', 'Sentiment', window.countryConditions[stream]);
-            SSITimeline('oa-ssi-trends', [3, 5], {titleText: 'Synthetic Search Interest Index'}, stream);
+            overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', '', window.countryConditions[stream], 'column');
+            AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', '' , window.countryConditions[stream]);
+            AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', '' , window.countryConditions[stream]);
+            SSITimeline('oa-ssi-trends', [3, 5], {titleText: ''}, stream);
         }
         fillSearchBar(stream);
         
@@ -1413,5 +1680,11 @@ $(document).ready(async function (){
         });
     });
     
+    document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseenter', showInfoPopup) )
+    document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseleave', hideInfoPopup) )
+  
+    
     renderElements();
+    
+    
 })

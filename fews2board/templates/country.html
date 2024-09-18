@@ -1,5 +1,5 @@
 <!-- Country specific page of the dashboard -->
-<!doctype html>
+<!DOCTYPE html>
 <html>
 
 <!-- HEAD -->
@@ -44,6 +44,74 @@
             <span></span>
         </div>
     </div>
+    <div id="oa-anomaly-pu" class="popup-container">
+        {% include "info_boxes/overall_anomalies.html" %}
+    </div>
+    <div id="oa-attention-pu" class="popup-container">
+        {% include "info_boxes/overall_attention.html" %}
+    </div>
+    <div id="oa-sentiment-pu" class="popup-container">
+        {% include "info_boxes/overall_sentiment.html" %}
+    </div>
+    <div id="oa-ssi-pu" class="popup-container">
+        {% include "info_boxes/overall_ssi.html" %}
+    </div>
+    <div id="oa-tab-pu" class="popup-container">
+        {% include "info_boxes/tab_overall.html" %}
+    </div>
+    <div id="tg-tab-pu" class="popup-container">
+        {% include "info_boxes/tab_social.html" %}
+    </div>
+    <div id="mc-tab-pu" class="popup-container">
+        {% include "info_boxes/tab_media.html" %}
+    </div>
+    <div id="si-tab-pu" class="popup-container">
+        {% include "info_boxes/tab_ssi.html" %}
+    </div>
+    <div id="tg-hot-pu" class="popup-container">
+        {% include "info_boxes/social_hot_topics.html" %}
+    </div>
+    <div id="tg-talking-pu" class="popup-container">
+        {% include "info_boxes/social_talking_points.html" %}
+    </div>
+    <div id="tg-terms-pu" class="popup-container">
+        {% include "info_boxes/social_significant_terms.html" %}
+    </div>
+    <div id="tg-msg-pu" class="popup-container">
+        {% include "info_boxes/social_conversations.html" %}
+    </div>
+    <div id="tg-attention-pu" class="popup-container">
+        {% include "info_boxes/social_attention.html" %}
+    </div>
+    <div id="tg-emotion-pu" class="popup-container">
+        {% include "info_boxes/social_emotion.html" %}
+    </div>
+    <div id="mc-hot-pu" class="popup-container">
+        {% include "info_boxes/media_hot_topics.html" %}
+    </div>
+    <div id="mc-stories-pu" class="popup-container">
+        {% include "info_boxes/media_stories.html" %}
+    </div>
+    <div id="mc-talking-pu" class="popup-container">
+        {% include "info_boxes/media_talking_points.html" %}
+    </div>
+    <div id="si-con-tot-pu" class="popup-container">
+        {% include "info_boxes/ssi_con_tot.html" %}
+    </div>
+    <div id="si-con-tot-topics-pu" class="popup-container">
+        {% include "info_boxes/ssi_con_tot_topics.html" %}
+    </div>
+    <div id="si-foo-ins-pu" class="popup-container">
+        {% include "info_boxes/ssi_foo_ins.html" %}
+    </div>
+    <div id="si-foo-ins-topics-pu" class="popup-container">
+        {% include "info_boxes/ssi_foo_ins_topics.html" %}
+    </div>
+    <div id="filters-pu" class="popup-container">
+        {% include "info_boxes/filters.html" %}
+    </div>
+
+
     <!-- JAVASCRIPT -->
     <script>
         var countries = JSON.parse('{{countries|tojson}}');

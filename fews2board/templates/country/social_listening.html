@@ -4,11 +4,23 @@
 
         <div class="col-12 col-xl-4 p-0">
             
-                
-                <div 
-                    class="card justify-content-center align-items-center hcs" 
-                    id="tg-domains-bar-chart"
-                >
+                <div class="card">
+                    <div class="d-flex highcharts-title">
+                        
+                            <span class="hc-title">Hot Topics</span>
+                            <!-- <span data-bs-toggle="tooltip" data-bs-html="true" title="Bootstrap tooltip" data-bs-placement="auto" data-bs-custom-class="bs-custom-tooltip">
+                                <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+                            </span> -->
+                            <span popup-id="tg-hot-pu" class="popup-trigger">
+                                <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+                            </span>
+                        
+                    </div>
+                    <div 
+                        class="justify-content-center align-items-center hcs" 
+                        id="tg-domains-bar-chart"
+                        >
+                    </div>
                 </div>
                 
         
@@ -16,26 +28,41 @@
 
         
         <div class="col-12 col-xl-4 p-0">
-            
-                
                 <div 
                     class="card table-card" 
-                    
                 >   
-                    <div class="table-container" 
-                        id="tg-talking-points"></div>
+                    <div class="d-flex highcharts-title pb-2">
+                                
+                        <span class="hc-title">Talking Points</span>
+                        <span popup-id="tg-talking-pu" class="popup-trigger" popup-pos="bottom">
+                            <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+                        </span>
+                    
+
+                    </div>
+                    <div class="table-container" id="tg-talking-points"></div>
                 </div>
                 
             
         </div>
         <div class="col-12 col-xl-4 p-0">
             
-                
-                <div 
-                    class="card hcs justify-content-center align-items-center" 
-                    id="tg-top-terms"
-                >
-                    <h3>Top Terms (wordcloud)</h3>
+                <div class="card">
+                    <div class="d-flex highcharts-title">
+                        
+                            <span class="hc-title">Significant Terms</span>
+                            <span popup-id="tg-terms-pu" class="popup-trigger">
+                                <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+                            </span>
+                        
+        
+                    </div>
+                    <div 
+                        class=" hcs justify-content-center align-items-center" 
+                        id="tg-top-terms"
+                    >
+                    
+                    </div>
                 </div>
                 
             
@@ -54,6 +81,15 @@
                 <div 
                     class="card table-card long-card" 
                 >
+                    <div class="d-flex highcharts-title pb-2">
+                            
+                        <span class="hc-title">Conversations</span>
+                        <span popup-id="tg-msg-pu" class="popup-trigger" popup-pos="bottom">
+                            <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+                        </span>
+                    
+
+                    </div>
                     <div class="table-container" id="tg-messages">
 
                     </div>
@@ -77,15 +113,36 @@
         <div class="col-12 col-xl-8 p-0 h-100">
             
             <div class="row h-50 m-0">
-                <div 
-                    class="card justify-content-center align-items-center hcs" id="tg-attention-trends"
-                >
+                <div class="card">
+                    <div class="d-flex highcharts-title">
+                        
+                            <span class="hc-title">Attention</span>
+                            <span popup-id="tg-attention-pu" class="popup-trigger">
+                                <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+                            </span>
+                        
+        
+                    </div>
+                    <div 
+                    class="justify-content-center align-items-center hcs" id="tg-attention-trends"
+                    >
+                    </div>
                 </div>
             </div>
             <div class="row h-50 m-0">
-                <div 
-                    class="card justify-content-center align-items-center hcs" id="tg-emotion-trends"
-                >
+                <div class="card">
+                    <div class="d-flex highcharts-title">
+                        
+                            <span class="hc-title">Emotion Trends</span>
+                            <span popup-id="tg-emotion-pu" class="popup-trigger">
+                                <svg class="info-icon" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 8a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-9.75 2.5a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-1V7H7a.75.75 0 0 0 0 1.5h.25v2h-1ZM8 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" fill="#fefefe"/></svg>
+                            </span>
+        
+                    </div>
+                    <div 
+                    class=" justify-content-center align-items-center hcs" id="tg-emotion-trends"
+                    >
+                    </div>
                 </div>
             </div>
 

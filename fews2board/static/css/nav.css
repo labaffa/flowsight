@@ -128,6 +128,7 @@
     --phase2-bg-chart: rgb(74, 89, 117);
     --ocean-light-blue: rgb(188,218,233);
     --country-grey: rgb(209,211,212);
+    --phase2-blue-super-light: rgb(231, 241, 255);
 }
 
 #fews-nav{
@@ -140,7 +141,10 @@
     max-width: 80%;
 }
 .hcs {
+    display: flex;
     overflow: hidden;
+    height: 100%;
+    flex-grow: 1;
 }
 .nav-icon-container {
     padding: var(--nav-icon-padding);
@@ -512,7 +516,7 @@
     margin-left: auto!important;
     margin-right: auto!important;
     }
-    .tooltip.show {
+    /* .tooltip.show {
         opacity: 1!important;
     }
     .tooltip-inner {
@@ -524,7 +528,7 @@
       .tooltip-arrow::before {
         border-top-color: white!important;
         
-    }
+    } */
 
 @media screen and (min-width: 2000px)  {
     .sb {
@@ -1099,7 +1103,7 @@ input.discard{
     height: 100%;
     width: 100%;
     margin-bottom: 0.8rem;
-    overflow-y: scroll;
+    overflow-y: auto;
     
 }
 
@@ -1199,7 +1203,16 @@ input.discard{
 
 }
 
-
+.popup-container {
+    display: none;
+    position: absolute;
+    z-index: 10000000;
+    max-height: 50vh;
+    min-height: 10vh;
+    min-width: 20vw;
+    max-width: 30vw;
+    /* overflow: hidden; */
+}
 .popup {
     display: none;
     position: absolute;
@@ -1207,7 +1220,8 @@ input.discard{
     border: 1px solid #ccc;
     padding: 10px;
     z-index: 1000;
-    max-width: 300px;
+    min-width: 10vw;
+    max-width: 20vw;
     border-radius: .2rem;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   }
@@ -1288,3 +1302,186 @@ li a,  .dropbtn{
   .bold {
     font-weight: bold;
   }
+
+  .hc-title {
+    color: white;
+    margin-right: .5rem;
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .highcharts-info-label-box {
+    fill: white !important;
+  }
+
+
+  .info-icon {
+    height: .8rem;
+    width: .8rem;
+    padding: 0;
+  }
+  
+  /* .popup-trigger {
+    padding: 0;
+  } */
+
+  /* .highcharts-title svg {
+    height: .8rem;
+    width: .8rem;
+  } */
+
+  
+
+
+   .bs-custom-tooltip.show {
+        opacity: 1!important;
+    }
+    .bs-custom-tooltip .tooltip-inner {
+        background-color: white;
+        box-shadow: 0px 0px 20px rgb(80, 80, 80);
+        color: black;
+        opacity: 1 !important;
+      }
+      .bs-custom-tooltip .tooltip-arrow::before {
+        /* display: none; */
+        border-top-color: white!important;
+        
+        }
+
+/* 
+    pure css tooltip classes. 
+    Usage: popover__wrapper is the container of the popover__title (the title of the popover, 
+    always visibile even when the tooltip is closed) 
+    and the popover__content (the content of the popover) 
+    
+ */
+.popover__title {
+    font-size: 24px;
+    line-height: 36px;
+    text-decoration: none;
+    color: rgb(228, 68, 68);
+    text-align: center;
+    padding: 15px 0;
+}
+
+.popover__wrapper {
+    position: relative;
+    display: inline-block;
+}
+.popover__content {
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    left: 0px;
+    top: 0;  /* allows to create continuity between wrapper and content to hover */
+    transform: translate(0, 10px);
+    /* background-color: #fefefe; */
+    padding: .1rem;
+    /* box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26); */
+    width: auto;
+    
+}
+/* .popover__content:before {
+    position: absolute;
+    z-index: -1;
+    content: "";
+    right: calc(50% - 10px);
+    top: -8px;
+    border-style: solid;
+    border-width: 0 10px 10px 10px;
+    border-color: transparent transparent #bfbfbf transparent;
+    transition-duration: 0.3s;
+    transition-property: transform;
+} */
+.popover__wrapper:hover .popover__content {
+    z-index: 10; 
+    opacity: 1;
+    visibility: visible;
+    transform: translate(0, 0px);
+    transition: all 0.5s cubic-bezier(0.75, -0.02, 0.2, 0.97);
+}
+.popover__message {
+    text-align: center;
+}
+.top-part {
+    /* position: absolute;
+    top: 0;
+    left: 0; */
+    width: 100%; 
+    height: 2rem; 
+    opacity: 0 !important; 
+}
+
+.info-box {
+
+    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
+    border-radius: .4rem;
+    overflow: hidden;
+    /* min-width: 25vw;
+    max-height: 50vh; */
+}
+.info-box-title {
+    padding: .9rem;
+    text-align: center;
+    text-wrap: nowrap;
+    font-weight: bold;
+    font-size: 1.5rem;
+    background-color: var(--phase2-blue-super-light);
+    
+}
+.info-box-content {
+    padding: .9rem;
+    font-weight: normal;
+    background-color: white;
+    overflow-y: auto;
+    /* max-height: 50vh; */
+    
+    
+}
+
+.info-box-header {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: var(--phase2-blue-light);
+
+}
+
+.info-box-section p, .info-box-section li {
+    font-size: .9rem;
+    font-weight: normal;
+    color: var(--phase2-blue-light);
+    text-align: left;
+}
+
+.info-box-sub-header {
+    font-weight: bold;
+    font-size: .9rem;
+    color: var(--phase2-blue-light);
+}
+
+.info-box-content .hcs {
+    min-width: 35vw;
+}
+
+.accordion-title {
+    background-color: white;
+    color: var(--phase2-blue-light);
+    padding: 18px;
+    width: 100%;
+    text-align: left;
+    transition: 0.4s;
+    font-size: 1.35rem;
+    font-weight: 620;
+    border-bottom: .3rem double var(--phase2-blue-light);
+}
+
+.accordion-button .info-icon svg {
+    fill: var(--phase2-blue-light);
+    cursor: pointer;
+}
+
+.info-icon-filters {
+    stroke: var(--phase2-blue-light);
+    opacity: 1;
+}
+

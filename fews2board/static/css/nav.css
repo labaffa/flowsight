@@ -805,10 +805,12 @@ footer {
 }
 .query-button, .reset-button{
     background-color: white;
-    border: 1px solid rgb(48,80,136) !important;
+    border: 1px solid var(--phase2-blue-dark);
     height: 3rem;
     border-radius: 0.3rem;
     margin: 0.3rem;
+    color: var(--phase2-blue-light);
+    font-weight: 550;
 }
 #modal-overlay {
     display: none; /* Hide the overlay by default */
@@ -1314,11 +1316,21 @@ li a,  .dropbtn{
 
 
   .info-icon {
-    height: .8rem;
-    width: .8rem;
+    /* height: .8rem;
+    width: .8rem; */
+    height: 12px;
+    width: 12px;
     padding: 0;
   }
   
+  .info-icon-blue {
+    fill: var(--phase2-blue-light);
+  }
+  
+  .info-icon-xl {
+    height: 1.5rem;
+    width: 1.5rem;
+  }
   /* .popup-trigger {
     padding: 0;
   } */
@@ -1495,5 +1507,21 @@ li a,  .dropbtn{
 
 .white {
     color: white;
+}
+
+.hc-map-legend {
+    display: flex;
+    align-items: center;
+}
+.hc-map-legend .highcharts-legend-box{
+    
+    fill: white;
+    stroke: var(--phase2-blue-super-light);
+    stroke-width: 2px;
+}
+
+.hc-map-legend .highcharts-legend-title text, .hc-map-legend .highcharts-coloraxis-labels text{
+    fill: var(--phase2-blue-dark);
+
 }
 

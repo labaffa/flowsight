@@ -135,7 +135,7 @@ function tooltipCallBack(){
 	`
 	html += `
 	<div class="row mt-3" style="margin: 0">
-		<p class="h6 border-bottom" style="padding: 0">Anomalous Topics:</p>
+		<p class="h6 border-bottom" style="padding: 0">Anomalous Topics</p>
 	</div>
 	<div class="row">
 		<div class="col">`
@@ -185,7 +185,9 @@ export async function renderMap(chartId, data, customOptions, topology) {
 			text: ``,
 		},
 		legend: {
+			className: 'hc-map-legend',
 			verticalAlign: 'top',
+			borderRadius: 1,
             title: {
                 text: `${LayersMap[window.selectedLayer].text} from ${window.dateRange[0]} to ${window.dateRange[1]}`
 				

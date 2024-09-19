@@ -61,7 +61,7 @@ const layerDescriptions = {
                 <p>
                     <strong>
                         This metric identifies any anomalies in the topic prevalence, 
-                        i.e. topics that are presenting a different attention than usual, per country.   
+                        i.e. topics that are presenting a different attention than usual, for the latest week's data, by country.   
                     </strong>
                 <p>
             </div>
@@ -341,14 +341,53 @@ function showAccordionItem(itemId) {
     $(`#${itemId}`).closest('.accordion-item').find('.accordion-button').addClass('clicked');
   }
 
+function getCookie(name) {
+    let matches = document.cookie.match(new RegExp(
+      "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    return matches ? decodeURIComponent(matches[1]) : undefined;
+  }
 
+function setCookie(name, value, attributes = {}) {
+
+    attributes = {
+      path: '/',
+      // add other defaults here if necessary
+      ...attributes
+    };
   
+    if (attributes.expires instanceof Date) {
+      attributes.expires = attributes.expires.toUTCString();
+    }
+  
+    let updatedCookie = encodeURIComponent(name) + "=" + encodeURIComponent(value);
+  
+    for (let attributeKey in attributes) {
+      updatedCookie += "; " + attributeKey;
+      let attributeValue = attributes[attributeKey];
+      if (attributeValue !== true) {
+        updatedCookie += "=" + attributeValue;
+      }
+    }
+  
+    document.cookie = updatedCookie;
+  }
 
+
+function deleteCookie(name) {
+    setCookie(name, "", {
+      'max-age': -1
+    })
+  }
 $(document).ready(async function(){
-    // $('#myModal').on('shown.bs.modal', function () {
-    //     $('#myInput').trigger('focus')
-    //   })
-    $('#main-modal').modal('show')
+    // const modalShown = getCookie('ph2-home-modal-main-shown');
+    const modalShown = sessionStorage.getItem('ph2-home-modal-main-shown');    
+
+    if (!modalShown){
+        $('#main-modal').modal('show');
+        // setCookie('ph2-home-modal-main-shown', 'true');
+        sessionStorage.setItem('ph2-home-modal-main-shown', 'true');
+    }
 
     document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseenter', showInfoPopup) )
     document.querySelectorAll('.popup-trigger').forEach((s) => s.addEventListener('mouseleave', hideInfoPopup) )

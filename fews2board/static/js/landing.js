@@ -70,7 +70,7 @@ const layerDescriptions = {
                 <p>
                 They are presented as the count of anomalous topics for the selected domain and data stream during 
                 the last week. 
-                When both data streams are selected, the count is an average between telegram and mediacloud. 
+                When both data streams are selected, the count is an average between Telegram and Mediacloud. 
                 </p>
             </div>
 

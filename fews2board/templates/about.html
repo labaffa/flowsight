@@ -245,6 +245,91 @@
                     <p>Once the filters have been selected, the user can click <u>Apply</u> to update the visualizations on the selected tab. To clear all filters, click <u>Reset</u>.</p>
                     <p>By default, the period selected is the last week of data available. The user can custom select a period of analysis by clicking on the date filter, which will open a calendar.</p>
             
+            <h2 id="overall" class="bold mb-4">Overall</h2>
+            <p>
+                This tab displays comparative a summary of the key metrics for the selected country. By default, the period presented is one year. The following visualizations are available:
+            </p>
+            
+            <table class="user-guide-table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Visualization type</th>
+                        <th style="width: 25%;">Title</th>
+                        <th style="width: 50%;">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Bar chart</td>
+                        <td>Topic Anomalies</td>
+                        <td>
+                            <p>
+                                Comparative overview of topic anomalies, by data source (news and social media). 
+                                The metric identifies any anomalies in topic prevalence, 
+                                i.e. topics that are presenting a different attention than usual.   
+                            </p> 
+                            <p>
+                                They are presented as the count of anomalous topics for each data stream 
+                                for the selected period. By default, when no topic is filtered, 
+                                the visualization displays a sum of topic anomalies for each data stream, per day. 
+                            </p>
+                            <p>
+                                For every topic, the average and standard deviation of the daily 
+                                normalized prevalences are calculated considering the whole dataset; 
+                                a topic is then tagged as anomalous on a specific date when its 
+                                topic normalized prevalence is larger than the average + standard deviation.
+
+                            </p>
+                            
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Attention Trends</td>
+                        <td>
+                            <p>
+                                Comparative overview of topic attention, by data source (news and social media).
+                                Based on the custom taxonomy developed for 117 topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for each data stream.
+                            </p>
+                            <p>
+                                By default, when no topic is filtered, the visualization displays an average of topic attention for all topics, for each data stream, per day. 
+                            </p>
+                            <p>
+                                Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a Telegram post or news story, normalized on the value of the total word count of that item and scaled on a range from 0 to 1. 
+
+                            </p>
+                            <p>
+                                Scale: 0 to 1
+                            </p>
+                              </td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Sentiment</td>
+                        <td>
+                            <p>
+                                Comparative overview of topic sentiment, by data source (news and social media).
+The daily sentiment score for each data stream is shown for the selected period. 
+                            </p>
+                             <p>
+                                By default, when no topic is filtered, the visualization displays an average score for each data stream, per day.
+                             </p>
+                             <p>Scale: -1 to 1</p>
+                             </td>
+                    </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Synthetic Search Interest Index (SSI)</td>
+                        <td>
+                            <p>
+                                Analysis from Google Trends data, based on the Synthetic Search Interest Indices (SSI) for Food Insecurity and Conflict, for the selected period.
+                            <p>
+                            
+                        </td>
+                    </tr>
+                    
+                </tbody>
+            </table>
                     <h2 id="social" class="bold mb-4">Social Listening</h2>
                     <p>This tab displays the analysis from Telegram data, based on the curated lists of public groups and channels per country. The following visualizations are available:</p>
                     
@@ -374,91 +459,7 @@
                             </tr>
                         </tbody>
                     </table>
-            <h2 id="overall" class="bold mb-4">Overall</h2>
-            <p>
-                This tab displays comparative a summary of the key metrics for the selected country. By default, the period presented is one year. The following visualizations are available:
-            </p>
             
-            <table class="user-guide-table">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">Visualization type</th>
-                        <th style="width: 25%;">Title</th>
-                        <th style="width: 50%;">Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Bar chart</td>
-                        <td>Topic Anomalies</td>
-                        <td>
-                            <p>
-                                Comparative overview of topic anomalies, by data source (news and social media). 
-                                The metric identifies any anomalies in topic prevalence, 
-                                i.e. topics that are presenting a different attention than usual.   
-                            </p> 
-                            <p>
-                                They are presented as the count of anomalous topics for each data stream 
-                                for the selected period. By default, when no topic is filtered, 
-                                the visualization displays a sum of topic anomalies for each data stream, per day. 
-                            </p>
-                            <p>
-                                For every topic, the average and standard deviation of the daily 
-                                normalized prevalences are calculated considering the whole dataset; 
-                                a topic is then tagged as anomalous on a specific date when its 
-                                topic normalized prevalence is larger than the average + standard deviation.
-
-                            </p>
-                            
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Attention Trends</td>
-                        <td>
-                            <p>
-                                Comparative overview of topic attention, by data source (news and social media).
-                                Based on the custom taxonomy developed for 117 topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for each data stream.
-                            </p>
-                            <p>
-                                By default, when no topic is filtered, the visualization displays an average of topic attention for all topics, for each data stream, per day. 
-                            </p>
-                            <p>
-                                Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a Telegram post or news story, normalized on the value of the total word count of that item and scaled on a range from 0 to 1. 
-
-                            </p>
-                            <p>
-                                Scale: 0 to 1
-                            </p>
-                              </td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Sentiment</td>
-                        <td>
-                            <p>
-                                Comparative overview of topic sentiment, by data source (news and social media).
-The daily sentiment score for each data stream is shown for the selected period. 
-                            </p>
-                             <p>
-                                By default, when no topic is filtered, the visualization displays an average score for each data stream, per day.
-                             </p>
-                             <p>Scale: -1 to 1</p>
-                             </td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Synthetic Search Interest Index (SSI)</td>
-                        <td>
-                            <p>
-                                Analysis from Google Trends data, based on the Synthetic Search Interest Indices (SSI) for Food Insecurity and Conflict, for the selected period.
-                            <p>
-                            
-                        </td>
-                    </tr>
-                    
-                </tbody>
-            </table>
             <h2 id="media" class="bold mb-4">Media Monitoring</h2>
             <p>This tab displays the analysis from News Media data, based on the national lists of news sources curated by Media Cloud, per country. The following visualizations are available:</p>
             

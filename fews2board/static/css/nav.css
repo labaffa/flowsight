@@ -1,3 +1,7 @@
+
+body {
+    padding-top: var(--nav-height);
+}
 /* 
     Data Sources section
 */
@@ -130,7 +134,7 @@
 }
 
 #fews-nav{
-    min-height: var(--nav-height);
+    height: var(--nav-height);
     /* overflow: hidden; */
 }
 
@@ -1282,9 +1286,20 @@ li a,  .dropbtn{
     display: block;
   }
   
+
+  :root {
+    --user-guide-sw: 15rem;
+  }
+
   .about-body {
     background-color: var(--phase2-bg-chart);
-    color: white
+    color: white;
+    margin-left: var(--user-guide-sw) ;
+    width: 80%;
+    box-sizing: border-box;
+    padding-left: 4rem;
+    padding-right: 4rem;
+    
   }
     .about-body table {
         color: white;
@@ -1523,5 +1538,156 @@ li a,  .dropbtn{
 .hc-map-legend .highcharts-legend-title text, .hc-map-legend .highcharts-coloraxis-labels text{
     fill: var(--phase2-blue-dark);
 
+}
+
+.user-guide-img {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+    border: 2px solid white;
+    max-width: 80%;
+    height: auto;
+}
+
+
+.user-guide-burger {
+    background-color: var(--phase2-blue-light);
+    width: 2rem;
+    height: 2rem;
+    fill: white;
+    border: 1px solid var(--phase2-blue-super-light);
+}
+
+.user-guide-table {
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    border-collapse: collapse;
+}
+
+.user-guide-table th, .user-guide-table td {
+    
+    padding: 8px;            /* Spazio interno delle celle */
+    text-align: center;    
+}
+
+.user-guide-table td{
+    border: 1px solid white; /* Bordo intorno a tutte le celle */
+}
+.user-guide-table td:last-child {
+    text-align: left;
+}
+
+.user-guide-table th:first-child, .user-guide-table td:first-child {
+    border-left: none; /* Rimuovi il bordo sinistro delle prime celle */
+  }
+  .user-guide-table th:last-child, .user-guide-table td:last-child {
+    border-right: none; /* Rimuovi il bordo destro delle ultime celle */
+  }
+  .user-guide-table tr:first-child th {
+    border-top: none; /* Rimuovi il bordo superiore delle celle nell'intestazione */
+  }
+  .user-guide-table tr:last-child td {
+    border-bottom: none; /* Rimuovi il bordo inferiore dell'ultima riga */
+  }
+
+.ul-dashed {
+    list-style-type: none;
+
+}
+.ul-dashed > li:before {
+    content: "- ";
+    /* text-indent: -5px; */
+  }
+
+
+  .user-guide-filter-icon {
+    background-color: var(--phase2-blue-super-light);
+    width: 2rem;
+    height: 2rem;
+    padding: 2px;
+    border: 1px solid white;
+    border-radius: .2rem;
+}
+
+
+.user-guide-sidebar {
+    
+        width: var(--user-guide-sw);
+    
+        padding: 1.5rem;
+        position: fixed; /* Fissa la sidebar */
+        height: 100%;
+        overflow-y: auto;
+        border-right: 1px solid #ccc;
+}
+
+/* .user-guide-sidebar a {
+    display: block;
+    padding: 8px;
+    margin: 4px 0;
+    text-decoration: none;
+    color: black;
+    border: 1px solid #ddd;
+}
+.user-guide-sidebar a:hover {
+    background-color: #ddd;
+}
+
+
+.user-guide-sidebar .submenu a {
+    padding-left: 50px; 
+} */
+
+.user-guide-sidebar .chapter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    margin: 4px 0;
+    color: white;
+    cursor: pointer;
+   
+}
+.user-guide-sidebar .chapter a {
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    flex-grow: 1;
+}
+.expand-icon {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.2rem;
+    user-select: none;
+    transition: .1s transform ease;
+}
+.expand-icon.open {
+    transform: rotate(90deg); /* Ruota l'icona quando aperta */
+}
+.submenu {
+    display: none; /* Nasconde i sotto capitoli */
+    margin-left: 15px;
+}
+.user-guide-sidebar a {
+    display: block;
+    padding: .2rem .2rem;
+    text-decoration: none;
+    color: white;
+    border: 1px solid transparent;
+    margin: 4px 0;
+    cursor: pointer;
+}
+.user-guide-sidebar a:hover {
+    background-color: var(--phase2-blue-super-light);
+    border-radius: .3rem;
+    color: var(--phase2-blue-light);
+
+    
 }
 

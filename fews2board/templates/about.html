@@ -5,17 +5,71 @@
 {% include "base/head.html" %}
 
 <!-- Body of the webpage -->
+<!-- HEADER -->
 
-<body class="d-flex flex-column">
-
-    <!-- HEADER -->
+<body class="d-flex flex-column" cz-shortcut-listen="true">
     <header>
         {% include "base/navbar.html" %}
     </header>
-
+    
+    
     <div class="flex-fill justify-content-center fews-tab-content">
+        <div class="user-guide-sidebar">
+            <div class="chapter">
+                <span class="expand-icon">›</span>
+                <a class="m-2" href="#introduction">Introduction</a>
+            </div>
+            <div class="submenu">
+                <a class="m-2" href="#about">About the dashboard</a>
+                <a class="m-2" href="#data-source">Data sources</a>
+                <a class="m-2" href="#data-analysis">Data analysis</a>
+                <a class="m-2" href="#navigation">Navigation</a>
+            </div>
+    
+            <!-- Capitolo 2 -->
+            <div class="chapter">
+                <span class="expand-icon">›</span>
+                <a class="m-2" href="#steps">Steps for using the dashboard</a>
+            </div>
+            <div class="submenu">
+                <div class="chapter">
+                    <span class="expand-icon ">›</span>
+                    <a class="m-2" href="#cross-country">Cross-country analysis</a>
+                </div>
+                <div class="submenu">
+                    <a class="m-2" href="#country-tooltips">Country tooltips</a>
+                </div>
+                <div class="chapter">
+                    <span class="expand-icon">›</span>
+                    <a class="m-2" href="#country-level">Country-level analysis</a>
+                </div>
+                <div class="submenu">
+                    <a class="m-2" href="#social">Social Listening</a>
+                    <a class="m-2" href="#media">Media Monitoring</a>
+                    <a class="m-2" href="#search-interest">Search Interest</a>
+
+                </div>
+                <div class="chapter">
+                    <span class="expand-icon">›</span>
+                    <a class="m-2" href="#chart-studio">Chart Studio</a>
+                </div>  
+                <div class="submenu">
+                    <a class="m-2" href="#export">Exporting data</a>
+                </div>
+                   
+            </div>
+    
+            <!-- Capitolo 3 -->
+            <div class="chapter">
+        
+                <a class="m-2" href="#acknowledgements">Acknowledgements</a>
+            </div>
+            
+                
+        </div>
         <div class="container about-body">
-            <div class="mt-4 mb-4">
+            
+            
             <!-- <h1>Getting started</h1>
             <p>Welcome to the user guide for the dashboard FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS, a pioneering interactive tool dedicated to monitoring digital spaces for conversations, news coverage and search engine interest related to FEWS NET’s dimensions of food security early warning.</p>
             <p>This short guide covers the basics of using the tool. To access the dashboard, click here.</p>
@@ -23,102 +77,146 @@
             <p>Scroll through the guide for a full review of the dashboard or use the menu on the right to skip to a specific topic.</p>
         
          -->
-                    <h1 class="fews-text mb-4 text-capitalize bold">User Guide</h1>
+                    <h1 id="introduction" class="fews-text mb-4 text-capitalize bold">User Guide</h1>
                     <p>The objective of this dashboard is to support food security analysts and practitioners to explore and understand how food security shocks and outcomes are represented in different platforms, focusing on digital content disseminated in FEWS NET-covered countries. The dashboard’s insights complement traditional quantitative and qualitative monitoring by enhancing localized knowledge about areas of concern, informing ongoing analysis, enabling the identification of potential early warning signals arising from the data, and supporting early action.</p>
                 
-                    <h2 class="bold mb-4">About the dashboard’s conceptual framework</h2>
-                    <p>Given the growing significance of internet-based information flows, the FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS dashboard applies a conceptual framework that integrates digital platforms to nowcast food security in FEWS NET-covered countries.</p>
+                    <h2 id="about" class="bold mb-4">About the dashboard’s conceptual framework</h2>
+                    <p>Given the growing significance of internet-based information flows, the <strong>FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS</strong> dashboard applies a conceptual framework that integrates digital platforms to nowcast food security in FEWS NET-covered countries.</p>
                     <p>The multi-platform framework for nowcasting food insecurity establishes a multi-modal, multi-media model that leverages various data streams to monitor events from different perspectives. The framework relies on the foundations of Digital Methods, which seeks to explain social phenomena through online dynamics, and specifically on the online issue mapping approach. Online issue mapping comprises digital techniques to detect, analyze and visualize topical affairs. It explores how issues are formed in digital environments.</p>
                     <p>Online spaces offer opportunities for analyzing and visualizing contemporary issue dynamics due to several aspects: issue traces are accessible online; the analytics leverage on the dynamic features and affordances of online media; and digital platforms provide data (for instance, metadata, links, hashtags, mentions, etc.) that can be structured for systematic analysis.</p>
                     <p>The framework and resulting dashboard deploy three analytical processes. First, social listening and, second, media monitoring cover different dimensions of public discourse. While social media provides insights into the interests, concerns, and opinions of the general public, news media enables insights into “traditional” event coverage, with more established actors and framings. Thirdly, as the Google search engine is the most visited website in the world, understanding what people are searching in it can reveal the level of interest or concern in a particular topic. The predictive potential of Google Trends supports social listening and media monitoring for nowcasting.</p>
                 
-                    <h2 class="bold mb-4">Data sources</h2>
+                    <h2 id="data-source" class="bold mb-4">Data sources</h2>
                     <p>For the social listening component, Telegram has been selected. Launched as a messaging app in 2013, Telegram is a currently a digital platform that allows users to create and subscribe to broadcasting channels and create and join discussion groups. It currently has 900 million active users on average, per month. Most importantly, Telegram provides an open API, which enables the extraction of publicly available data from channels and groups. For each country, a list of relevant public groups and channels has been curated for data ingestion and monitoring.</p>
                     <p>Media monitoring is performed through data provided by Media Cloud, an open-source platform for media analysis aimed at academic research. The platform monitors more than 60 thousand online media sources, with stories processed daily. It also contains curated country collections, enabling granularity in local news collection. For each country, all available national collections have been selected for data ingestion and monitoring.</p>
                     <p>Lastly, search engine data is collected though Google Trends, a platform provided by Google that analyzes the popularity of search queries in Google Search across various regions and languages.</p>
                 
-                    <h2 class="bold mb-4">Data analysis</h2>
+                    <h2 id="data-analysis" class="bold mb-4">Data analysis</h2>
                     <p>Each data source requires custom analytical approaches to consider their affordances.</p>
                     <p>A text mining model developed for topic classification of FEWS NET’s food security reporting was refined to monitor and identify the prevalence of food insecurity drivers and outcomes present on news and social media.</p>
                     <p>This model is applied to all textual data, detecting topics related to three overarching themes and 11 sub-themes grounded in FEWS NET’s conceptual dimensions of food security and early warning of food insecurity:</p>
                     <ol>
-                        <li>“Shocks and hazards” describe events that pose a potential threat to life, health, property, physical security, or the environment, and can have a significant impact on food security. These were grouped into the sub-themes: Climate, Conflict, Markets, Diseases, and Governance.</li>
-                        <li>“Food Security Indicators” contains indicators related to three of the four pillars of food security: food availability, food access, and food utilization. The fourth pillar – stability – is represented through the shocks from the first theme and the outcomes in the third theme.</li>
-                        <li>“Food, nutrition, and livelihood security outcomes” comprise sub-themes related to food security status, health, and nutrition indicators, as well as concepts related to livelihood strategies.</li>
+                        <li><strong>“Shocks and hazards”</strong> describe events that pose a potential threat to life, health, property, physical security, or the environment, and can have a significant impact on food security. These were grouped into the sub-themes: Climate, Conflict, Markets, Diseases, and Governance.</li>
+                        <li><strong>“Food Security Indicators”</strong> contains indicators related to three of the four pillars of food security: food availability, food access, and food utilization. The fourth pillar – stability – is represented through the shocks from the first theme and the outcomes in the third theme.</li>
+                        <li><strong>“Food, nutrition, and livelihood security outcomes”</strong> comprise sub-themes related to food security status, health, and nutrition indicators, as well as concepts related to livelihood strategies.</li>
                     </ol>
                     <p>Sentiment analysis is performed using the algorithms Syuzhet (Jockers, 2015) and SentimentR, which identify not only positive and negative associations, but also a broader range of emotions.</p>
                     <p>TF-IDF analysis is performed to identify significant and emerging terminology. Specifically for news media, existing Media Cloud algorithms for entity recognition are used to detect people, organizations, and geographic coverage of news stories.</p>
                     <p>For search interest, the final time series constructed for each country represents a synthetic search interest (SSI) index for food insecurity based on Google Trends data. In the final step of the procedure, weights are applied to allow for cross-country comparison. The first weight considers the worldwide Google Trends interest of each topic while the second one relies on yearly data of internet penetration (WB, 2024) to compensate for the digital divide among countries.</p>
                 
-                    <h2 class="bold mb-4">Navigation</h2>
-                    <p>The dashboard FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS is structured as follows:</p>
+                    <h2 id="navigation" class="bold mb-4">Navigation</h2>
+                    <p>The dashboard <strong>FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS</strong> is structured as follows:</p>
                     <ol>
-                        <li>Home page</li>
-                        <li>Country pages, structured into the following tabs:
-                            <ul>
-                                <li>Social Listening</li>
-                                <li>Media Monitoring</li>
-                                <li>Search Interest</li>
+                        <li><strong>Home page</strong></li>
+                        <li><strong>Country pages</strong>, structured into the following tabs:
+                            <ul >
+                                <li type="a"><strong>Social Listening</strong></li>
+                                <li type="a"><strong>Media Monitoring</strong></li>
+                                <li type="a"><strong>Search Interest</strong></li>
                             </ul>
                         </li>
-                        <li>Chart Studio</li>
+                        <li><strong>Chart Studio</strong></li>
                     </ol>
                 
-                    <h2 class="bold mb-4">Steps for using the dashboard</h2>
-                    <h4 class="bold mb-4">Cross-country analysis on home page</h4>
+                    <h2 id="steps" class="bold mb-4">Steps for using the dashboard</h2>
+
+
+                    <h4 id="cross-country" class="bold mb-4">Cross-country analysis on home page</h4>
+                    <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/home.png') }}" alt="" >
+
                     <p>The user begins exploring the dashboard through the map displayed on the home page.</p>
                     <p>By default, the map displays the aggregated sentiment score for Media Monitoring and Social Listening for the domain “Climate”, for the latest week, per country.</p>
                     <p>To visualize another domain, click on the options in the side menu on the left of the page. Clicking on a domain will change the map results and expand a drop-down panel with FEWS NET’s definition of that particular theme.</p>
-                    <p>To visualize filtering options, click the icon on the top right corner. The following variables are available in the drop-down menu:</p>
-                    <table>
+                    <p>To visualize filtering options, click the 
+                        <svg class="user-guide-burger" xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 619 550 "><path d="M264.5 5.2c14.9-6.9 32.1-6.9 47 0l218.6 101c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 149.8C37.4 145.8 32 137.3 32 128s5.4-17.9 13.9-21.8L264.5 5.2zM476.9 209.6l53.2 24.6c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 277.8C37.4 273.8 32 265.3 32 256s5.4-17.9 13.9-21.8l53.2-24.6 152 70.2c23.4 10.8 50.4 10.8 73.8 0l152-70.2zm-152 198.2l152-70.2 53.2 24.6c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 405.8C37.4 401.8 32 393.3 32 384s5.4-17.9 13.9-21.8l53.2-24.6 152 70.2c23.4 10.8 50.4 10.8 73.8 0z"/></svg>
+                        icon on the top right corner. The following variables are available in the drop-down menu:
+                    </p>
+                    <table class="user-guide-table">
                         <thead>
                             <tr>
-                                <th>Visualization type</th>
-                                <th>Variable</th>
-                                <th>Description</th>
+                                <th style="width: 25%;">Visualization type</th>
+                                <th style="width: 25%;">Variable</th>
+                                <th style="width: 50%;">Description</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td>Map</td>
                                 <td>Sentiment score</td>
-                                <td>Map displays the average sentiment score for the selected domain, for the selected data streams, for the latest week’s data, by country. If filtering for data stream, the map displays the average sentiment score only for countries where the domain was detected in that data stream within the period. Scale: -1 to 1.</td>
+                                <td>
+                                    Map displays the average sentiment score for the selected domain, for the selected data streams, 
+                                    for the latest week’s data, by country. If filtering for data stream, the map displays 
+                                    the average sentiment score only for countries where the domain was detected in that data 
+                                    stream within the period. <br> <br>
+                                
+                                    Scale: -1 to 1
+                                </td>
                             </tr>
                             <tr>
                                 <td>Map</td>
                                 <td>Attention</td>
-                                <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the map displays the aggregated Attention of selected domains, for the selected data streams, for the latest week’s data, by country. The attention metric for each domain is calculated from the aggregated presence of terms associated to particular topics in a data stream, normalized on the value of the total word count and scaled on a range from 0 to 1. Default displays the sum of averages for both data streams for the latest week’s data. If filtering for data stream, the map displays the average attention score only for countries where the domain was detected in that data stream within the period. Scale: 0 to 1.</td>
+                                <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, 
+                                    the map displays the aggregated Attention of selected domains, for the selected data streams, 
+                                    for the latest week’s data, by country. 
+                                    The attention metric for each domain is calculated from the aggregated presence of 
+                                    erms associated to particular topics in a data stream, normalized on the value of the total 
+                                    word count and scaled on a range from 0 to 1. <br>
+                                    
+                                    Default displays the sum of averages for both data streams for the latest week’s data. 
+                                    If filtering for data stream, the map displays the average attention score only for 
+                                    countries where the domain was detected in that data stream within the period. 
+
+                                    <br><br>
+                                    Scale: 0 to 1
+                                
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 
-                    <h4 class="bold mb-4">Country tooltips</h4>
+                    <h4 id="country-tooltips" class="bold mb-4">Country tooltips</h4>
                     <p>When the user hovers over a country, a tooltip will appear with key metrics from the analysis for that country.</p>
                     <p>Below the country name, the average value of the selected variable (Attention or Sentiment) is displayed.</p>
-                    <p>The Trending Topics displays the most prevalent topics in the latest week’s data.</p>
-                    <p>The Last Sentiment displays the sentiment score for the latest week, and the change in score compared to the previous week.</p>
+                    <p>The <u>Trending Topics</u> displays the most prevalent topics in the latest week’s data.</p>
+                    <p>The <u>Last Sentiment</u> displays the sentiment score for the latest week, and the change in score compared to the previous week.</p>
                 
-                    <h4 class="bold mb-4">Country-level analysis on dedicated pages</h4>
+                    <h4 id="country-level" class="bold mb-4">Country-level analysis on dedicated pages</h4>
+
+                    <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/country_page.png') }}" alt="" >
+
+
                     <p>To access the country level analysis, the user must click on the desired country on the landing page map.</p>
                     <p>The country level analysis is divided into three tabs: Social Listening, Media Monitoring, and Search Interest. They are described below.</p>
-                    <p>At the top of the country page, a query filter bar and a period selector are available. Clicking on the field Build a query... will open a window with several filtering options:</p>
-                    <ul>
-                        <li>Field: user can select to filter the analysis by Topic, Sentiment, or Emotion.</li>
-                        <li>Operator: currently, only the operator “IS” has been implemented, which indicates that both field on either side of the operator must be true to produce a result.</li>
-                        <li>Value: user can select desired topics for analysis. Selecting the Domain will auto select all topics within the domain.</li>
+                    <p>At the top of the country page, a query filter bar and a period selector are available. </p>
+                    <p>Clicking on the field <u>Build a query...</u> will open a window with several filtering options:</p>
+
+                    <ul class="ul-dashed">
+                        <li><strong>Field:</strong> user can select to filter the analysis by Topic, Sentiment, or Emotion.</li>
+                        <li><strong>Operator:</strong> currently, only the operator “IS” has been implemented, which indicates that both field on either side of the operator must be true to produce a result.</li>
+                        <li><strong>Value:</strong> user can select desired topics for analysis. Selecting the Domain will auto select all topics within the domain.</li>
                     </ul>
-                    <p>Clicking the icon next to the filters adds another filtering row. Clicking on the trash can icon deletes the respective filter row.</p>
-                    <p>Once the filters have been selected, the user can click Apply to update the visualizations on the selected tab. To clear all filters, click Reset.</p>
+
+                    <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/filter-bar.png') }}" alt="" >
+
+                    <p>
+                        Clicking the 
+                        
+                        <img class="user-guide-filter-icon" src="/static/img/plus-sign.svg"  alt="">
+                        
+                        icon next to the filters adds another filtering row. Clicking on the 
+                        <img class="user-guide-filter-icon" src="/static/img/trash-bin.svg"  alt="">
+                        trash can icon deletes the respective filter row.</p>
+                    <p>Once the filters have been selected, the user can click <u>Apply</u> to update the visualizations on the selected tab. To clear all filters, click <u>Reset</u>.</p>
                     <p>By default, the period selected is the last week of data available. The user can custom select a period of analysis by clicking on the date filter, which will open a calendar.</p>
-            <h2 class="bold mb-4">Social Listening</h2>
+            <h2 id="social" class="bold mb-4">Social Listening</h2>
             <p>This tab displays the analysis from Telegram data, based on the curated lists of public groups and channels per country. The following visualizations are available:</p>
             
-            <table>
+            <table class="user-guide-table">
                 <thead>
                     <tr>
-                        <th>Visualization type</th>
-                        <th>Title</th>
-                        <th>Description</th>
+                        <th style="width: 25%;">Visualization type</th>
+                        <th style="width: 25%;">Title</th>
+                        <th style="width: 50%;">Description</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -154,15 +252,15 @@
                     </tr>
                 </tbody>
             </table>
-            <h2 class="bold mb-4">Media Monitoring</h2>
+            <h2 id="media" class="bold mb-4">Media Monitoring</h2>
             <p>This tab displays the analysis from News Media data, based on the national lists of news sources curated by Media Cloud, per country. The following visualizations are available:</p>
             
-            <table>
+            <table class="user-guide-table">
                 <thead>
                     <tr>
-                        <th>Visualization type</th>
-                        <th>Title</th>
-                        <th>Description</th>
+                        <th style="width: 25%;">Visualization type</th>
+                        <th style="width: 25%;">Title</th>
+                        <th style="width: 50%;">Description</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -193,15 +291,15 @@
                     </tr>
                 </tbody>
             </table>
-            <h2 class="bold mb-4">Search Interest</h2>
+            <h2 id="search-interest" class="bold mb-4">Search Interest</h2>
             <p>This tab displays the analysis from Google Trends data, based on the Synthetic Search Interest Indices (SSI) for Food Insecurity and Conflict, per country. In this tab, only the period selector is available. The following visualizations are presented:</p>
             
-            <table>
+            <table class="user-guide-table">
                 <thead>
                     <tr>
-                        <th>Visualization type</th>
-                        <th>Title</th>
-                        <th>Description</th>
+                        <th style="width: 25%;">Visualization type</th>
+                        <th style="width: 25%;">Title</th>
+                        <th style="width: 50%;">Description</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -227,18 +325,90 @@
                     </tr>
                 </tbody>
             </table>
+        <h2 id="chart-studio" class="bold mb-4">Creating Visualizations with Chart Studio</h2>
+            
+            <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/chart_studio.png') }}" alt="" >
 
-            <h2 class="bold mb-4">Exporting the visualization and data</h2>
-        <p>The visualizations present several options for exporting the image and its background data. On the top right corner of the graph, click the icon. Graphs can be expanded to full screen, or downloaded in PNG, JPEG, PDF and SVG formats. A data table can be downloaded in CSV and XLS formats with the processed data driving the plot.</p>
+            <p>
+                To leverage on all potential combinations of metrics and analytics, users can create
+                their own visualizations by clicking <u>Chart Studio</u> in the top navigation bar.
+            </p>
+            <p>
+                As with the country pages, at the top of the page, the same query filter bar and a
+                period selector are available.
+            </p>
+            <p>Clicking on the field <u>Build a query...</u> will open a window with several filtering options:</p>
 
-        <h2 class="bold mb-4">Acknowledgements</h2>
+                    <ul class="ul-dashed">
+                        <li><strong>Field:</strong> user can select to filter the analysis by Topic, Sentiment, or Emotion.</li>
+                        <li><strong>Operator:</strong> currently, only the operator “IS” has been implemented, which indicates that both field on either side of the operator must be true to produce a result.</li>
+                        <li><strong>Value:</strong> user can select desired topics for analysis. Selecting the Domain will auto select all topics within the domain.</li>
+                    </ul>
+
+
+                    <p>
+                        Clicking the 
+                        
+                        <img class="user-guide-filter-icon" src="/static/img/plus-sign.svg"  alt="">
+                        
+                        icon next to the filters adds another filtering row. Clicking on the 
+                        <img class="user-guide-filter-icon" src="/static/img/trash-bin.svg"  alt="">
+                        trash can icon deletes the respective filter row.
+                    </p>
+                    p>Once the filters have been selected, the user can click <u>Apply</u> to update the visualizations on the selected tab. To clear all filters, click <u>Reset</u>.</p>
+            <p>The user can also custom select a period of analysis by clicking on the date filter,
+                which will open a calendar.
+            </p>
+            <p>
+                Once the query has been built in the filter bar, the following functionalities are
+                available in the Chart Studio:
+            </p>
+            <ul class="ul-dashed">
+                <li><strong>Chart Type:</strong> users must select between a line chart to visualize time trends, or
+                    bar charts to visualize aggregated metrics.</li>
+                <li><strong>Countries:</strong> users must select at least one country. Multi-country selection is
+                    available.</li>
+                <li><strong>Available Fields:</strong> users can select Attention and Sentiment metrics for the data
+                    streams, as well as the topics covered by the Synthetic Search Index (SSI). To
+                    select a variable, click on the “+” icon for each metric.</li>
+                <li><strong>Selected Fields:</strong> displays the variables selected for the visualization. These can
+                    be removed by clicking the trash can icon.</li>
+
+            </ul>
+            <p>
+                After all desired fields are selected, the chart can be generated by clicking the <u>Create</u>
+                button in the center of the page.
+            </p>
+            <p>
+                The social listening and media monitoring content supporting the analysis will appear
+                in the two widgets below the visualization.
+            </p>
+            <p>
+                Lastly, the right column enables customizing some of the features of the visualization:
+                <u>main title and axes titles; background color; and text color.</u>
+            </p>
+        <h2 id="export" class="bold mb-4"></h2>
+            <p>
+                The visualizations present several options for exporting the image and its background data.
+            </p>
+            <p>
+                On the top right corner of the graph, click the icon. 
+            </p>
+                <p>
+                    Graphs can be expanded to full screen, or downloaded in PNG, JPEG, PDF and SVG formats.
+                </p> 
+            <p>
+                A data table can be downloaded in CSV and XLS formats with the processed data driving the plot.
+            </p>
+
+        <h2 id="acknowledgements" class="bold mb-4">Acknowledgements</h2>
         <p>The dashboard <em>FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS</em> and this user guide are outputs of the research project “Supporting Food Insecurity Early Warning Through Digital Media”, funded by USAID and carried out by a team of researchers and consultants led by Bia Carneiro, Research Team Leader, CGIAR FOCUS Climate Security, Alliance of Bioversity International and CIAT.</p>
         <p>We would like to thank the FEWS NET team for their support, namely Kevin Coffey, Kiersten Johnson, Gary Eilerts, Roger Hunwicks and the Data Hub team for the constructive feedback and support throughout the development and execution of this project.</p>
         <p>Many of the initial ideas and concepts have been developed within the CGIAR Initiative on Climate Resilience, ClimBeR, and the CGIAR Initiative on Fragility, Conflict, and Migration. We would like to thank all funders who supported this research through their contributions to the CGIAR Trust Fund: <a href="https://www.cgiar.org/funders/">https://www.cgiar.org/funders/</a></p>
 
     </div>
 
-    </div>
+    
             
 
 </div>
@@ -251,6 +421,39 @@
 <script>
     var countries = JSON.parse('{{countries|tojson}}');
     var fews_countries = JSON.parse('{{fews_countries|tojson}}');
+
+    const offset = 100;
+     // Funzione per gestire il clic sull'icona di espansione
+     document.querySelectorAll('.expand-icon').forEach(icon => {
+            icon.addEventListener('click', function() {
+                const submenu = this.parentElement.nextElementSibling;
+                if (submenu && submenu.classList.contains('submenu')) {
+                    submenu.style.display = submenu.style.display === 'block' ? 'none' : 'block';
+                    this.classList.toggle('open');
+                }
+            });
+        });
+
+        // Funzione per gestire il clic sui link dei capitoli
+        document.querySelectorAll('.user-guide-sidebar a').forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+
+                // const elementPosition = targetElement.getBoundingClientRect().top + window.scrollY;
+                // window.scrollTo({
+                //     top: elementPosition - offset,
+                //     behavior: 'smooth' // Effetto di scorrimento fluido
+                // });
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            });
+        });
+
 </script>
 
 </html>

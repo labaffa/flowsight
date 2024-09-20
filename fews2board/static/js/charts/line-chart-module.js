@@ -278,13 +278,16 @@ export function renderTimeSeries(chartId, data, customOptions) {
 					fontSize: '16px',
 					fontFamily: 'Trebuchet MS, Verdana, sans-serif'
 				 },
+				 x: -40
 			},
 			labels: {
 				style: {
 				   color: opts.textColor,
 				   font: '11px Trebuchet MS, Verdana, sans-serif'
 				},
-				align: 'left'
+				align: 'left',
+				y: 0,
+				x: -40
 			 },
 		},
 		legend: {

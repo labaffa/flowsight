@@ -14,6 +14,17 @@ router = fastapi.APIRouter()
 templates = Jinja2Templates(directory="fews2board/templates")
 
 
+DOMAIN_DESCRIPTIONS = {
+    1: "While food security depends on a complex variety of factors, climate and weather shocks often play a significant role in episodes of acute food insecurity. This domain monitors news coverage and conversations about various types of climatic events.",
+    2: "Conflict is a significant driver of acute food insecurity. This domain monitors different representations of conflict types to capture public perceptions, concerns, and lived experiences described in digital spaces.",
+    3: "Disease outbreaks and epidemics in both humans and animals can impact food security and market functioning. This domain monitors news coverage and conversations about various types of diseases.",
+    4: "Functioning governance structures are essential to respond to potential crises. This domain monitors public perceptions of aid, market and trade policies, as well as corruption.",
+    5: "Markets are a vital source of food and income for people around the world. This domain monitors news coverage and conversations about both macro and micro markets, trade, and price trends.",
+    6: "This domain monitors news coverage and conversations about various agricultural and socio-economic indicators related to three of the four pillars of food security: food availability, food access, and food utilization.",
+    7: "This domain monitors public perceptions about topics related to food security status, health, and nutrition indicators, as well as concepts related to livelihood strategies."
+
+}
+
 def averages(d):
     for k, v in d.items():
         if isinstance(v, dict):
@@ -84,6 +95,7 @@ async def read_landing(
         "topics": topics,
         "map_data": map_data,
         "domains": domains,
+        "domains_descriptions": DOMAIN_DESCRIPTIONS,
         "map_data_dict": map_data_dict,
         "map_input": map_input,
         "avg_input": d,

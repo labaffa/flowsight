@@ -31,7 +31,7 @@
           </button>
         </h2>
         <div domain_id={{domain_id}} id={{collapse_id}} class="accordion-collapse collapse phase2-text-menu-reverse" aria-labelledby={{heading_id}} data-bs-parent="#domainsAcc">
-          <div class="accordion-body">Description of the domain {{domain_id}}: {{domain}}</div>
+          <div class="accordion-body">{{ domains_descriptions[domain_id] }}</div>
         </div>
       </div>
     {% endfor %}

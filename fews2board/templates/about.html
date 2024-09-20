@@ -44,6 +44,7 @@
                     <a class="m-2" href="#country-level">Country-level analysis</a>
                 </div>
                 <div class="submenu">
+                    <a class="m-2" href="#overall">Overall</a>
                     <a class="m-2" href="#social">Social Listening</a>
                     <a class="m-2" href="#media">Media Monitoring</a>
                     <a class="m-2" href="#search-interest">Search Interest</a>
@@ -67,6 +68,7 @@
             
                 
         </div>
+    <div class="content-container">
         <div class="container about-body">
             
             
@@ -110,12 +112,15 @@
                         <li><strong>Home page</strong></li>
                         <li><strong>Country pages</strong>, structured into the following tabs:
                             <ul >
+                                <li type="a"><strong>Overall</strong></li>
                                 <li type="a"><strong>Social Listening</strong></li>
                                 <li type="a"><strong>Media Monitoring</strong></li>
                                 <li type="a"><strong>Search Interest</strong></li>
                             </ul>
                         </li>
                         <li><strong>Chart Studio</strong></li>
+                        <li><strong>User Guide</strong>
+                        </li>
                     </ol>
                 
                     <h2 id="steps" class="bold mb-4">Steps for using the dashboard</h2>
@@ -125,7 +130,11 @@
                     <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/home.png') }}" alt="" >
 
                     <p>The user begins exploring the dashboard through the map displayed on the home page.</p>
-                    <p>By default, the map displays the aggregated sentiment score for Media Monitoring and Social Listening for the domain “Climate”, for the latest week, per country.</p>
+                    <p>
+                        By default, the map displays the aggregated Topic Anomaly score for Media
+                        Monitoring and Social Listening for the domain “Climate”, for the latest week, per
+                        country.
+                    </p>
                     <p>To visualize another domain, click on the options in the side menu on the left of the page. Clicking on a domain will change the map results and expand a drop-down panel with FEWS NET’s definition of that particular theme.</p>
                     <p>To visualize filtering options, click the 
                         <svg class="user-guide-burger" xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 619 550 "><path d="M264.5 5.2c14.9-6.9 32.1-6.9 47 0l218.6 101c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 149.8C37.4 145.8 32 137.3 32 128s5.4-17.9 13.9-21.8L264.5 5.2zM476.9 209.6l53.2 24.6c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 277.8C37.4 273.8 32 265.3 32 256s5.4-17.9 13.9-21.8l53.2-24.6 152 70.2c23.4 10.8 50.4 10.8 73.8 0l152-70.2zm-152 198.2l152-70.2 53.2 24.6c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 405.8C37.4 401.8 32 393.3 32 384s5.4-17.9 13.9-21.8l53.2-24.6 152 70.2c23.4 10.8 50.4 10.8 73.8 0z"/></svg>
@@ -171,6 +180,32 @@
                                 
                                 </td>
                             </tr>
+                            <tr></tr>
+                                <td>Map</td>
+                                <td>Topic Anomalies</td>
+                                <td>
+                                    <p>
+                                        This metric identifies any anomalies in the topic
+                                        prevalence, i.e. topics that are presenting a
+                                        different attention than usual, per country.
+                                        They are presented as the count of anomalous
+                                        topics for the selected domain and data stream
+                                        during the last week. When both data streams
+                                        are selected, the count is an average between
+                                        telegram and Media Cloud.
+                                    </p>
+                                    
+                                    <p>
+                                        For every topic, the average and standard
+                                        deviation of the daily normalized prevalences are
+                                        calculated considering the whole dataset; a topic
+                                        is then tagged as anomalous on a specific date
+                                        when its topic normalized prevalence is larger
+                                        than the average + standard deviation.
+                                    </p>
+                                
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 
@@ -179,14 +214,15 @@
                     <p>Below the country name, the average value of the selected variable (Attention or Sentiment) is displayed.</p>
                     <p>The <u>Trending Topics</u> displays the most prevalent topics in the latest week’s data.</p>
                     <p>The <u>Last Sentiment</u> displays the sentiment score for the latest week, and the change in score compared to the previous week.</p>
-                
+                    <p>The <u>Anomalous Topics</u> displays the topics that presented different attention than usual
+                        in the latest week’s data</p>
                     <h4 id="country-level" class="bold mb-4">Country-level analysis on dedicated pages</h4>
 
                     <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/country_page.png') }}" alt="" >
 
 
                     <p>To access the country level analysis, the user must click on the desired country on the landing page map.</p>
-                    <p>The country level analysis is divided into three tabs: Social Listening, Media Monitoring, and Search Interest. They are described below.</p>
+                    <p>The country level analysis is divided into four tabs: Overall, Social Listening, Media Monitoring, and Search Interest. They are described below.</p>
                     <p>At the top of the country page, a query filter bar and a period selector are available. </p>
                     <p>Clicking on the field <u>Build a query...</u> will open a window with several filtering options:</p>
 
@@ -208,8 +244,140 @@
                         trash can icon deletes the respective filter row.</p>
                     <p>Once the filters have been selected, the user can click <u>Apply</u> to update the visualizations on the selected tab. To clear all filters, click <u>Reset</u>.</p>
                     <p>By default, the period selected is the last week of data available. The user can custom select a period of analysis by clicking on the date filter, which will open a calendar.</p>
-            <h2 id="social" class="bold mb-4">Social Listening</h2>
-            <p>This tab displays the analysis from Telegram data, based on the curated lists of public groups and channels per country. The following visualizations are available:</p>
+            
+                    <h2 id="social" class="bold mb-4">Social Listening</h2>
+                    <p>This tab displays the analysis from Telegram data, based on the curated lists of public groups and channels per country. The following visualizations are available:</p>
+                    
+                    <table class="user-guide-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Visualization type</th>
+                                <th style="width: 25%;">Title</th>
+                                <th style="width: 50%;">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Bar chart</td>
+                                <td>Hot Topics</td>
+                                <td>
+                                    <p>
+                                        Based on the custom taxonomy developed for topics of interest to FEWS NET, 
+                                        the bar chart displays the aggregated Attention for each domain, as represented in 
+                                        public Telegram groups and channels. 
+                                        The attention metric for each domain is calculated from the 
+                                        aggregated presence of terms associated to particular topics, 
+                                        normalized on the value of the total word count and scaled on a range from 0 to 1.
+                                    </p> 
+                                    <p>
+                                        The visualization interacts with the filter bar. 
+                                    </p>
+                                    <p>Scale: 0 to 1</p>
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Table</td>
+                                <td>Talking Points</td>
+                                <td>
+                                    <p>
+                                        This table presents the fluctuation of Attention and Sentiment per Domain. 
+                                    The first figure per metric is the aggregated domain Attention and Sentiment. 
+                                    To their right, the percentage change in relation to the same period prior 
+                                    to the selected timespan is presented. For the Attention metric, figures in 
+                                    green indicate a rise in the variable, whereas figures in red indicate a drop 
+                                    in attention. For Sentiment, green figures indicate sentiment change was positive, 
+                                    whereas red figures indicate the sentiment change was negative.
+                                    </p>
+                                    <p>
+                                        The visualization 
+                                    interacts with the filter bar.
+                                    </p>
+                                    <p>
+                                        Scale: 0 to 1 for the metric values, 0-100% 
+                                        for period fluctuations
+                                    </p>
+                                      </td>
+                            </tr>
+                            <tr>
+                                <td>Word cloud</td>
+                                <td>Significant Terms</td>
+                                <td>
+                                    <p>
+                                        The word cloud displays the 50 words with the highest average TF-IDF scores,
+                                     for the selected period. The "term frequency-inverse document frequency" (TF-IDF) 
+                                     is a common unsupervised text mining metric that identifies how important a word is 
+                                     to a document in a collection or corpus. 
+                                    </p>
+                                     <p>
+                                        In this analysis, the TF-IDF is calculated based on the collection of Telegram posts for each country, by period, in order to identify emerging topics in the conversations.
+                                     </p>
+                                     </td>
+                            </tr>
+                            <tr>
+                                <td>Widget</td>
+                                <td>Conversations</td>
+                                <td>
+                                    <p>The widget presents the posts ingested from Telegram groups and channels that is 
+                                        driving the analysis. The user can “follow the story” and access the original content.</p> 
+                                    
+                                    <p>
+                                        By hovering over each post, a tooltip opens the topic identified in the post and the 
+                                    full text. 
+                                    By clicking the external link icon, the user will be taken to a new tab, which will 
+                                    open the content in Telegram. 
+                                    </p>
+                                    <p>
+                                        The visualization does not interact with the filter bar, but does interact 
+                                        with the period filtering.
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Timeline</td>
+                                <td>Attention</td>
+                                <td>
+                                    <p>
+                                        Based on the custom taxonomy developed for topics of interest to FEWS NET, 
+                                    the default timeline displays the aggregated Attention metric over time for 
+                                    the for each Domain.
+                                    </p>
+                                    <p>
+                                        Attention is based on topic prevalence, calculated from the 
+                                    presence of terms associated to a particular topic in a Telegram post, normalized 
+                                    on the value of the total word count of that post and scaled on a range from 0 to 1
+                                    </p> 
+                                    <p>
+                                        The visualization interacts with the filter bar
+                                    </p>
+                                    <p>
+                                        Scale: 0 to 1
+                                    </p>
+                                     </td>
+                            </tr>
+                            <tr>
+                                <td>Timeline</td>
+                                <td>Emotion trend</td>
+                                <td>
+                                    <p>
+        
+                                        The default timeline displays the overall value over time for the for each 
+                                    emotion: Anger, Anticipation, Disgust, Fear, Joy, Sadness, Surprise, and Trust. 
+                                    </p>
+                                    <p>
+                                        The visualization interacts with the filter bar.
+                                    </p>
+                                    <p>
+                                        Scale: 0 to 1
+                                    </p>    
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+            <h2 id="overall" class="bold mb-4">Overall</h2>
+            <p>
+                This tab displays comparative a summary of the key metrics for the selected country. By default, the period presented is one year. The following visualizations are available:
+            </p>
             
             <table class="user-guide-table">
                 <thead>
@@ -222,34 +390,73 @@
                 <tbody>
                     <tr>
                         <td>Bar chart</td>
-                        <td>Hot Topics</td>
-                        <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the bar chart displays the aggregated Attention for each domain, as represented in public Telegram groups and channels. The attention metric for each domain is calculated from the aggregated presence of terms associated to particular topics, normalized on the value of the total word count and scaled on a range from 0 to 1. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
-                    </tr>
-                    <tr>
-                        <td>Table</td>
-                        <td>Talking Points</td>
-                        <td>This table presents the fluctuation of Attention and Sentiment per Domain. The first figure per metric is the aggregated domain Attention and Sentiment. To their right, the percentage change in relation to the same period prior to the selected timespan is presented. For the Attention metric, figures in green indicate a rise in the variable, whereas figures in red indicate a drop in attention. For Sentiment, green figures indicate sentiment change was positive, whereas red figures indicate the sentiment change was negative. The visualization interacts with the filter bar. Scale: 0 to 1 for the metric values, 0-100% for period fluctuations.</td>
-                    </tr>
-                    <tr>
-                        <td>Word cloud</td>
-                        <td>Significant Terms</td>
-                        <td>The word cloud displays the 50 words with the highest average TF-IDF scores, for the selected period. The "term frequency-inverse document frequency" (TF-IDF) is a common unsupervised text mining metric that identifies how important a word is to a document in a collection or corpus. In this analysis, the TF-IDF is calculated based on the collection of Telegram posts for each country, by period, in order to identify emerging topics in the conversations.</td>
-                    </tr>
-                    <tr>
-                        <td>Widget</td>
-                        <td>Conversations</td>
-                        <td>The widget presents the posts ingested from Telegram groups and channels that is driving the analysis. The user can “follow the story” and access the original content. By hovering over each post, a tooltip opens the topic identified in the post and the full text. By clicking the external link icon, the user will be taken to a new tab, which will open the content in Telegram. The visualization does not interact with the filter bar, but does interact with the period filtering.</td>
+                        <td>Topic Anomalies</td>
+                        <td>
+                            <p>
+                                Comparative overview of topic anomalies, by data source (news and social media). 
+                                The metric identifies any anomalies in topic prevalence, 
+                                i.e. topics that are presenting a different attention than usual.   
+                            </p> 
+                            <p>
+                                They are presented as the count of anomalous topics for each data stream 
+                                for the selected period. By default, when no topic is filtered, 
+                                the visualization displays a sum of topic anomalies for each data stream, per day. 
+                            </p>
+                            <p>
+                                For every topic, the average and standard deviation of the daily 
+                                normalized prevalences are calculated considering the whole dataset; 
+                                a topic is then tagged as anomalous on a specific date when its 
+                                topic normalized prevalence is larger than the average + standard deviation.
+
+                            </p>
+                            
+                        </td>
                     </tr>
                     <tr>
                         <td>Timeline</td>
-                        <td>Attention</td>
-                        <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for the for each Domain. Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a Telegram post, normalized on the value of the total word count of that post and scaled on a range from 0 to 1. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                        <td>Attention Trends</td>
+                        <td>
+                            <p>
+                                Comparative overview of topic attention, by data source (news and social media).
+                                Based on the custom taxonomy developed for 117 topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for each data stream.
+                            </p>
+                            <p>
+                                By default, when no topic is filtered, the visualization displays an average of topic attention for all topics, for each data stream, per day. 
+                            </p>
+                            <p>
+                                Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a Telegram post or news story, normalized on the value of the total word count of that item and scaled on a range from 0 to 1. 
+
+                            </p>
+                            <p>
+                                Scale: 0 to 1
+                            </p>
+                              </td>
                     </tr>
                     <tr>
                         <td>Timeline</td>
-                        <td>Emotion trend</td>
-                        <td>The default timeline displays the overall value over time for the for each emotion: Anger, Anticipation, Disgust, Fear, Joy, Sadness, Surprise, and Trust. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                        <td>Sentiment</td>
+                        <td>
+                            <p>
+                                Comparative overview of topic sentiment, by data source (news and social media).
+The daily sentiment score for each data stream is shown for the selected period. 
+                            </p>
+                             <p>
+                                By default, when no topic is filtered, the visualization displays an average score for each data stream, per day.
+                             </p>
+                             <p>Scale: -1 to 1</p>
+                             </td>
                     </tr>
+                    <tr>
+                        <td>Timeline</td>
+                        <td>Synthetic Search Interest Index (SSI)</td>
+                        <td>
+                            <p>
+                                Analysis from Google Trends data, based on the Synthetic Search Interest Indices (SSI) for Food Insecurity and Conflict, for the selected period.
+                            <p>
+                            
+                        </td>
+                    </tr>
+                    
                 </tbody>
             </table>
             <h2 id="media" class="bold mb-4">Media Monitoring</h2>
@@ -267,27 +474,95 @@
                     <tr>
                         <td>Bar chart</td>
                         <td>Hot Topics</td>
-                        <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the bar chart displays the aggregated Attention for each domain, as represented in the headlines of news stories. The attention metric for each domain is calculated from the aggregated presence of terms associated to particular topics, normalized on the value of the total word count and scaled on a range from 0 to 1. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                        <td>
+                            <p>
+                                Based on the custom taxonomy developed for topics of interest to FEWS NET, the bar chart displays the aggregated Attention for each domain, as represented in the headlines of news stories. The attention metric for each domain is calculated from the aggregated presence of terms associated to particular topics, normalized on the value of the total word count and scaled on a range from 0 to 1
+                            </p> 
+                            <p>
+                                The visualization interacts with the filter bar. 
+                            </p>
+                            <p>Scale: 0 to 1</p>
+                            
+                        </td>
                     </tr>
                     <tr>
                         <td>Table</td>
                         <td>Talking Points</td>
-                        <td>This table presents the fluctuation of Attention and Sentiment per Domain. The first figure per metric is the aggregated domain Attention and Sentiment. To their right, the percentage change in relation to the same period prior to the selected timespan is presented. For the Attention metric, figures in green indicate a rise in the variable, whereas figures in red indicate a drop in attention. For Sentiment, green figures indicate sentiment change was positive, whereas red figures indicate the sentiment change was negative. The visualization interacts with the filter bar. Scale: 0 to 1 for the metric values, 0-100% for period fluctuations.</td>
+                        <td>
+                            <p>
+                                This table presents the fluctuation of Attention and Sentiment per Domain. 
+                                The first figure per metric is the aggregated domain Attention and Sentiment. 
+                                To their right, the percentage change in relation to the same period prior to the selected timespan 
+                                is presented. For the Attention metric, figures in green indicate a rise in the variable, whereas 
+                                figures in red indicate a drop in attention. For Sentiment, green figures indicate sentiment 
+                                change was positive, whereas red figures indicate the sentiment change was negative.
+                            </p>
+                            <p>
+                                The visualization 
+                            interacts with the filter bar.
+                            </p>
+                            <p>
+                                Scale: 0 to 1 for the metric values, 0-100% 
+                                for period fluctuations
+                            </p>
+                              </td>
                     </tr>
                     <tr>
                         <td>Widget</td>
                         <td>News Stories</td>
-                        <td>The widget presents the metadata for the news stories driving the analysis. The user can “follow the story” and access the original content. By hovering over each news item, a tooltip displays the topic identified in the post and the full headline. By clicking the headline, the user will be taken to a new tab, which will open the content in its original source. The visualization does not interact with the filter bar, but does interact with the period filtering.</td>
+                        <td>
+                            <p>
+                                The widget presents the metadata for the news stories driving the analysis. 
+                                The user can “follow the story” and access the original content.
+                            <p>
+                                By hovering over each news item, a tooltip displays the topic identified in the post and the full headline.
+                                 By clicking the headline,
+                                 the user will be taken to a new tab, which will open the content in its original source.
+                            </p>
+                            <p>
+                                The visualization does not interact with the filter bar, but does interact 
+                                with the period filtering.
+                            </p>
+                        </td>
+                        
                     </tr>
                     <tr>
                         <td>Timeline</td>
                         <td>Attention</td>
-                        <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for the for each Domain. Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a news item’s headline, normalized on the value of the total word count of that headline and scaled on a range from 0 to 1. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                        <td>
+                            <p>
+                                Based on the custom taxonomy developed for topics of interest to FEWS NET, 
+                            the default timeline displays the aggregated Attention metric over time for 
+                            the for each Domain.
+                            </p>
+                            <p>
+                                Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a news item’s headline, normalized 
+                                on the value of the total word count of that headline and scaled on a range from 0 to 1. 
+                            </p> 
+                            <p>
+                                The visualization interacts with the filter bar
+                            </p>
+                            <p>
+                                Scale: 0 to 1
+                            </p>
+                             </td>
                     </tr>
                     <tr>
                         <td>Timeline</td>
                         <td>Emotion trend</td>
-                        <td>The default timeline displays the overall value over time for the for each emotion: Anger, Anticipation, Disgust, Fear, Joy, Sadness, Surprise, and Trust. The visualization interacts with the filter bar. Scale: 0 to 1.</td>
+                        <td>
+                            <p>
+
+                                The default timeline displays the overall value over time for the for each 
+                            emotion: Anger, Anticipation, Disgust, Fear, Joy, Sadness, Surprise, and Trust. 
+                            </p>
+                            <p>
+                                The visualization interacts with the filter bar.
+                            </p>
+                            <p>
+                                Scale: 0 to 1
+                            </p>    
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -306,22 +581,39 @@
                     <tr>
                         <td>Timeline</td>
                         <td>Food Insecurity SSI</td>
-                        <td>The default timeline displays the Synthetic Search Interest Index for Food Insecurity for the last year. Scale: 0 to 100.</td>
+                        <td>
+                            The default timeline displays the Synthetic Search Interest Index for Food 
+                            Insecurity for the last year. 
+                            <br><br>
+                            Scale: 0 to 100.</td>
                     </tr>
                     <tr>
                         <td>Timeline</td>
                         <td>Food Insecurity SSI by topic</td>
-                        <td>This visualization displays the time trend for each topic that comprises the Synthetic Search Interest Index for Food Insecurity for the last year. Scale: 0 to 100.</td>
+                        <td>
+                            This visualization displays the time trend for each topic that comprises 
+                            the Synthetic Search Interest Index for Food Insecurity for the last year. 
+                            <br><br>
+                            Scale: 0 to 100.</td>
                     </tr>
                     <tr>
                         <td>Timeline</td>
                         <td>Conflict SSI</td>
-                        <td>The default timeline displays the Synthetic Search Interest Index for Conflict for the last year. Scale: 0 to 100.</td>
+                        <td>
+                            The default timeline displays the Synthetic Search Interest Index for Conflict 
+                            for the last year. 
+                            <br><br>
+                            Scale: 0 to 100.</td>
                     </tr>
                     <tr>
                         <td>Timeline</td>
                         <td>Conflict SSI by topic</td>
-                        <td>This visualization displays the time trend for each topic that comprises the Synthetic Search Interest Index for Conflict for the last year. Scale: 0 to 100.</td>
+                        <td>
+                            This visualization displays the time trend for each topic that comprises the 
+                            Synthetic Search Interest Index for Conflict for the last year. 
+                            
+                            <br><br>
+                            Scale: 0 to 100.</td>
                     </tr>
                 </tbody>
             </table>
@@ -368,7 +660,7 @@
                     bar charts to visualize aggregated metrics.</li>
                 <li><strong>Countries:</strong> users must select at least one country. Multi-country selection is
                     available.</li>
-                <li><strong>Available Fields:</strong> users can select Attention and Sentiment metrics for the data
+                <li><strong>Available Fields:</strong> users can select Attention, Sentiment and Topic Anomalies metrics for the data
                     streams, as well as the topics covered by the Synthetic Search Index (SSI). To
                     select a variable, click on the “+” icon for each metric.</li>
                 <li><strong>Selected Fields:</strong> displays the variables selected for the visualization. These can
@@ -408,7 +700,7 @@
 
     </div>
 
-    
+    </div>
             
 
 </div>

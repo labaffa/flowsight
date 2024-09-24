@@ -168,7 +168,7 @@ async def layers_data_for_given_time_period(pool, start_date, end_date):
             tti.domain_id as domain_id 
             , tti.country_id as country_id 
             , lower(cou.alpha_2) as alpha_2
-            , avg(tti.topic_norm_prevalence) as value  
+            , sum(tti.topic_norm_prevalence)/{day_difference} as value  
             , ARRAY[]::text[] as topic_names 
             , 'attention' as analysis
             , 'tg' as data_stream
@@ -183,7 +183,7 @@ async def layers_data_for_given_time_period(pool, start_date, end_date):
             tti.domain_id as domain_id 
             , tti.country_id as country_id 
             , lower(cou.alpha_2) as alpha_2
-            , avg(tti.topic_norm_prevalence) as value  
+            , sum(tti.topic_norm_prevalence)/{day_difference} as value  
             , ARRAY[]::text[] as topic_names 
             , 'attention' as analysis
             , 'mc' as data_stream
@@ -264,6 +264,46 @@ async def layers_data_for_given_time_period(pool, start_date, end_date):
     return result
 
 
+async def top_topics_in_period(pool, start_date, end_date, top_n=3, stream: str="tg"):
+    if stream == "tg":
+        agg_model = models.TopicIdDayAggTg
+    elif stream == "mc":
+        agg_model = models.MCTopicIdDayAgg
+    else:
+        raise ValueError(f'Stream {stream} not allowed')
+    
+    q = (
+        f'''
+        WITH ranked_topics AS (
+            SELECT
+                am.country_id
+                , am.topic_id
+                , AVG(am.topic_norm_prevalence) AS avg_prevalence
+                , ROW_NUMBER() OVER (PARTITION BY am.country_id ORDER BY AVG(am.topic_norm_prevalence) DESC) AS rank
+            FROM {tablename(agg_model)} am
+            WHERE date_id BETWEEN {start_date} and {end_date} 
+            GROUP BY am.country_id, am.topic_id
+        )
+
+        SELECT
+            country_id
+            , lower(c.alpha_2) as alpha_2
+            , topic_id
+            , avg_prevalence as np
+            , '{stream}' as stream
+        FROM ranked_topics r
+        join {tablename(models.Country)} c on r.country_id = c.country_code
+        WHERE rank <= {top_n};
+
+    '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
+
 async def top_topics_on_latest(pool, top_n=3, stream: str="tg"):
     """ this query gets results from the most recent date present in 
     topic aggregated table, but we should get them from tg_message or not
@@ -305,7 +345,8 @@ async def top_topics_on_latest(pool, top_n=3, stream: str="tg"):
         , '{stream}' as stream
     FROM row_numbers WHERE row_num <={top_n};
 
-    ''')
+    '''
+    )
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -339,6 +380,55 @@ async def latest_sentiment_score(pool):
             group by country_id, date_id
         ;
   
+        '''
+    )
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            result = await cur.fetchall()
+    return result
+
+
+
+async def latest_sentiment_with_delta_for_period(pool, start_date, end_date, stream):
+    date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
+    date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
+    day_difference = (date2 - date1).days + 1
+    prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
+    prev_end_date = start_date
+
+    if stream == "tg":
+        agg_model = models.TgSentimentDayDomainAgg
+    elif stream == "mc":
+        agg_model = models.MCSentimentDayDomainAgg
+    else:
+        raise ValueError(f'Stream {stream} not allowed')
+    q = (
+        f'''
+        with prev_r as (
+            SELECT 
+                tti.domain_id as domain_id 
+                , tti.country_id as country_id 
+                , lower(cou.alpha_2) as alpha_2
+                , cou.name as country
+                , avg(tti.sentiment) as sentiment  
+            from {tablename(agg_model)} tti
+            join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+            WHERE tti.date_id BETWEEN {prev_start_date} AND {prev_end_date}
+            group by tti.country_id , tti.domain_id , cou.alpha_2, cou.name
+        )
+            SELECT 
+                tti.domain_id
+                , tti.country_id as country_id 
+                , p.alpha_2 as alpha_2
+                , p.country as country
+                , avg(tti.sentiment) as sentiment 
+                , avg(tti.sentiment) - avg(p.sentiment) as delta
+                , '{stream}' as stream
+            from {tablename(agg_model)} tti
+            join prev_r p on p.country_id = tti.country_id and p.domain_id = tti.domain_id
+            WHERE tti.date_id BETWEEN {start_date} AND {end_date}
+            group by tti.country_id , tti.domain_id, p.alpha_2, p.country
         '''
     )
     async with pool.connection() as conn:
@@ -779,10 +869,12 @@ async def domain_prevalences_in_period_for_country(
         topic_model = models.TgTopicIdPositive
         sentiment_model = models.TgSentiment
         record_col_name = "message_unique_id"
+        daily_count_model = models.TgDailyCounts
     elif stream == "mc":
         topic_model = models.MCTopicIdPositive
         sentiment_model = models.MCSentiment
         record_col_name = "story_id"
+        daily_count_model = models.MCDailyCounts
     else:
         raise ValueError(f'Stream {stream} not allowed')
     q = (
@@ -795,7 +887,7 @@ async def domain_prevalences_in_period_for_country(
         from {tablename(topic_model)} ttip
         join {tablename(sentiment_model)} ts on ttip.{record_col_name} = ts.{record_col_name}
             and (ttip.country_id = ts.country_id)
-        join {tablename(models.TgDailyCounts)} tdc on 
+        join {tablename(daily_count_model)} tdc on 
             tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
         join {tablename(models.Date)} d on ttip.date_id = d.id
         join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
@@ -1413,10 +1505,12 @@ async def time_series_from_filtered_messages(
         topic_table = models.TgTopicIdPositive
         sentiment_table = models.TgSentiment
         record_col_name = "message_unique_id"
+        daily_counts_table = models.TgDailyCounts
     elif stream == "mc":
         topic_table = models.MCTopicIdPositive
         sentiment_table = models.MCSentiment
         record_col_name = "story_id"
+        daily_counts_table = models.MCDailyCounts
     else:
         raise ValueError(f'Stream {stream} not allowed')
     q = (
@@ -1429,7 +1523,7 @@ async def time_series_from_filtered_messages(
             from {tablename(topic_table)} ttip
             join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
                 and (ttip.country_id = ts.country_id)
-            join {tablename(models.TgDailyCounts)} tdc on 
+            join {tablename(daily_counts_table)} tdc on 
                 tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
             join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
             where 
@@ -2281,10 +2375,12 @@ async def time_series_emotions(
         topic_table = models.TgTopicIdPositive
         sentiment_table = models.TgSentiment
         record_col_name = "message_unique_id"
+        daily_counts_table = models.TgDailyCounts
     elif stream == "mc":
         topic_table = models.MCTopicIdPositive
         sentiment_table = models.MCSentiment
         record_col_name = "story_id"
+        daily_counts_table = models.MCDailyCounts
     else:
         raise ValueError(f'Stream {stream} not allowed')
     value_clause = (
@@ -2315,7 +2411,7 @@ async def time_series_emotions(
             from {tablename(topic_table)} ttip
             join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
                 and ttip.country_id = ts.country_id
-            join {tablename(models.TgDailyCounts)} tdc on 
+            join {tablename(daily_counts_table)} tdc on 
                 tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
             join {tablename(models.Date)} d on ttip.date_id = d.id
             join {tablename(models.Country)} c on c.country_code = {country_id}

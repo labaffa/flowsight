@@ -102,6 +102,7 @@ async def read_landing(
         "countries": request.app.countries,
         "fews_countries": config.FEWS_COUNTRIES,
         "date_range": [min_datetime.strftime("%Y-%m-%d"), max_datetime.strftime("%Y-%m-%d")],
+        "date_range_int": [start_date, end_date]
     }
     
     return templates.TemplateResponse(

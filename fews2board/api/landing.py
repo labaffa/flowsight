@@ -101,14 +101,19 @@ async def get_latest_sentiment_by_country(
 
 @router.get('/tooltip_stats')
 async def get_stats_for_map_tooltip(
-    request: fastapi.Request
+    request: fastapi.Request, 
+    start_date: int, end_date: int
 ):
     nested_dict = lambda: defaultdict(nested_dict)
     sql_coros = [
-        utils.top_topics_on_latest(request.app.async_pool, stream="tg"), 
-        utils.latest_sentiment_with_delta(request.app.async_pool, stream="tg"),
-        utils.top_topics_on_latest(request.app.async_pool, stream="mc"), 
-        utils.latest_sentiment_with_delta(request.app.async_pool, stream="mc")
+        # utils.top_topics_on_latest(request.app.async_pool, stream="tg"), 
+        utils.top_topics_in_period(request.app.async_pool, start_date, end_date, stream="tg"),
+        # utils.latest_sentiment_with_delta(request.app.async_pool, stream="tg"),
+        utils.latest_sentiment_with_delta_for_period(request.app.async_pool, start_date, end_date, "tg"), 
+        # utils.top_topics_on_latest(request.app.async_pool, stream="mc"), 
+        utils.top_topics_in_period(request.app.async_pool, start_date, end_date, stream="mc"),
+        # utils.latest_sentiment_with_delta(request.app.async_pool, stream="mc")
+        utils.latest_sentiment_with_delta_for_period(request.app.async_pool, start_date, end_date, "mc")
     ]
     sql_responses = await gather(*sql_coros)
     top_topics = sql_responses[0] + sql_responses[2]
@@ -121,8 +126,7 @@ async def get_stats_for_map_tooltip(
         else:
             out[t["alpha_2"].strip().lower()][t["stream"]]["top_topics"].append(t)
     for s in sentiment:
-        out[s["alpha_2"].strip().lower()][s["stream"]]["sentiment"] = s
-    
+        out[s["alpha_2"].strip().lower()][s["stream"]]["sentiment"][s["domain_id"]] = s
     return out
 
 

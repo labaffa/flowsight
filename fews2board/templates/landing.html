@@ -89,8 +89,17 @@
     var mapDataObj = JSON.parse('{{map_data_dict|tojson}}');
     var mapInput = JSON.parse('{{avg_input|tojson}}');
     var dateRange = JSON.parse('{{date_range|tojson}}');
+    var dateRangeInt = JSON.parse('{{date_range_int|tojson}}');
     var mapTooltipData;
-    fetch('/tooltip_stats')
+    let queryParams = $.param(
+        {
+            start_date: dateRangeInt[0],
+            end_date: dateRangeInt[1]
+        },
+        true
+    );
+    let url = '/tooltip_stats?' + queryParams;
+    fetch(url)
         .then(res =>  res.json())
         .then(data => {mapTooltipData = data;})
     var LayersMap = {

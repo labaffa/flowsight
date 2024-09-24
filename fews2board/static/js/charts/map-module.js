@@ -55,7 +55,7 @@ function tooltipCallBack(){
 		tgTopTopics = [];
 	}
 	try {
-		tgLatestSentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment'];
+		tgLatestSentiment = window.mapTooltipData[this.point['hc-key']]['tg']['sentiment'][window.selectedDomain];
 		if (!tgLatestSentiment){
 			tgLatestSentiment = {};
 		}
@@ -71,7 +71,7 @@ function tooltipCallBack(){
 		mcTopTopics = [];
 	}
 	try {
-		mcLatestSentiment = window.mapTooltipData[this.point['hc-key']]['mc']['sentiment'];
+		mcLatestSentiment = window.mapTooltipData[this.point['hc-key']]['mc']['sentiment'][window.selectedDomain];
 		if (!mcLatestSentiment){
 			mcLatestSentiment = {};
 		}
@@ -84,7 +84,7 @@ function tooltipCallBack(){
 		toptopics = tgTopTopics;
 		latest_sentiment = tgLatestSentiment;
     } else if (window.streamKey == 'mc') {
-		label = 'Media;'
+		label = 'Media'
 		toptopics = mcTopTopics;
 		latest_sentiment = mcLatestSentiment;
     } else if (window.streamKey == 'all') {
@@ -121,7 +121,7 @@ function tooltipCallBack(){
 	</div>
 
 	<div class="row mt-3" style="margin: 0">
-		<p class="h6 border-bottom" style="padding: 0">Last Sentiment</p>
+		<p class="h6 border-bottom" style="padding: 0">Latest Sentiment</p>
 	</div>
 	<div class="row">
 		<div class="col">

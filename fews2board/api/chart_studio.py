@@ -56,7 +56,22 @@ async def get_studio_time_series(
             )
     sql_responses = await gather(*sql_coros)
     data = [x for r in sql_responses for x in r]
+    if not data:
+        return []
     by_field = defaultdict(dict)
+    start_date_dt = dt.datetime.strptime(str(start_date), '%Y%m%d').date()
+    end_date_dt = dt.datetime.strptime(str(end_date), '%Y%m%d').date()
+    if '- emotion -' in data[0]["field"].lower():
+        cou, _, suffix = data[0]["field"].split("-")
+        emotion = next(iter(data[0]["value"].items()))
+        a_field = cou.strip() + f' - {emotion} - ' + suffix.strip()
+    else:
+        a_field = data[0]["field"]
+    current_date = start_date_dt
+    while current_date <= end_date_dt:
+        by_field[current_date][a_field] = None
+        current_date += dt.timedelta(days=1)
+
     fields_set = set()
     response = []
     for d in data:

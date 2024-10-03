@@ -145,8 +145,21 @@ async def get_tg_domains_for_country_in_period(
         country_id, 
         start_date, end_date
     )
+    if not data:
+        return []
     domains = request.app.domains
     by_domain = defaultdict(dict)
+    # init one line to ensure all dates are displayed
+    start_date_dt = dt.datetime.strptime(str(start_date), '%Y%m%d').date()
+    end_date_dt = dt.datetime.strptime(str(end_date), '%Y%m%d').date()
+    a_domain = data[0]["domain"]
+
+    current_date = start_date_dt
+    while current_date <= end_date_dt:
+        by_domain[current_date][a_domain] = None
+        current_date += dt.timedelta(days=1)
+
+
     response = []
     for d in data:
         by_domain[d["date"]][d["domain"]] = d["value"]
@@ -205,12 +218,25 @@ async def get_ssi_series(
     data = await utils.ssi_w_series(
         request.app.async_pool, country_id, start_date, end_date, domain_id
     )
+    if not data:
+        return []
+    # init by_field  (TODO: make it faster, too slow)
     by_field = defaultdict(dict)
     fields_set = set()
+    
+    start_date_dt = dt.datetime.strptime(str(start_date), '%Y%m%d').date()
+    end_date_dt = dt.datetime.strptime(str(end_date), '%Y%m%d').date()
+    a_domain = data[0]["domain"]  # get first domain available
+    current_date = start_date_dt
+    while current_date <= end_date_dt:
+        by_field[current_date][a_domain] = 0
+        current_date += dt.timedelta(days=1)
+        
     response = []
     for d in data:
         by_field[d["date"]][d["domain"]] = d["ssi_w"]
         fields_set.add(d["domain"])
+
     for day in by_field:
         day_data = {"date": day}
         for field in fields_set:
@@ -257,16 +283,25 @@ async def get_attention_trends_on_conditions(
     conditions = json.loads(conditions) if conditions else None
     # response = await utils.get_filtered_message_ids(
     #     request.app.async_pool, conditions, start_date, end_date, country_id)
+    start_date_dt = dt.datetime.strptime(str(start_date), '%Y%m%d').date()
+    end_date_dt = dt.datetime.strptime(str(end_date), '%Y%m%d').date()
     response = []
     topic_clause = utils.generate_filter_clauses(conditions)[0]
     if topic_clause:
         data = await utils.time_series_from_filtered_messages(
             request.app.async_pool, conditions, country_id, start_date, end_date, stream
         )
+        if not data:
+            return []
         by_topic = defaultdict(dict)
+        a_topic = data[0]["topic"]
+        current_date = start_date_dt
+        while current_date <= end_date_dt:
+            by_topic[current_date][a_topic] = None
+            current_date += dt.timedelta(days=1)
         topics_set = set()
         for d in data:
-            by_topic[parse(str(d["date_id"])).strftime('%Y-%m-%d')][d["topic"]] = d["value"]
+            by_topic[parse(str(d["date_id"]))][d["topic"]] = d["value"]
             topics_set.add(d["topic"])
         for day in by_topic:
             day_data = {"date": day}
@@ -277,9 +312,15 @@ async def get_attention_trends_on_conditions(
         data = await utils.domain_prevalences_in_period_for_country(
             request.app.async_pool, country_id, start_date, end_date, stream, conditions
         )
+        if not data:
+            return []
         domains = request.app.domains
         by_domain = defaultdict(dict)
-        response = []
+        a_domain = data[0]["domain"]
+        current_date = start_date_dt
+        while current_date <= end_date_dt:
+            by_domain[current_date][a_domain] = None
+            current_date += dt.timedelta(days=1)
         for d in data:
             by_domain[d["date"]][d["domain"]] = d["value"]
         for day in by_domain:
@@ -412,7 +453,6 @@ async def get_talking_points_on_conditions(
             }
 
             response.append(o)
-    print(response)
     response = [x for x in response if x["latest_value"]]
     return response
 
@@ -496,9 +536,23 @@ async def get_studio_time_series(
     conditions = json.loads(conditions) if conditions else None
     sql_data = await utils.time_series_emotions(
         request.app.async_pool, conditions, country_id, start_date, end_date, stream)
+    if not sql_data:
+        return []
     by_field = defaultdict(dict)
-    fields_set = set()
     response = []
+
+    # init one line to ensure all dates are displayed
+    start_date_dt = dt.datetime.strptime(str(start_date), '%Y%m%d').date()
+    end_date_dt = dt.datetime.strptime(str(end_date), '%Y%m%d').date()
+    try:
+        a_field = next(iter(sql_data[0]["value"].items()))[0].title()
+    except Exception:
+        return response
+    current_date = start_date_dt
+    while current_date <= end_date_dt:
+        by_field[current_date][a_field] = None
+        current_date += dt.timedelta(days=1)
+    fields_set = set()
     for d in sql_data:
         cou, _, stream = d["field"].split("-")
         for emotion, value in d["value"].items():
@@ -537,9 +591,24 @@ async def get_overall_trend(
             request.app.async_pool, conditions, country_id, start_date, end_date, field, aggr=True
         ))
     sql_responses = await gather(*sql_coros)
+    
+    fields_set = set(("Media", "Social"))
     data = [x for r in sql_responses for x in r]
+    if not data:
+        return []
     by_field = defaultdict(dict)
-    fields_set = set()
+
+    # init one line to ensure all dates are displayed
+    start_date_dt = dt.datetime.strptime(str(start_date), '%Y%m%d').date()
+    end_date_dt = dt.datetime.strptime(str(end_date), '%Y%m%d').date()
+    f, s = data[0]["field"], data[0]["stream"]  # get first (field, stream) available
+    current_date = start_date_dt
+    while current_date <= end_date_dt:
+        by_field[current_date] = {
+            f: {"value": 0, "stream": s}
+        }
+        current_date += dt.timedelta(days=1)
+
     response = []
     for d in data:
         by_field[d["date"]][d["field"]] = {"value": d["value"], "stream": d["stream"]}
@@ -582,6 +651,8 @@ async def get_overall_trend(
         ))
     sql_responses = await gather(*sql_coros)
     data = [x for r in sql_responses for x in r]
+    if not data:
+        return []
     by_field = defaultdict(list)
     response = []
     for d in data:

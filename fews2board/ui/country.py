@@ -56,7 +56,8 @@ async def read_country(
         "topics": topics, 
         "domains": domains,
         "countries": request.app.countries,
-        "fews_countries": config.FEWS_COUNTRIES
+        "fews_countries": config.FEWS_COUNTRIES,
+        "version": config.VERSION
         }
     return templates.TemplateResponse(
         "country.html", data

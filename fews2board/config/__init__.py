@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+VERSION = "11"
+
 this_path = os.path.abspath(getsourcefile(lambda:0))
 this_folder = os.path.dirname(this_path)
 repo_folder = os.path.dirname(os.path.dirname(this_folder))
@@ -41,7 +43,9 @@ FEWS_COUNTRIES_FROM_ETL = {
     "et": {"telecatch_collection": "ethiopia", "mediacloud_collection": 34412034},
     "gh": {"telecatch_collection": "ghana", "mediacloud_collection": 34412202},
     "gt": {"telecatch_collection": "guatemala", "mediacloud_collection": 34412063},
+    "gn": {"telecatch_collection": "guinea", "mediacloud_collection": 34412263},
     "ht": {"telecatch_collection": "haiti", "mediacloud_collection": 34412303},
+    "hn": {"telecatch_collection": "honduras", "mediacloud_collection": 34412466},
     "ci": {"telecatch_collection": "ivory coast", "mediacloud_collection": 34412173},
     "ke": {"telecatch_collection": "kenya", "mediacloud_collection": 34412126},
     "lb": {"telecatch_collection": "lebanon", "mediacloud_collection": 34412343},
@@ -52,15 +56,21 @@ FEWS_COUNTRIES_FROM_ETL = {
     "mr": {"telecatch_collection": "mauritania", "mediacloud_collection": 34412134},
     "mz": {"telecatch_collection": "mozambique", "mediacloud_collection": 34412248},
     "ni": {"telecatch_collection": "nicaragua", "mediacloud_collection": 34412113},
+    "ne": {"telecatch_collection": "niger", "mediacloud_collection": 34412253},
     "ng": {"telecatch_collection": "nigeria", "mediacloud_collection": 38376341},
+    "pg": {"telecatch_collection": "papua new guinea", "mediacloud_collection": 34412399},
     "rw": {"telecatch_collection": "rwanda", "mediacloud_collection": 34412053},
     "sn": {"telecatch_collection": "senegal", "mediacloud_collection": 38380807},
+    "sl": {"telecatch_collection": "sierra leone", "mediacloud_collection": 34412308},
     "so": {"telecatch_collection": "somalia", "mediacloud_collection": 34412155},
+    "ss": {"telecatch_collection": "south sudan", "mediacloud_collection": 34412439},
     "sd": {"telecatch_collection": "sudan", "mediacloud_collection": 34412379},
     "tj": {"telecatch_collection": "tajikistan", "mediacloud_collection": 34412129},
     "tz": {"telecatch_collection": "tanzania", "mediacloud_collection": 34412085},
     "tg": {"telecatch_collection": "togo", "mediacloud_collection": 34412192},
+    "ug": {"telecatch_collection": "uganda", "mediacloud_collection": 34412251},
     "ve": {"telecatch_collection": "venezuela", "mediacloud_collection": 34412387},
+    "ye": {"telecatch_collection": "yemen", "mediacloud_collection": 34412100},
     "zm": {"telecatch_collection": "zambia", "mediacloud_collection": 34412396},
     "zw": {"telecatch_collection": "zimbabwe", "mediacloud_collection": 34412406}
 }

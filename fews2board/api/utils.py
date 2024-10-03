@@ -926,13 +926,19 @@ async def get_domains(pool):
     return result
 
 
-async def date_ranges_overall(pool):
+async def date_ranges_overall(pool, streams: Iterable[str]):
+    if not streams:
+        raise ValueError("Insert at least one stream into the 'streams' iterable")
+    streams_str = ", ".join([f"'{x}'" for x in streams])
+    stream_clause = f"({streams_str})"
     q = (
         f'''
         select
             min(min_date_id) as min_date
             , max(max_date_id) as max_date
-        from {tablename(models.DateRanges)};
+        from {tablename(models.DateRanges)} dr
+        where dr.stream in {stream_clause}
+        ;
         '''
     )
     async with pool.connection() as conn:

@@ -19,7 +19,7 @@ async def render_chart_studio(
     
     topics = await utils.get_framework(request.app.async_pool)
     domains = {t["domain_id"]: t["domain"] for t in topics}
-    date_ranges = await utils.date_ranges_overall(request.app.async_pool)
+    date_ranges = await utils.date_ranges_overall(request.app.async_pool, streams=['mc', 'tg', 'si'])
     date_ranges = date_ranges[0] if date_ranges else {}
     data = {
         "request": request, 
@@ -27,7 +27,8 @@ async def render_chart_studio(
         "topics": topics,
         "domains": domains,
         "countries": request.app.countries,
-        "fews_countries": config.FEWS_COUNTRIES
+        "fews_countries": config.FEWS_COUNTRIES,
+        "version": config.VERSION
         }
     return templates.TemplateResponse(
         "chart_studio.html", data
@@ -41,7 +42,8 @@ async def read_country(request: fastapi.Request):
         {
             "request": request,
             "countries": request.app.countries,
-            "fews_countries": config.FEWS_COUNTRIES
+            "fews_countries": config.FEWS_COUNTRIES,
+            "version": config.VERSION
         }
 
     )

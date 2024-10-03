@@ -42,7 +42,7 @@ async def read_landing(
 ):  
     nested_dicts = lambda: defaultdict(nested_dicts)
     map_input = nested_dicts()
-    global_date_range = await utils.date_ranges_overall(request.app.async_pool)
+    global_date_range = await utils.date_ranges_overall(request.app.async_pool, streams=['tg', 'mc'])
     max_date_id = global_date_range[0]["max_date"]
     max_datetime = dt.datetime.strptime(str(max_date_id), '%Y%m%d')
     min_datetime = max_datetime - dt.timedelta(days=7)
@@ -90,6 +90,7 @@ async def read_landing(
                 
     d = copy.deepcopy(map_input)
     averages(d)
+    
     data = {
         "request": request,
         "topics": topics,
@@ -102,7 +103,8 @@ async def read_landing(
         "countries": request.app.countries,
         "fews_countries": config.FEWS_COUNTRIES,
         "date_range": [min_datetime.strftime("%Y-%m-%d"), max_datetime.strftime("%Y-%m-%d")],
-        "date_range_int": [start_date, end_date]
+        "date_range_int": [start_date, end_date],
+        "version": config.VERSION
     }
     
     return templates.TemplateResponse(

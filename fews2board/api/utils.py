@@ -7,6 +7,7 @@ import datetime as dt
 from collections import defaultdict
 from dateutil.parser import parse
 import json
+from typing import Iterable
 
 
 SQL_GEN_MAPPING = {
@@ -265,6 +266,9 @@ async def layers_data_for_given_time_period(pool, start_date, end_date):
 
 
 async def top_topics_in_period(pool, start_date, end_date, top_n=3, stream: str="tg"):
+    date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
+    date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
+    day_difference = (date2 - date1).days + 1
     if stream == "tg":
         agg_model = models.TopicIdDayAggTg
     elif stream == "mc":
@@ -278,7 +282,7 @@ async def top_topics_in_period(pool, start_date, end_date, top_n=3, stream: str=
             SELECT
                 am.country_id
                 , am.topic_id
-                , AVG(am.topic_norm_prevalence) AS avg_prevalence
+                , sum(am.topic_norm_prevalence)/{day_difference} AS avg_prevalence
                 , ROW_NUMBER() OVER (PARTITION BY am.country_id ORDER BY AVG(am.topic_norm_prevalence) DESC) AS rank
             FROM {tablename(agg_model)} am
             WHERE date_id BETWEEN {start_date} and {end_date} 
@@ -289,10 +293,12 @@ async def top_topics_in_period(pool, start_date, end_date, top_n=3, stream: str=
             country_id
             , lower(c.alpha_2) as alpha_2
             , topic_id
+            , t.topic as topic_name
             , avg_prevalence as np
             , '{stream}' as stream
         FROM ranked_topics r
         join {tablename(models.Country)} c on r.country_id = c.country_code
+        join {tablename(models.Topic)} t on t.id = r.topic_id
         WHERE rank <= {top_n};
 
     '''
@@ -1129,7 +1135,7 @@ async def tg_messages_no_duplicates(
             join {tablename(model)} ms on ttip.message_unique_id = ms.unique_id 
                 and (ms.country_id = ttip.country_id)
             join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
-            join {tablename(models.TgChannel)} tc on ms.username = tc.url
+            join {tablename(models.TgChannel)} tc on ms.channel_id = tc.channel_id
             where 
                 ttip.date_id  BETWEEN {start_date} and {end_date}
                 {topic_clause}

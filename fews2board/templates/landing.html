@@ -83,6 +83,10 @@
     var countries = JSON.parse('{{countries|tojson}}');
     var fews_countries = JSON.parse('{{fews_countries|tojson}}');
     var topics = JSON.parse('{{topics|tojson}}');
+    var topicsById = {};
+    var topicsByName = {};
+    topics.forEach((t) => {topicsById[t.topic_id] = t.topic})
+    topics.forEach((t) => {topicsByName[t.topic] = t.topic_id})
     var mapData = JSON.parse('{{map_data|tojson}}');
     var domainsObj = JSON.parse('{{domains|tojson}}');
     var domainsDescriptions = JSON.parse('{{domains_descriptions|tojson}}');

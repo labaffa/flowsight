@@ -88,9 +88,10 @@ function tooltipCallBack(){
 		toptopics = mcTopTopics;
 		latest_sentiment = mcLatestSentiment;
     } else if (window.streamKey == 'all') {
+
 		label = 'Media+Social';
-		toptopics =  tgTopTopics.concat(mcTopTopics);
-		toptopics = toptopics.sort((a, b) => a.np - b.np).slice(0, 3)
+		let toptopics_conc =  tgTopTopics.concat(mcTopTopics);
+		toptopics = toptopics_conc.sort((a, b) => b.np - a.np).slice(0, 3)
 		latest_sentiment = [tgLatestSentiment, mcLatestSentiment].filter(isNotEmpty);
 		if (latest_sentiment.length > 0){
 			latest_sentiment = latest_sentiment.sort((a, b) => b.date_id - a.date_id)[0];
@@ -110,10 +111,11 @@ function tooltipCallBack(){
 	<div class="row">
 		<div class="col">`
         for (let i=0; i < toptopics.length; i++){
-			let tid = toptopics[i].topic_id;
-			if (window.topics[tid]){
-            	html += `<span class="badge rounded-pill badge-theme-${i}">${window.topics[tid].topic}</span>`
-			}
+			// let tid = toptopics[i].topic_id;
+			// if (window.topicsById[tid]){
+            // 	html += `<span class="badge rounded-pill badge-theme-${i}">${window.topicsById[tid]}</span>`
+			// }
+			html += `<span class="badge rounded-pill badge-theme-${i}">${toptopics[i].topic_name}</span>`
 			}
     html += 
     `
@@ -139,14 +141,18 @@ function tooltipCallBack(){
 	</div>
 	<div class="row">
 		<div class="col">`
-		let anTopics = window.mapInput[window.selectedDomain]['anomaly'][window.streamKey][this.point['hc-key']]['topic_names'];
-		console.log(anTopics)
-        for (let i=0; i < anTopics.length; i++){
-			let tid = anTopics[i];
+		try {
+			let anTopics = window.mapInput[window.selectedDomain]['anomaly'][window.streamKey][this.point['hc-key']]['topic_names'];
 			
-			html += `<span class="badge rounded-pill badge-theme-${i}">${tid}</span>`
+			for (let i=0; i < anTopics.length; i++){
+				let tid = anTopics[i];
+				
+				html += `<span class="badge rounded-pill badge-theme-${i}">${tid}</span>`
 			
 			}
+		} catch {
+			// console.log("Problems with anomalous topics")
+		}
 	html += `
 			</div>
 		</div>
@@ -222,6 +228,7 @@ export async function renderMap(chartId, data, customOptions, topology) {
 			useHTML: true,
 			formatter: tooltipCallBack
 		},
+		
 		plotOptions: {
 			series: {
 				events: {
@@ -229,9 +236,11 @@ export async function renderMap(chartId, data, customOptions, topology) {
 						let url = '/country/' + e.point["hc-key"];
 						window.open(url, "_self")
 					},
+					
 				}
 			}
-		}
+		},
+		
 		
 
 	};

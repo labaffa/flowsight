@@ -198,21 +198,29 @@ function prepareMapInput(
 
 async function updateMap() {
     let mapInp = {};
-    if (window.selectedStreams.length > 0){
-        window.streamKey = window.selectedStreams.length > 1 ? "all": window.selectedStreams[0]
-        let countries = window.mapInput[window.selectedDomain][
-            window.selectedLayer][window.streamKey]
-        mapInp =  Object.keys(countries).map(key => {
-            return {'hc-key': key, 'value': countries[key]['value'], 'topic_names': countries[key]['topic_names']};
-        });
+    try {
+        if (window.selectedStreams.length > 0){
+            window.streamKey = window.selectedStreams.length > 1 ? "all": window.selectedStreams[0]
+            let countries = window.mapInput[window.selectedDomain][
+                window.selectedLayer][window.streamKey]
+            mapInp =  Object.keys(countries).map(key => {
+                return {'hc-key': key, 'value': countries[key]['value'], 'topic_names': countries[key]['topic_names']};
+            });
+            await $("#sentiment-map").highcharts().series[0].update({
+                data: mapInp
+            });
+            $("#sentiment-map").highcharts().legend.update({title: {text: `${LayersMap[window.selectedLayer].text} from ${window.dateRange[0]} to ${window.dateRange[1]}`}})
+        } else {
+            window.streamKey = "";
+            mapInp = {};
+            await $("#sentiment-map").highcharts().series[0].setData([]);
+        }
+    } catch {
+        mapInp = createMapInput();
         await $("#sentiment-map").highcharts().series[0].update({
             data: mapInp
         });
         $("#sentiment-map").highcharts().legend.update({title: {text: `${LayersMap[window.selectedLayer].text} from ${window.dateRange[0]} to ${window.dateRange[1]}`}})
-    } else {
-        window.streamKey = "";
-        mapInp = {};
-        await $("#sentiment-map").highcharts().series[0].setData([]);
     }
     
 };
@@ -310,11 +318,17 @@ $('#domainsAcc').on('shown.bs.collapse', async function (event) {
 
     // event.target is the collapsed element
     let domainId = $(event.target).attr('domain_id');
+    console.log(window.selectedDomain, parseInt(domainId))
+    let hasDomainChanged = window.selectedDomain != parseInt(domainId);
+    
     window.selectedDomain = parseInt(domainId);
     $('.accordion-button').removeClass('clicked');
     // Aggiungi l'attributo 'clicked' solo al bottone che è stato cliccato
     $(event.target).closest('.accordion-item').find('.accordion-button').addClass('clicked');
-    await updateMap();
+    if (hasDomainChanged){
+
+        updateMap();
+    }
 });
 $('.stream').on('change', async function(event){
     let activeStreams = $(".stream:checked").map(function() {
@@ -379,6 +393,47 @@ function deleteCookie(name) {
       'max-age': -1
     })
   }
+
+let defaultValue = {
+    'hc-key': '',      // Assegna l'hc-key durante l'iterazione
+    'value': undefined,        // Valore di default
+    'topic_names': []  // Puoi cambiare il default secondo necessità
+};
+
+// Funzione per creare l'oggetto con valore di default
+const createDefaultEntry = (hcKey) => ({
+    'hc-key': hcKey,
+    'value': defaultValue['value'],
+    'topic_names': defaultValue['topic_names']
+});
+
+function createMapInput() {
+    let countries, mapInp;
+    // let mapInp = prepareMapInput()
+    try {
+        // Proviamo a prendere i dati da `window.mapInput`
+        countries = window.mapInput[window.selectedDomain][window.selectedLayer][window.streamKey];
+        
+        // Mappa con i valori dai dati effettivi o assegna il valore di default
+        mapInp = window.fews_countries.map(key => {
+            if (countries.hasOwnProperty(key)) {
+                // Se esiste la chiave in `countries`, la mappiamo
+                return {'hc-key': key, 'value': countries[key]['value'], 'topic_names': countries[key]['topic_names']};
+            } else {
+                // Se non esiste, ritorniamo l'oggetto con valori di default
+                return createDefaultEntry(key);
+            }
+        });
+    
+    } catch (error) {
+        // Se si verifica un errore, assegniamo il valore di default a tutte le chiavi di `fews_countries`
+        console.error("Error while assigning values to Fews Countries due to (probably consequences of missing data for the given time period): ", error);
+
+        
+        mapInp = window.fews_countries.map(key => createDefaultEntry(key));
+    }
+    return mapInp;
+} 
 $(document).ready(async function(){
     // const modalShown = getCookie('ph2-home-modal-main-shown');
     const modalShown = sessionStorage.getItem('ph2-home-modal-main-shown');    
@@ -400,12 +455,14 @@ $(document).ready(async function(){
     $('#ham-filter .filter-icon').on('click', function (){
         $('#ham-filter .filter-body').toggle();
     })
-    // let mapInp = prepareMapInput()
-    let countries = window.mapInput[window.selectedDomain][
-        window.selectedLayer][window.streamKey]
-    let mapInp =  Object.keys(countries).map(key => {
-        return {'hc-key': key, 'value': countries[key]['value'], 'topic_names': countries[key]['topic_names']};
-    });
+    let mapInp = createMapInput();
+    
+        // let countries = window.mapInput[window.selectedDomain][
+        //     window.selectedLayer][window.streamKey]
+        // let mapInp =  Object.keys(countries).map(key => {
+        //     return {'hc-key': key, 'value': countries[key]['value'], 'topic_names': countries[key]['topic_names']};
+        // });
+    
     showAccordionItem($(`[domain_id=${selectedDomain}]`).first().attr('id'));
      renderMap(
         'sentiment-map', mapInp, 

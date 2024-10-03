@@ -1,5 +1,5 @@
-import { renderMap } from "./charts/map-module.js";
-import { showInfoPopup, hideInfoPopup } from "./utils.js";
+import { renderMap } from "map-module";
+import { showInfoPopup, hideInfoPopup } from "utils";
 
 const layerDescriptions = {
     "attention": `

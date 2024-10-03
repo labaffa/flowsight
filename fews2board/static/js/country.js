@@ -1,11 +1,10 @@
-import { renderBarChartFromUrl } from "./charts/bar-chart-module.js";
-import { renderTimeSeriesFromUrl, renderTimeSeries, processChartData, processOverallChartData } from "./charts/line-chart-module.js";
-import { renderHTMLTableFromUrl } from "./charts/html-table.js";
-import { renderHTMLTable } from "./charts/html-table.js";
-import { filterStructure } from "./menu-module.js";
-import { renderWordCloud } from "./charts/wordcloud-module.js";
-import { renderOverallTimeSeriesFromUrl } from "./charts/line-chart-module.js";
-import { showInfoPopup, hideInfoPopup } from "./utils.js";
+import { renderBarChartFromUrl } from "bar-chart";
+import { renderTimeSeriesFromUrl, renderTimeSeries, processChartData, processOverallChartData } from "line-chart";
+import { renderHTMLTableFromUrl, renderHTMLTable } from "./charts/html-table.js";
+import { filterStructure } from "menu";
+import { renderWordCloud } from "wordcloud";
+import { renderOverallTimeSeriesFromUrl } from "line-chart";
+import { showInfoPopup, hideInfoPopup } from "utils";
 
 
 Highcharts.AST.allowedAttributes.push('viewBox');  // https://www.highcharts.com/forum/viewtopic.php?t=50646
@@ -100,7 +99,7 @@ function deleteAllBoostrapTooltips(){
     }
 }
 
-window.dateRanges["si"] = [20111227, 20231231];  // check why I hardcoded this daterange
+// window.dateRanges["si"] = [20111227, 20231231];  // check why I hardcoded this daterange
 
 try {
     window.tgStartDate = parseInt(moment(window.dateRanges.tg[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
@@ -898,9 +897,9 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
         {titleText: ''}
     );
 
-    MCPersons('mc-persons');
-    MCLocations('mc-locations');
-    MCOrgs('mc-orgs');
+    // MCPersons('mc-persons');
+    // MCLocations('mc-locations');
+    // MCOrgs('mc-orgs');
     MCStoryWidget();
 });
 $('#si-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
@@ -1472,9 +1471,9 @@ $(document).ready(async function (){
         DomainRanking('mc-domains-bar-chart', 'mc', '');
         AttentionTrends('mc-attention-trends', 'mc', '/attention_trends', 'attention', '');
         TalkingPoints('mc-talking-points', 'mc');
-        MCLocations('mc-locations');
-        MCPersons('mc-persons');
-        MCOrgs('mc-orgs');
+        // MCLocations('mc-locations');
+        // MCPersons('mc-persons');
+        // MCOrgs('mc-orgs');
         SSITimeline('si-food-insecurity', 3, {titleText: ''});
         SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: ''});
         SSITimeline('si-conflict-total', 5, {titleText: ''});
@@ -1488,9 +1487,9 @@ $(document).ready(async function (){
      function renderNonChartCards(){
         TalkingPoints('tg-talking-points', 'tg');
         TalkingPoints('tg-talking-points', 'tg');
-        MCLocations('mc-locations');
-        MCPersons('mc-persons');
-        MCOrgs('mc-orgs');
+        // MCLocations('mc-locations');
+        // MCPersons('mc-persons');
+        // MCOrgs('mc-orgs');
         TgMessageWidget();
         MCStoryWidget();
 

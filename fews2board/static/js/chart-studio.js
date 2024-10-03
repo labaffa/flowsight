@@ -1,8 +1,8 @@
-import { filterStructure, studioFilterStructure } from "./menu-module.js";
-import { renderBarChart, renderBarChartFromUrl } from "./charts/bar-chart-module.js";
-import { processChartData, renderTimeSeries, renderTimeSeriesFromUrl } from "./charts/line-chart-module.js";
-import { renderWordCloud } from "./charts/wordcloud-module.js";
-import { showInfoPopup, hideInfoPopup } from "./utils.js";
+import { filterStructure, studioFilterStructure } from "menu";
+import { renderBarChart, renderBarChartFromUrl } from "bar-chart";
+import { processChartData, renderTimeSeries, renderTimeSeriesFromUrl } from "line-chart";
+import { renderWordCloud } from "wordcloud";
+import { showInfoPopup, hideInfoPopup } from "utils";
 
 
 Highcharts.setOptions({

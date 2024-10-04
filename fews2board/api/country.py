@@ -301,7 +301,7 @@ async def get_attention_trends_on_conditions(
             current_date += dt.timedelta(days=1)
         topics_set = set()
         for d in data:
-            by_topic[parse(str(d["date_id"]))][d["topic"]] = d["value"]
+            by_topic[parse(str(d["date_id"])).date()][d["topic"]] = d["value"]
             topics_set.add(d["topic"])
         for day in by_topic:
             day_data = {"date": day}

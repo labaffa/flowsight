@@ -62,8 +62,6 @@ const infoCallBack = function() {
 }
 
 
-
-
 export function renderWordCloud(chartId, data, mappingKeys, customOptions) {
     const defaultOptions = {
 		chartHeightRatio: 7 / 16,
@@ -81,7 +79,7 @@ export function renderWordCloud(chartId, data, mappingKeys, customOptions) {
 		xAxisTitleEnabled: false,
 		yAxisTitleEnabled: false,
 		yAxisTitleText: 'Value',
-        infoTooltipText: 'This is a chart tooltip for wordcloud data.'
+        infoTooltipText: 'This is a chart tooltip for wordcloud data.',
 
 	};
     // Merge custom options with default options

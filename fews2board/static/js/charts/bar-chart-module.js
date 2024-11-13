@@ -181,7 +181,9 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 		xAxisTitleText: undefined,
 		backgroundColor: '#4A5975',
 		textColor: '#ffffff', 
-		infoTooltipText: 'This is a chart tooltip for bar chart data.'
+		infoTooltipText: 'This is a chart tooltip for bar chart data.',
+		tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y:.3f}',
+
 	};
 
 	// Merge custom options with default options
@@ -293,6 +295,10 @@ export function renderBarChart(chartId, data, mappingKeys, customOptions) {
 			name: opts.seriesName || 'Data',
 			data: seriesData
 		}],
+		tooltip: {
+			pointFormat: opts.tooltipPointFormat,
+			
+		},
 		responsive: {
 			rules: [{
 				condition: {

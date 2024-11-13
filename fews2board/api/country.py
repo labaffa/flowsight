@@ -654,6 +654,19 @@ async def get_overall_trend(
     if not data:
         return []
     by_field = defaultdict(list)
+
+
+    # init one line to ensure all dates are displayed
+    start_date_dt = dt.datetime.strptime(str(start_date), '%Y%m%d').date()
+    end_date_dt = dt.datetime.strptime(str(end_date), '%Y%m%d').date()
+    # f, s = data[0]["field"], data[0]["stream"]  # get first (field, stream) available
+    # current_date = start_date_dt
+    # while current_date <= end_date_dt:
+    #     by_field[current_date] = {
+    #         f: {"value": 0, "stream": s}
+    #     }
+    #     current_date += dt.timedelta(days=1)
+    
     response = []
     for d in data:
         record = {"date": int(dt.datetime.strptime(str(d["date"]), "%Y-%m-%d").replace(tzinfo=dt.timezone.utc).timestamp() * 1000), "value": d["value"]}
@@ -661,5 +674,15 @@ async def get_overall_trend(
             record["topic_names"] = d['topic_names'] if d['topic_names'] else []
         by_field[d["field"]].append(record)
     for series_name, series_data in by_field.items():
+        
+        series_data = sorted(series_data, key=lambda x: x["date"])
+        first_date = dt.datetime.fromtimestamp(series_data[0]["date"]/1000, tz=dt.timezone.utc).date()
+        last_date = dt.datetime.fromtimestamp(series_data[-1]["date"]/1000, tz=dt.timezone.utc).date()
+        # last_date =  l.strftime("%Y-%m-%d")
+        if first_date > start_date_dt:
+            series_data.insert(0, {"date": int(dt.datetime.combine(start_date_dt, dt.time(0, 0), tzinfo=dt.timezone.utc).timestamp() * 1000), "value": 0})
+        if last_date < end_date_dt:
+            series_data.append({"date": int(dt.datetime.combine(end_date_dt, dt.time(0, 0), tzinfo=dt.timezone.utc).timestamp() * 1000), "value": 0})
+         
         response.append({"name": series_name, "data": series_data})
     return response

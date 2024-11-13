@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-VERSION = "11"
+VERSION = "12"
 
 this_path = os.path.abspath(getsourcefile(lambda:0))
 this_folder = os.path.dirname(this_path)

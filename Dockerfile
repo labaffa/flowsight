@@ -1,5 +1,4 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.10
-
+FROM python:3.10
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -8,9 +7,10 @@ RUN apt-get update && apt-get install -y \
     python3-dev 
 
 COPY ./requirements.txt /app/requirements.txt
+WORKDIR /app
 
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
-COPY . /app
-WORKDIR /app
-ENV APP_MODULE=fews2board.app:app
+ADD . /app
+
+CMD ["uvicorn", "fews2board.app:app", "--host",  "0.0.0.0", "--port", "8000", "--workers", "1"]

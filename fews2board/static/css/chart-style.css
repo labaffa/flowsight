@@ -191,3 +191,18 @@ path.ssi-column:nth-child(2) {
 .widget-title, .mc-card, .card-separator, .tg-card {
 	color: white;
 }
+
+
+.social-color {
+	fill: #A6BFE2;
+	stroke: #A6BFE2;
+}
+
+.media-color{
+	fill: #AED581;
+	stroke: #AED581;
+}
+.hc-point-inherit .highcharts-point {
+	fill: inherit !important;
+	stroke: inherit !important;
+  }

@@ -9,6 +9,9 @@ import { showInfoPopup, hideInfoPopup } from "utils";
 
 Highcharts.AST.allowedAttributes.push('viewBox');  // https://www.highcharts.com/forum/viewtopic.php?t=50646
 
+const defaultStartDateInt = 19700101;
+const defaultEndDateInt = 19700101;
+
 
 const htmlTitleInfo = function(title, iconId){
     return `
@@ -98,73 +101,99 @@ function deleteAllBoostrapTooltips(){
     tooltipList = [];
     }
 }
-
 // window.dateRanges["si"] = [20111227, 20231231];  // check why I hardcoded this daterange
-
+if (!window.dateRanges || !window.dateRanges.hasOwnProperty('tg')) {
+    window.dateRanges = window.dateRanges || {}; 
+    window.dateRanges.tg = [null, null];
+}
+if (!window.dateRanges|| !window.dateRanges.hasOwnProperty('mc')) {
+    window.dateRanges = window.dateRanges || {}; 
+    window.dateRanges.mc = [null, null];
+}
+if (!window.dateRanges || !window.dateRanges.hasOwnProperty('si')) {
+    window.dateRanges = window.dateRanges || {}; 
+    window.dateRanges.si = [null, null];
+}
 try {
     window.tgStartDate = parseInt(moment(window.dateRanges.tg[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
     window.tgEndDate = window.dateRanges.tg[1];
 } catch {
-    window.tgStartDate = 19000101;
-    window.tgEndDate = 20000101;
+    window.tgStartDate = defaultStartDateInt;
+    window.tgEndDate = defaultEndDateInt;
 
 }
 try {
     window.mcStartDate = parseInt(moment(window.dateRanges.mc[1].toString()).subtract(7, 'days').format('YYYYMMDD'));
     window.mcEndDate = window.dateRanges.mc[1];
 } catch {
-    window.mcStartDate = 19000101;
-    window.mcEndDate = 20000101;
+    window.mcStartDate = defaultStartDateInt;
+    window.mcEndDate = defaultEndDateInt;
+}
+try {
+    window.siStartDate = parseInt(moment(window.dateRanges.si[1].toString()).subtract(365, 'days').format('YYYYMMDD'));
+    window.siEndDate = window.dateRanges.si[1];
+} catch {
+    window.siStartDate = defaultStartDateInt;
+    window.siEndDate = defaultEndDateInt;
 }
 try {
     window.mcCalendarMin = moment(window.dateRanges.mc[0].toString());
     window.mcCalendarMax = moment(window.dateRanges.mc[1].toString());
 } catch {
-    window.mcCalendarMin = moment('19000101');
-    window.mcCalendarMax = moment('20000101')
+    window.mcCalendarMin = moment(defaultStartDateInt.toString());
+    window.mcCalendarMax = moment(defaultEndDateInt.toString())
 }
 try {
     window.tgCalendarMin = moment(window.dateRanges.tg[0].toString());
     window.tgCalendarMax = moment(window.dateRanges.tg[1].toString());
 } catch {
-    window.tgCalendarMin = moment('19000101');
-    window.tgCalendarMax = moment('20000101')
+    window.tgCalendarMin = moment(defaultStartDateInt.toString());
+    window.tgCalendarMax = moment(defaultEndDateInt.toString())
 }
 try {
     window.siCalendarMin = moment(window.dateRanges.si[0].toString());
     window.siCalendarMax = moment(window.dateRanges.si[1].toString());
 } catch {
-    window.siCalendarMin = moment('19000101');
-    window.siCalendarMax = moment('20000101')
+    window.siCalendarMin = moment(defaultStartDateInt.toString());
+    window.siCalendarMax = moment(defaultEndDateInt.toString())
 }
 try {
     let minRange, maxRange, dateMins, dateMaxs;
     dateMins = [window.dateRanges.mc[0], window.dateRanges.tg[0], window.dateRanges.si[0]];
     dateMaxs = [window.dateRanges.mc[1], window.dateRanges.tg[1], window.dateRanges.si[1]];
-    let dateMin = Math.min(...dateMins);
-    let dateMax = Math.max(...dateMaxs);
-    window.dateRanges['oa'] = [dateMin, dateMax]
-    window.oaCalendarMin = moment(window.dateRanges.oa[0].toString());
-    window.oaCalendarMax = moment(window.dateRanges.oa[1].toString());
+    dateMins = dateMins.filter(element => element !== null);
+    dateMaxs = dateMaxs.filter(element => element !== null);
+    if (dateMins.length > 0 & dateMaxs.length >0) {
+        let dateMin = Math.min(...dateMins);
+        let dateMax = Math.max(...dateMaxs);
+        window.dateRanges['oa'] = [dateMin, dateMax]
+        window.oaCalendarMin = moment(window.dateRanges.oa[0].toString());
+        window.oaCalendarMax = moment(window.dateRanges.oa[1].toString());
+    } else {
+        window.dateRanges['oa'] = [defaultStartDateInt, defaultEndDateInt];
+        window.oaCalendarMin = moment(defaultStartDateInt.toString());
+        window.oaCalendarMax = moment(defaultEndDateInt.toString());
+    }
+    
 } catch {
-    window.dateRanges['oa'] = [19000101, 20000101];
-    window.oaCalendarMin = moment('19000101');
-    window.oaCalendarMax = moment('20000101')
+    window.dateRanges['oa'] = [defaultStartDateInt, defaultEndDateInt];
+
+    window.oaCalendarMin = moment(defaultStartDateInt.toString());
+    window.oaCalendarMax = moment(defaultEndDateInt.toString());
 }
 try {
     window.oaStartDate = parseInt(moment(window.dateRanges.oa[1].toString()).subtract(365, 'days').format('YYYYMMDD'));
     window.oaEndDate = window.dateRanges.oa[1];
 } catch {
-    window.oaStartDate = 19000101;
-    window.oaEndDate = 20000101;
+    window.oaStartDate = defaultStartDateInt;
+    window.oaEndDate = defaultEndDateInt;
 }
 // hardcoding because mediacloud entities are less recent than metadata, so default is not empty
 // window.mcStartDate = 20240101
 // window.mcEndDate = 20240108
 
 
-window.siStartDate = parseInt(moment(window.dateRanges.si[1].toString()).subtract(365, 'days').format('YYYYMMDD'));
-window.siEndDate = window.dateRanges.si[1];
+
 
 window.conditionCounter = {
     "tg": 0, "mc": 0, "si": 0, "oa": 0
@@ -743,8 +772,8 @@ function initPicker(pickerId, stream) {
         start = window.oaCalendarMin;
         end = window.oaCalendarMax;
     }
-    startDate = moment(window.startDates[stream][0].toString());
-    endDate = moment(window.startDates[stream][1].toString());
+    startDate = window.startDates[stream][0] ? moment(window.startDates[stream][0].toString()) : null;
+    endDate = window.startDates[stream][1] ? moment(window.startDates[stream][1].toString()) : null;
 
     function cb(start, end) {
         $(`#${pickerId} span`).html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
@@ -758,7 +787,9 @@ function initPicker(pickerId, stream) {
         showDropdowns: true,
         autoApply: true
     }, cb);
-    cb(startDate, endDate);
+    if (startDate){
+        cb(startDate, endDate);
+    }
 };
 
 

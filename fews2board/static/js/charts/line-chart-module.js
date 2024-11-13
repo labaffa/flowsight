@@ -187,7 +187,7 @@ export function renderTimeSeries(chartId, data, customOptions) {
 		backgroundColor: '#4A5975',
 		textColor: '#ffffff',
 		turboThreshold: 10000,
-		tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}',
+		tooltipPointFormat: '<span style="color:{point.color}">●</span> {series.name}: <b>{point.y:.3f}',
 		infoTooltipText: 'This is a chart tooltip for time series data.',
 		marginLeft: 150
 	};
@@ -195,7 +195,15 @@ export function renderTimeSeries(chartId, data, customOptions) {
 	const opts = { ...defaultOptions, ...customOptions };
 
 	let seriesData = data;
-
+	seriesData.forEach(serie => {
+		if (serie.name.toLowerCase() === "social") {
+			serie.className = "social-color";
+		} else if (serie.name.toLowerCase() === "media") {
+			serie.className = "media-color";
+		}
+	});
+	
+	
 	const chartOptions = {
 		nonHCOptions: {
 			infoTooltipText: opts.infoTooltipText
@@ -380,16 +388,16 @@ export function processOverallChartData(data, dateKey, customKeys=[]) {
 		});
 		seriesData.push(series);
 	}
-	seriesData.sort((a, b) => {
+	return seriesData.sort((a, b) => {
 		if (a.name < b.name) {
-			return 1;
+			return -1;
 		}
 		if (a.name > b.name) {
-			return -1;
+			return 1;
 		}
 		return 0;
 	});
-	return seriesData;
+	
 };
 
 
@@ -415,7 +423,15 @@ export function processChartData(data, dateKey, customKeys=[]) {
 		series.data = series.data.sort(function(a, b) { return a.x - b.x; });
 		seriesData.push(series);
 	}
-	return seriesData;
+	return seriesData.sort((a, b) => {
+		if (a.name < b.name) {
+			return -1;
+		}
+		if (a.name > b.name) {
+			return 1;
+		}
+		return 0;
+	});
 };
 
 export async function renderTimeSeriesFromUrl(

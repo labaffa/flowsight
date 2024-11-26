@@ -27,18 +27,11 @@ async def read_country(
         sql_coros = [
             utils.get_framework(request.app.async_pool),
             utils.date_ranges_for_country(request.app.async_pool, country_id),
-            utils.latest_updates_by_country(request.app.async_pool)
         ]
         sql_results = await gather(*sql_coros)
         topics = sql_results[0]
-        latest_updates = sql_results[2]
         domains = {t["domain_id"]: t["domain"] for t in topics}
         date_ranges = sql_results[1]
-        latest_updates = {
-            l["data_stream"]: l["date_id"] 
-            for l in latest_updates
-            if l["country_id"] == request.app.countries[alpha_2]["country_id"]
-        }
         date_ranges = {
             dr["stream"]: [dr["min_date_id"], dr["max_date_id"]]
             for dr in date_ranges
@@ -51,7 +44,6 @@ async def read_country(
         "request": request, 
         "country": alpha_2, 
         "country_name": country_name,
-        "latest_updates": latest_updates,
         "date_ranges": date_ranges,
         "topics": topics, 
         "domains": domains,

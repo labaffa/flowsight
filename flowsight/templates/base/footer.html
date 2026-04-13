@@ -1,0 +1,19 @@
+<footer class="py-3 phase2-nav border-top border-gray-800" id="fews-footer">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="footer-brand">
+                    <span class="footer-brand-title">{{ branding.name }}</span>
+                    <p class="footer-brand-copy mb-0">{{ branding.footer_summary }}</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="footer-links">
+                    {% for link in branding.footer_links %}
+                        <a href="{{ link.href }}">{{ link.label }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>

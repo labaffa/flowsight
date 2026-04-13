@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 ADD . /app
 
-CMD ["uvicorn", "fews2board.app:app", "--host",  "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["uvicorn", "flowsight.app:app", "--host",  "0.0.0.0", "--port", "8000", "--workers", "1"]

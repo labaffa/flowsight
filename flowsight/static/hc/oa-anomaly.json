@@ -1,0 +1,334 @@
+[
+    {
+        "name": "Media",
+        "data": [
+            {
+                "date": 1711929600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712016000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712102400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712188800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712275200000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712361600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712448000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712534400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712620800000,
+                "value": 1,
+                "topic_names": [
+                    "Climate change"
+                ]
+            },
+            {
+                "date": 1712707200000,
+                "value": 1,
+                "topic_names": [
+                    "Drought"
+                ]
+            },
+            {
+                "date": 1712793600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712880000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712966400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713052800000,
+                "value": 2,
+                "topic_names": [
+                    "Flooding",
+                    "Rainfall"
+                ]
+            },
+            {
+                "date": 1713139200000,
+                "value": 1,
+                "topic_names": [
+                    "Rainfall"
+                ]
+            },
+            {
+                "date": 1713225600000,
+                "value": 2,
+                "topic_names": [
+                    "Flooding",
+                    "Rainfall"
+                ]
+            },
+            {
+                "date": 1713312000000,
+                "value": 1,
+                "topic_names": [
+                    "Rainfall"
+                ]
+            },
+            {
+                "date": 1713398400000,
+                "value": 3,
+                "topic_names": [
+                    "Flooding",
+                    "Rainfall",
+                    "Storm "
+                ]
+            },
+            {
+                "date": 1713484800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713571200000,
+                "value": 2,
+                "topic_names": [
+                    "Flooding",
+                    "Rainfall"
+                ]
+            },
+            {
+                "date": 1713657600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713744000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713830400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713916800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714003200000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714089600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714176000000,
+                "value": 1,
+                "topic_names": [
+                    "Rainfall"
+                ]
+            },
+            {
+                "date": 1714262400000,
+                "value": 1,
+                "topic_names": [
+                    "Rainfall"
+                ]
+            },
+            {
+                "date": 1714348800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714435200000,
+                "value": 0,
+                "topic_names": []
+            }
+        ]
+    },
+    {
+        "name": "Social",
+        "data": [
+            {
+                "date": 1711929600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712016000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712102400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712188800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712275200000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712361600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712448000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712534400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712620800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712793600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712880000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1712966400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713052800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713139200000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713225600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713312000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713398400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713484800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713571200000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713657600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713744000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713830400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1713916800000,
+                "value": 1,
+                "topic_names": [
+                    "Rainfall"
+                ]
+            },
+            {
+                "date": 1714003200000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714089600000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714176000000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714262400000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714348800000,
+                "value": 0,
+                "topic_names": []
+            },
+            {
+                "date": 1714435200000,
+                "value": 0,
+                "topic_names": []
+            }
+        ]
+    }
+]

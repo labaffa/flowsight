@@ -1,0 +1,99 @@
+<!-- Country specific page of the dashboard -->
+<!doctype html>
+<html>
+
+<!-- HEAD -->
+<head>
+{% include "base/head_studio.html" %}
+</head>
+
+<!-- Body of the webpage -->
+<body class="d-flex flex-column">
+
+    <!-- HEADER -->
+    <header>
+        {% include "base/navbar.html" %}
+    </header>
+
+    <!-- MODAL for documents table  -->
+
+    <!-- CONTENT -->
+    {% include "chart_studio/layout.html" %}
+
+    <!-- FOOTER -->
+    {% include "base/footer.html" %}
+
+    <!-- POPUPS -->
+    <div id="main-pu" class="popup-container">
+        {% include "info_boxes/studio_main.html" %}
+    </div>
+    <div id="charts-pu" class="popup-container">
+        {% include "info_boxes/studio_chart_type.html" %}
+    </div>
+    <div id="available-fields-pu" class="popup-container">
+        {% include "info_boxes/studio_available_fields.html" %}
+    </div>
+    <div id="selected-fields-pu" class="popup-container">
+        {% include "info_boxes/studio_selected_fields.html" %}
+    </div>
+    <div id="filters-pu" class="popup-container">
+        {% include "info_boxes/filters.html" %}
+    </div>
+
+    <!-- JAVASCRIPT -->
+
+    
+    <script>
+        
+        var countries = JSON.parse('{{countries|tojson}}');
+        var dateRanges = JSON.parse('{{date_ranges|tojson}}');
+        var domainsObj = JSON.parse('{{domains|tojson}}');
+        var topics = JSON.parse('{{topics|tojson}}');
+        var version = JSON.parse('{{version|tojson}}');
+        var defaultCountry = JSON.parse('{{default_country|tojson}}');
+        var topicsById = {};
+        var topicsByName = {};
+        topics.forEach((t) => {topicsById[t.topic_id] = t.topic})
+        topics.forEach((t) => {topicsByName[t.topic] = t.topic_id})
+       
+    </script>
+    <script>
+    
+        const importMap = {
+            imports: {
+                "menu": `./static/js/menu-module.js?v=${window.version}`,
+                "bar-chart": `./static/js/charts/bar-chart-module.js?v=${window.version}`,
+                "line-chart": `./static/js/charts/line-chart-module.js?v=${window.version}`,
+                "wordcloud": `./static/js/charts/wordcloud-module.js?v=${window.version}`,
+                "utils": `./static/js/utils.js?v=${window.version}`,
+            }
+        };
+        const script = document.createElement('script');
+        script.type = 'importmap';
+        script.textContent = JSON.stringify(importMap);
+        document.body.appendChild(script);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+    <script src="https://cdn.datatables.net/1.11.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.4/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/2.18.1/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+    <!-- Highcharts -->
+    {% include "base/highcharts_local.html" %}
+    
+
+    <script src="https://cdn.jsdelivr.net/npm/virtual-select-plugin@1.0.40/dist/virtual-select.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/virtual-select-plugin@1.0.40/dist/virtual-select.min.css">
+    
+    
+    <script type="module" src="{{ url_for('static', path='/js/chart-studio.js').include_query_params(version=version) }}"></script>
+    
+</body>
+
+</html>

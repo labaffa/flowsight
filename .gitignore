@@ -179,3 +179,9 @@ node_modules/
 
 # vscode
 .vscode/
+
+# local tooling and scratch files
+.codex
+.docker.env
+.RData
+.Rhistory

@@ -1,0 +1,57 @@
+<div class="info-box ">
+   <div class="info-box-title">
+       Topic Anomalies
+    </div>
+    <div class="info-box-content">
+        <div class="info-box-section">
+            <p>
+                This chart shows a time series of the anomalous topics for the selected period and 
+                for the given filters. <br>
+                An anomalous topic is a topic for which the daily prevalence is significantly higher than the average daily prevalence for the same topic over the entire dataset. <br>
+                The chart shows data from Social and Media data streams.
+            </p>
+            
+        </div>
+        <div class="info-box-section">
+            <div class="info-box-header"> Usage</div>
+            <p>
+                Data can be filtered by topics, sentiment and emotion values, and time period.
+                When no filters are applied, all the topics are considered.
+                
+            </p>
+        </div>
+        <div class="info-box-section">
+            <div class="info-box-header"> How to Interpret the Chart</div>
+            <p> 
+                The chart shows the daily prevalence of anomalous topics over time and 
+                it can be used to identify periods of increased anomalous topics.
+            </p>
+            <div class="info-box-sub-header"> Axis:</div>
+            <p>
+                
+                The y-axis represents the number of anomalous topics, and the x-axis represents time (day).
+                
+            </p>
+            <div class="info-box-sub-header"> Colors:</div>
+            <p> Two colors are present, one for Social and one for Media stream (see chart's legend)</p>
+            <div class="info-box-sub-header"> Tooltips:</div>
+            <p> Hovering over the chart will show the number and a list of anomalous topics for that day
+            </p>
+        </div>
+        <div class="info-box-section">
+            <div class="info-box-header">Example</div>
+            <ul>
+                <li>
+                    <strong>Period:</strong> 1st to 30th of April 2024
+                </li>
+                <li>
+                    <strong>Filters:</strong> Climate topics, all sentiment and emotion values
+                </li>
+            </ul>
+            <div id="oa-anomaly-example" class="hcs"></div>
+
+        </div>
+
+    </div>
+
+</div>

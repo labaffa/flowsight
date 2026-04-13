@@ -1,0 +1,110 @@
+body {
+    background: linear-gradient(180deg, var(--flowsight-page-bg) 0%, var(--flowsight-page-bg-alt) 100%);
+    color: var(--flowsight-text);
+}
+
+.phase2-nav,
+#fews-footer {
+    background: var(--flowsight-nav-bg) !important;
+}
+
+.navbar-brand.phase2-text,
+.navbar .nav-link,
+.fews-country,
+.highcharts-title,
+.hc-title,
+.policy a,
+.mc-author,
+.mc-timestamp {
+    color: var(--flowsight-text) !important;
+}
+
+.split-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.split-text .brand-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.split-text .brand-tagline {
+    font-size: 0.82rem;
+    color: var(--flowsight-muted);
+}
+
+.card,
+.mc-card,
+.popup-container .popup-content,
+.builder-container {
+    background-color: var(--flowsight-card) !important;
+}
+
+.country-header,
+.field-header hr,
+.cards-separator {
+    border-color: var(--flowsight-border-subtle) !important;
+}
+
+.query-button,
+#create-chart-button,
+.condition-mod.icon {
+    background-color: var(--flowsight-accent) !important;
+    border-color: var(--flowsight-accent) !important;
+    color: var(--flowsight-button-text) !important;
+}
+
+.query-button:hover,
+#create-chart-button:hover {
+    filter: brightness(1.05);
+}
+
+.studio-country-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: var(--flowsight-accent-surface);
+    color: var(--flowsight-accent-soft);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.footer-brand-title {
+    color: var(--flowsight-text);
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.footer-brand-copy {
+    color: var(--flowsight-muted);
+    max-width: 34rem;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.footer-links a {
+    color: var(--flowsight-text);
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    color: var(--flowsight-accent-soft);
+}

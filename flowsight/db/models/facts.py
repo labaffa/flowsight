@@ -219,6 +219,46 @@ class TgDailyCounts(MyBase):
     count = sa.Column(sa.Integer)
 
 
+def TgHumanMobilityMessageModelCreator(alpha2):
+    tablename = f'tg_human_mobility_message_{alpha2.lower()}'
+    modelname = tablename.upper()
+    attributes = {
+        "__tablename__": tablename,
+        "__table_args__": (
+            sa.Index(f"{tablename}_country_date", "country_id", "date_id"),
+        ),
+        "message_unique_id": sa.Column(sa.BigInteger, primary_key=True, nullable=False),
+        "country_id": sa.Column(sa.Integer, primary_key=True, nullable=False),
+        "date_id": sa.Column(sa.Integer, nullable=False),
+    }
+    x = type(modelname, (MyBase,), attributes)
+    return x
+
+
+def MCHumanMobilityStoryModelCreator(alpha2):
+    tablename = f'mc_human_mobility_story_{alpha2.lower()}'
+    modelname = tablename.upper()
+    attributes = {
+        "__tablename__": tablename,
+        "__table_args__": (
+            sa.Index(f"{tablename}_country_date", "country_id", "date_id"),
+        ),
+        "story_id": sa.Column(sa.String, primary_key=True, nullable=False),
+        "country_id": sa.Column(sa.Integer, primary_key=True, nullable=False),
+        "date_id": sa.Column(sa.Integer, nullable=False),
+    }
+    x = type(modelname, (MyBase,), attributes)
+    return x
+
+
+TgHumanMobilityMessageCountry = {}
+MCHumanMobilityStoryCountry = {}
+
+for a2 in config.FEWS_COUNTRIES:
+    TgHumanMobilityMessageCountry[a2] = TgHumanMobilityMessageModelCreator(a2)
+    MCHumanMobilityStoryCountry[a2] = MCHumanMobilityStoryModelCreator(a2)
+
+
 def TFIDFModelCreator(alpha2):
     tablename = f'tfidf_{alpha2.lower()}'
     modelname = tablename.upper()

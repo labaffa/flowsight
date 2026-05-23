@@ -26,4 +26,4 @@ from flowsight.db.models.facts import TopicIdDayAggTg, TopicIdDayDomainAggTg, \
     TgTopicIdCountDayDomainAgg, TgLatestUpdates, MCLatestUpdates, \
     MCTopicIdCountDayAgg, MCTopicIdCountDayDomainAgg, DateRanges, MCBigramsDayAgg, \
     MCLocationsDayAgg, MCOrgsDayAgg, MCPersonsDayAgg, MCTrigramsDayAgg, SSIDayAgg, MCDailyCounts, \
-    TgDailyCounts, TFIDF, TFIDFDayAgg
+    TgDailyCounts, TgHumanMobilityMessageCountry, MCHumanMobilityStoryCountry, TFIDF, TFIDFDayAgg

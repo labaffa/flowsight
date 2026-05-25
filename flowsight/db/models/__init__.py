@@ -23,7 +23,9 @@ from flowsight.db.models.framework import Topic, Date, Country, Domain, SSIDomai
 from flowsight.db.models.facts import TopicIdDayAggTg, TopicIdDayDomainAggTg, \
     TgSentimentDayAgg, TgSentimentDayDomainAgg, MCSentimentDayAgg, MCSentimentDayDomainAgg, \
     MCTopicIdDayAgg, MCTopicIdDayDomainAgg, TgTopicIdCountDayAgg, \
+    TgHumanMobilityTopicIdDayAgg, MCHumanMobilityTopicIdDayAgg, \
     TgTopicIdCountDayDomainAgg, TgLatestUpdates, MCLatestUpdates, \
     MCTopicIdCountDayAgg, MCTopicIdCountDayDomainAgg, DateRanges, MCBigramsDayAgg, \
     MCLocationsDayAgg, MCOrgsDayAgg, MCPersonsDayAgg, MCTrigramsDayAgg, SSIDayAgg, MCDailyCounts, \
-    TgDailyCounts, TgHumanMobilityMessageCountry, MCHumanMobilityStoryCountry, TFIDF, TFIDFDayAgg
+    TgDailyCounts, TgHumanMobilityMessageCountry, MCHumanMobilityStoryCountry, TFIDF, TFIDFDayAgg, \
+    TgHumanMobilityTFIDFDayAgg

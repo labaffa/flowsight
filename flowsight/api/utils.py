@@ -1060,8 +1060,13 @@ async def ssi_w_series(
 
 
 async def ssi_fields_series(
-    pool, country_id: int, start_date: int, end_date: int, ssi_domain_id: int = 3
+    pool, country_id: int, start_date: int, end_date: int, ssi_domain_id: int = 3,
+    field_ids=None,
 ):
+    if field_ids:
+        fields_clause = f"and sda.ssi_field_id in ({', '.join(str(int(x)) for x in field_ids)})"
+    else:
+        fields_clause = f"and sda.ssi_domain_id = {int(ssi_domain_id)}"
     q = (
         f'''
         select
@@ -1075,7 +1080,7 @@ async def ssi_fields_series(
         where 
             sda.date_id >= {start_date} and sda.date_id <= {end_date}
             and sda.country_id = {country_id}
-            and sda.ssi_domain_id = {ssi_domain_id}
+            {fields_clause}
             and sda.is_ssi_w = FALSE
         ;
         '''

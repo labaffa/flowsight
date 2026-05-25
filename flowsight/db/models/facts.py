@@ -51,6 +51,30 @@ class MCTopicIdDayAgg(MyBase):
     is_anomaly = sa.Column(sa.Boolean, nullable=True)
 
 
+class TgHumanMobilityTopicIdDayAgg(MyBase):
+    __tablename__ = "tg_human_mobility_topic_id_day_agg"
+
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    topic_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    topic_norm_prevalence = sa.Column(sa.Float)
+    hm_record_count = sa.Column(sa.Integer)
+    topic_record_count = sa.Column(sa.Integer)
+    is_anomaly = sa.Column(sa.Boolean, nullable=True)
+
+
+class MCHumanMobilityTopicIdDayAgg(MyBase):
+    __tablename__ = "mc_human_mobility_topic_id_day_agg"
+
+    date_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    topic_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    country_id = sa.Column(sa.Integer, primary_key=True, nullable=False)
+    topic_norm_prevalence = sa.Column(sa.Float)
+    hm_record_count = sa.Column(sa.Integer)
+    topic_record_count = sa.Column(sa.Integer)
+    is_anomaly = sa.Column(sa.Boolean, nullable=True)
+
+
 class MCTopicIdDayDomainAgg(MyBase):
     __tablename__ = "mc_topic_id_day_domain_agg"
 
@@ -302,3 +326,24 @@ def TFIDFDayAggModelCreator(alpha2):
 TFIDFDayAgg = {}
 for a2 in config.FEWS_COUNTRIES:
     TFIDFDayAgg[a2] = TFIDFDayAggModelCreator(a2)
+
+
+def TgHumanMobilityTFIDFDayAggModelCreator(alpha2):
+    tablename = f'tg_human_mobility_tfidf_day_agg_{alpha2.lower()}'
+    modelname = tablename.upper()
+    attributes = {
+        "__tablename__": tablename,
+        "__table_args__": (
+            sa.Index(f"{tablename}_date_id", "date_id"),
+        ),
+        "date_id": sa.Column(sa.Integer, primary_key=True, nullable=False),
+        "lemma": sa.Column(sa.String, primary_key=True, nullable=False),
+        "tfidf": sa.Column(sa.Float),
+    }
+    x = type(modelname, (MyBase,), attributes)
+    return x
+
+
+TgHumanMobilityTFIDFDayAgg = {}
+for a2 in config.FEWS_COUNTRIES:
+    TgHumanMobilityTFIDFDayAgg[a2] = TgHumanMobilityTFIDFDayAggModelCreator(a2)

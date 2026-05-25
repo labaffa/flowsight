@@ -509,17 +509,18 @@ async function SSITimeline(containerId, domainId, customOptions, stream='si'){
 
 };
 
-async function SSIFieldsTimeline(containerId, domainId, customOptions){
+async function SSIFieldsTimeline(containerId, domainId, customOptions, fieldIds=null, stream='si'){
     $(`#${containerId}`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
     let base_endpoint = `/${window.country}/ssi_fields_series`;
-    let queryParams = $.param(
-        {
-            start_date: window.siStartDate,
-            end_date: window.siEndDate,
-            domain_id: domainId
-        },
-        true
-    );
+    let queryParams = {
+        start_date: window.startDates[stream][0],
+        end_date: window.startDates[stream][1],
+        domain_id: domainId
+    };
+    if (fieldIds) {
+        queryParams.field_ids = JSON.stringify(fieldIds);
+    }
+    queryParams = $.param(queryParams, true);
     let url = base_endpoint + '?' + queryParams;
     customOptions['titleUseHTML'] = isHTML(customOptions.titleText);
     await renderTimeSeriesFromUrl(
@@ -527,6 +528,10 @@ async function SSIFieldsTimeline(containerId, domainId, customOptions){
     )
 
 };
+
+async function HumanMobilitySSIFieldsTimeline(containerId, customOptions, stream='si'){
+    return SSIFieldsTimeline(containerId, 5, customOptions, [15, 16, 18], stream);
+}
 
 function extractLatestValue(htmlString) {
     // Crea un nuovo documento DOMParser
@@ -939,10 +944,7 @@ $('#si-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     window.startDates['si'][0] = parseInt(picker.startDate.format('YYYYMMDD'));
     window.startDates['si'][1] = parseInt(picker.endDate.format('YYYYMMDD'));
 
-    SSITimeline('si-food-insecurity', 3, {titleText: ''});
-    SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: ''});
-    SSITimeline('si-conflict-total', 5, {titleText: ''});
-    SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: ''});
+    HumanMobilitySSIFieldsTimeline('si-human-mobility-fields', {titleText: ''});
 
 });
 $('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
@@ -958,7 +960,7 @@ $('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', '', conditions, 'column');
     AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', '', conditions);
     AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', '', conditions);
-    SSITimeline('oa-ssi-trends', [3, 5], {titleText: ''}, stream);
+    HumanMobilitySSIFieldsTimeline('oa-ssi-trends', {titleText: ''}, stream);
     fillSearchBar(stream);
 });
 
@@ -1467,7 +1469,7 @@ $(document).ready(async function (){
         overallTrends('oa-anomaly-trends', 'oa', '/overall_trend_hc', 'anomaly', "", window.countryConditions['oa'], 'column');
         AttentionTrends('oa-attention-trends', 'oa', '/overall_trend', 'attention', "", window.countryConditions['oa']);
         AttentionTrends('oa-sentiment-trends', 'oa', '/overall_trend', 'sentiment', "", window.countryConditions['oa']);
-        SSITimeline('oa-ssi-trends', [3, 5], {titleText: ""}, 'oa');
+        HumanMobilitySSIFieldsTimeline('oa-ssi-trends', {titleText: ""}, 'oa');
         // fetch('/static/hc/oa-anomaly.json')  // Specifica il percorso al tuo file JSON
         //     .then(response => {
         //         if (!response.ok) {
@@ -1505,10 +1507,7 @@ $(document).ready(async function (){
         // MCLocations('mc-locations');
         // MCPersons('mc-persons');
         // MCOrgs('mc-orgs');
-        SSITimeline('si-food-insecurity', 3, {titleText: ''});
-        SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: ''});
-        SSITimeline('si-conflict-total', 5, {titleText: ''});
-        SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: ''});
+        HumanMobilitySSIFieldsTimeline('si-human-mobility-fields', {titleText: ''});
 
         TgMessageWidget();
         MCStoryWidget();
@@ -1685,7 +1684,7 @@ $(document).ready(async function (){
             overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', '', window.countryConditions[stream], 'column');
             AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', '' , window.countryConditions[stream]);
             AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', '' , window.countryConditions[stream]);
-            SSITimeline('oa-ssi-trends', [3, 5], {titleText: ''}, stream);
+            HumanMobilitySSIFieldsTimeline('oa-ssi-trends', {titleText: ''}, stream);
         }
         fillSearchBar(stream);
         

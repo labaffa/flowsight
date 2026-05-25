@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import fastapi
 
-from flowsight.api import utils
+from flowsight.api import human_mobility_utils, utils
 
 
 router = fastapi.APIRouter()
@@ -31,6 +31,7 @@ async def get_studio_time_series(
     conditions = json.loads(conditions) if conditions else None
     fields = json.loads(fields)
     country_id = _default_country_id(request)
+    alpha_2 = _default_country_alpha_2(request)
     combined_fields = [{**field, "country_id": int(country_id)} for field in fields]
 
     sql_coros = []
@@ -43,9 +44,10 @@ async def get_studio_time_series(
             )
         else:
             sql_coros.append(
-                utils.chart_studio_time_series_from_stream(
+                human_mobility_utils.chart_studio_time_series_from_stream(
                     request.app.async_pool,
                     conditions,
+                    alpha_2,
                     field["country_id"],
                     start_date,
                     end_date,
@@ -105,6 +107,7 @@ async def get_studio_bar_chart(
     conditions = json.loads(conditions) if conditions else None
     fields = json.loads(fields)
     country_id = _default_country_id(request)
+    alpha_2 = _default_country_alpha_2(request)
     combined_fields = [{**field, "country_id": int(country_id)} for field in fields]
 
     sql_coros = []
@@ -117,9 +120,10 @@ async def get_studio_bar_chart(
             )
         else:
             sql_coros.append(
-                utils.chart_studio_bar_chart_from_stream(
+                human_mobility_utils.chart_studio_bar_chart_from_stream(
                     request.app.async_pool,
                     conditions,
+                    alpha_2,
                     field["country_id"],
                     start_date,
                     end_date,
@@ -152,7 +156,7 @@ async def get_telegram_messages(
     offset: int = 0,
 ):
     conditions = json.loads(conditions) if conditions else None
-    return await utils.tg_messages_no_duplicates(
+    return await human_mobility_utils.tg_messages(
         request.app.async_pool,
         _default_country_alpha_2(request),
         start_date,
@@ -176,7 +180,7 @@ async def get_mc_stories(
     offset: int = 0,
 ):
     conditions = json.loads(conditions) if conditions else None
-    return await utils.mc_stories(
+    return await human_mobility_utils.mc_stories(
         request.app.async_pool,
         _default_country_alpha_2(request),
         start_date,

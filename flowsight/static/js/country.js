@@ -12,6 +12,273 @@ Highcharts.AST.allowedAttributes.push('viewBox');  // https://www.highcharts.com
 const defaultStartDateInt = 19700101;
 const defaultEndDateInt = 19700101;
 
+window.topicFilterModes = {
+    tg: localStorage.getItem('flowsightTopicFilterMode:tg') || 'strict',
+    mc: localStorage.getItem('flowsightTopicFilterMode:mc') || 'strict'
+};
+window.tfidfMetric = localStorage.getItem('flowsightTfidfMetric') || 'period_average';
+window.corpusCoverageInterval = localStorage.getItem('flowsightCorpusCoverageInterval') || 'auto';
+window.activeCountryStream = 'oa';
+
+function contentScope(){
+    return 'hm';
+}
+
+function scopedParams(params){
+    return {...params, scope: contentScope()};
+}
+
+function topicFilterMode(stream){
+    return window.topicFilterModes[stream] || 'strict';
+}
+
+function topicScopedParams(params, stream){
+    return {...scopedParams(params), topic_filter_mode: topicFilterMode(stream)};
+}
+
+function hasTopicCondition(stream){
+    return (window.countryConditions?.[stream] || []).some(condition => condition.field === 'Topic');
+}
+
+function updateTopicFilterModeControl(stream){
+    let toggle = $(`.topic-filter-mode-toggle[data-stream="${stream}"]`);
+    toggle.prop('hidden', window.activeCountryStream !== stream || !hasTopicCondition(stream));
+    toggle.find('.topic-filter-option').removeClass('active').attr('aria-pressed', 'false');
+    toggle.find(`.topic-filter-option[data-topic-filter-mode="${topicFilterMode(stream)}"]`)
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+}
+
+function setTopicFilterMode(stream, mode){
+    window.topicFilterModes[stream] = mode;
+    localStorage.setItem(`flowsightTopicFilterMode:${stream}`, mode);
+    updateTopicFilterModeControl(stream);
+}
+
+function updateTopicFilterModeControls(){
+    ['tg', 'mc'].forEach(updateTopicFilterModeControl);
+    $('.corpus-summary-strip').prop('hidden', true);
+    if (['tg', 'mc'].includes(window.activeCountryStream)){
+        $(`#${window.activeCountryStream}-corpus-summary`).prop('hidden', false);
+    }
+}
+
+function updateTfidfMetricControl(){
+    let allowedMetrics = ['period_average', 'daily_peak'];
+    if (!allowedMetrics.includes(window.tfidfMetric)){
+        window.tfidfMetric = 'period_average';
+    }
+    $('.tfidf-metric-option').removeClass('active').attr('aria-pressed', 'false');
+    $(`.tfidf-metric-option[data-tfidf-metric="${window.tfidfMetric}"]`)
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+}
+
+function setTfidfMetric(metric){
+    window.tfidfMetric = metric;
+    localStorage.setItem('flowsightTfidfMetric', metric);
+    updateTfidfMetricControl();
+}
+
+function updateCorpusCoverageIntervalControl(){
+    let allowedIntervals = ['auto', 'day', 'week', 'month'];
+    if (!allowedIntervals.includes(window.corpusCoverageInterval)){
+        window.corpusCoverageInterval = 'auto';
+    }
+    $('.coverage-interval-option').removeClass('active').attr('aria-pressed', 'false');
+    $(`.coverage-interval-option[data-coverage-interval="${window.corpusCoverageInterval}"]`)
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+}
+
+function setCorpusCoverageInterval(interval){
+    window.corpusCoverageInterval = interval;
+    localStorage.setItem('flowsightCorpusCoverageInterval', interval);
+    updateCorpusCoverageIntervalControl();
+}
+
+function streamRecordLabel(stream){
+    return stream === 'tg' ? 'messages' : 'stories';
+}
+
+function formatCorpusCount(value){
+    return Number(value || 0).toLocaleString();
+}
+
+async function CorpusSummary(stream){
+    let start_date = stream === 'mc' ? window.mcStartDate : window.tgStartDate;
+    let end_date = stream === 'mc' ? window.mcEndDate : window.tgEndDate;
+    let container = $(`#${stream}-corpus-summary`);
+    let recordLabel = streamRecordLabel(stream);
+    let queryParams = $.param(
+        scopedParams({
+            start_date: start_date,
+            end_date: end_date,
+            conditions: JSON.stringify(window.countryConditions[stream]),
+            stream: stream
+        }),
+        true
+    );
+    container.html('<span class="corpus-summary-metric">Loading corpus summary...</span>');
+    try {
+        let response = await fetch(`/${window.country}/corpus_summary?${queryParams}`);
+        if (!response.ok){
+            throw new Error(`Corpus summary request failed with ${response.status}`);
+        }
+        let data = await response.json();
+        let coverage = data.filtered_hm_coverage == null
+            ? 'N/A'
+            : `${(data.filtered_hm_coverage * 100).toFixed(1)}%`;
+        let period = `${moment(start_date.toString()).format('DD MMM YYYY')} - ${moment(end_date.toString()).format('DD MMM YYYY')}`;
+        container.html(`
+            <span class="corpus-summary-metric">Period <strong>${period}</strong></span>
+            <span class="corpus-summary-metric">Collected ${recordLabel} <strong>${formatCorpusCount(data.all_records_in_period)}</strong></span>
+            <span class="corpus-summary-metric">HM ${recordLabel} <strong>${formatCorpusCount(data.hm_records_in_period)}</strong></span>
+            <span class="corpus-summary-metric">Matching ${recordLabel} <strong>${formatCorpusCount(data.filtered_hm_records_in_period)}</strong></span>
+            <span class="corpus-summary-metric">HM coverage <strong>${coverage}</strong></span>
+            <details class="corpus-summary-details">
+                <summary>Corpus details</summary>
+                <div class="corpus-summary-details-content">
+                    <span class="corpus-summary-metric">Collected ${recordLabel}, all dates <strong>${formatCorpusCount(data.all_records_total)}</strong></span>
+                    <span class="corpus-summary-metric">HM ${recordLabel}, all dates <strong>${formatCorpusCount(data.hm_records_total)}</strong></span>
+                </div>
+            </details>
+        `);
+    } catch (error) {
+        console.error(error);
+        container.html('<span class="corpus-summary-metric">Corpus summary unavailable</span>');
+    }
+}
+
+function formatCoveragePercent(value){
+    return value == null ? 'N/A' : `${(value * 100).toFixed(1)}%`;
+}
+
+function renderCorpusCoverageSummary(stream, data){
+    let summary = data.summary;
+    let recordLabel = streamRecordLabel(stream);
+    let change = summary.hm_coverage_change_pp;
+    let changeClass = change == null ? 'neutral' : change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
+    let changeLabel = change == null ? 'N/A' : `${change > 0 ? '+' : ''}${change.toFixed(1)} pp`;
+    $(`#${stream}-corpus-coverage-summary`).html(`
+        <span class="coverage-summary-metric">Collected ${recordLabel} <strong>${formatCorpusCount(summary.all_records)}</strong></span>
+        <span class="coverage-summary-metric">HM ${recordLabel} <strong>${formatCorpusCount(summary.hm_records)}</strong></span>
+        <span class="coverage-summary-metric">HM coverage <strong>${formatCoveragePercent(summary.hm_coverage)}</strong></span>
+        <span class="coverage-summary-metric">vs previous period <strong class="coverage-summary-change ${changeClass}">${changeLabel}</strong></span>
+        <span class="coverage-summary-metric">Buckets <strong>${data.interval}</strong></span>
+    `);
+}
+
+function renderCorpusCoverageChart(stream, data){
+    let recordLabel = streamRecordLabel(stream);
+    let chartData = data.data;
+    renderCorpusCoverageSummary(stream, data);
+    if (chartData.length === 0){
+        $(`#${stream}-corpus-coverage-chart`).html(noDataHTML);
+        return;
+    }
+    Highcharts.chart(`${stream}-corpus-coverage-chart`, {
+        chart: {
+            type: 'column',
+            zoomType: 'x'
+        },
+        title: {
+            text: ''
+        },
+        xAxis: {
+            type: 'datetime'
+        },
+        yAxis: [{
+            min: 0,
+            title: {
+                text: 'Records'
+            }
+        }, {
+            min: 0,
+            max: 100,
+            opposite: true,
+            title: {
+                text: 'HM coverage'
+            },
+            labels: {
+                format: '{value}%'
+            }
+        }],
+        tooltip: {
+            shared: true,
+            xDateFormat: data.interval === 'month' ? '%b %Y' : '%e %b %Y'
+        },
+        plotOptions: {
+            column: {
+                grouping: false,
+                borderWidth: 0,
+                groupPadding: 0.08
+            }
+        },
+        series: [{
+            type: 'column',
+            className: 'coverage-total-series',
+            name: `Collected ${recordLabel}`,
+            data: chartData.map(point => [point.date, point.all_records]),
+            tooltip: {
+                valueDecimals: 0
+            }
+        }, {
+            type: 'column',
+            className: 'coverage-hm-series',
+            name: `HM ${recordLabel}`,
+            data: chartData.map(point => [point.date, point.hm_records]),
+            pointPadding: 0.2,
+            tooltip: {
+                valueDecimals: 0
+            }
+        }, {
+            type: 'line',
+            className: 'coverage-ratio-series',
+            name: 'HM coverage',
+            data: chartData.map(point => [point.date, point.hm_coverage == null ? null : point.hm_coverage * 100]),
+            yAxis: 1,
+            tooltip: {
+                valueDecimals: 1,
+                valueSuffix: '%'
+            }
+        }]
+    });
+}
+
+async function CorpusCoverageSeries(stream){
+    let container = $(`#${stream}-corpus-coverage-chart`);
+    let summaryContainer = $(`#${stream}-corpus-coverage-summary`);
+    let queryParams = $.param({
+        start_date: window.oaStartDate,
+        end_date: window.oaEndDate,
+        stream: stream,
+        interval: window.corpusCoverageInterval
+    }, true);
+    container.html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    summaryContainer.html('<span class="coverage-summary-metric">Loading corpus coverage...</span>');
+    try {
+        let response = await fetch(`/${window.country}/corpus_coverage_series?${queryParams}`);
+        if (!response.ok){
+            throw new Error(`Corpus coverage request failed with ${response.status}`);
+        }
+        renderCorpusCoverageChart(stream, await response.json());
+    } catch (error) {
+        console.error(error);
+        container.html(noDataHTML);
+        summaryContainer.html('<span class="coverage-summary-metric">Corpus coverage unavailable</span>');
+    }
+}
+
+function CorpusCoverageCharts(){
+    CorpusCoverageSeries('tg');
+    CorpusCoverageSeries('mc');
+}
+
+function isHumanMobilityScope(){
+    return true;
+}
+
 
 const htmlTitleInfo = function(title, iconId){
     return `
@@ -294,6 +561,68 @@ const infoCallBack = function() {
 }
 
 
+function setupCollapsibleTopicGroups(eleId){
+    let element = document.querySelector(eleId);
+    let select = element.virtualSelect;
+    let collapsedGroups = new Set(
+        select.options.filter(option => option.isGroupTitle).map(option => option.index)
+    );
+    let afterSetVisibleOptionsCount = select.afterSetVisibleOptionsCount.bind(select);
+    let afterRenderOptions = select.afterRenderOptions.bind(select);
+
+    function applyCollapsedGroups(){
+        if (select.searchValue){
+            return;
+        }
+        select.options.forEach(option => {
+            if (option.isGroupOption && collapsedGroups.has(option.groupIndex)){
+                option.isVisible = false;
+            }
+        });
+        select.visibleOptionsCount = select.options.filter(option => option.isVisible).length;
+    }
+
+    function markGroupState(){
+        select.$options.querySelectorAll('.vscomp-option.group-title').forEach(group => {
+            let isExpanded = !collapsedGroups.has(parseInt(group.dataset.index));
+            let toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'topic-group-toggle';
+            toggle.setAttribute('aria-label', `${isExpanded ? 'Collapse' : 'Expand'} ${group.textContent.trim()}`);
+            toggle.textContent = isExpanded ? '-' : '+';
+            group.dataset.expanded = isExpanded.toString();
+            group.setAttribute('aria-expanded', isExpanded.toString());
+            group.appendChild(toggle);
+        });
+    }
+
+    select.afterSetVisibleOptionsCount = function (){
+        applyCollapsedGroups();
+        afterSetVisibleOptionsCount();
+    };
+    select.afterRenderOptions = function (){
+        afterRenderOptions();
+        markGroupState();
+    };
+    element.addEventListener('click', function (event){
+        let toggle = event.target.closest('.topic-group-toggle');
+        if (!toggle || !element.contains(toggle)){
+            return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        let group = toggle.closest('.vscomp-option.group-title');
+        let groupIndex = parseInt(group.dataset.index);
+        if (collapsedGroups.has(groupIndex)){
+            collapsedGroups.delete(groupIndex);
+        } else {
+            collapsedGroups.add(groupIndex);
+        }
+        select.setVisibleOptionsCount();
+    }, true);
+    select.setVisibleOptionsCount();
+}
+
 function initTopicField(eleId){
     const a = {};
     window.topics.forEach( t => {
@@ -312,12 +641,16 @@ function initTopicField(eleId){
       ele: eleId,
       options: groupedOptions,
       multiple: true,
-      search: false,
+      search: true,
+      searchGroup: true,
+      markSearchResults: true,
+      searchPlaceholderText: 'Search topics...',
       disableSelectAll: true,
       showSelectedOptionsFirst: true,
       placeholder: 'Select topic...'
     }
     )
+    setupCollapsibleTopicGroups(eleId);
   }
   
 
@@ -338,11 +671,11 @@ async function DomainRanking(containerId, stream, title='Hot Topics') {
 
     let base_endpoint = `/${window.country}/domain_ranking`;
     let queryParams = $.param(
-        {
+        topicScopedParams({
             start_date: startD,
             end_date: endD,
             stream: stream
-        },
+        }, stream),
         true
     ); 
     let mappingKeys = {'categoryKey': 'domain', 'valueKey': 'frequency'};
@@ -365,13 +698,13 @@ async function AttentionTrends(containerId, stream, endpoint='/attention_trends'
 
     let base_endpoint = `/${window.country}${endpoint}`;
     let queryParams = $.param(
-        {
+        scopedParams({
             start_date: startD,
             end_date: endD,
             stream: stream,
             trend_type: trendtype,
             conditions: JSON.stringify(conditions)
-        },
+        }),
         true
     );
     let url = base_endpoint + '?' + queryParams;
@@ -394,13 +727,13 @@ async function overallTrends(containerId, stream, endpoint='/attention_trends', 
 
     let base_endpoint = `/${window.country}${endpoint}`;
     let queryParams = $.param(
-        {
+        scopedParams({
             start_date: startD,
             end_date: endD,
             stream: stream,
             trend_type: trendtype,
             conditions: JSON.stringify(conditions)
-        },
+        }),
         true
     );
     let url = base_endpoint + '?' + queryParams;
@@ -425,12 +758,12 @@ async function EmotionTrends(containerId, stream, conditions='', customOptions={
 
     let base_endpoint = `/${window.country}/emotion_trends`;
     let queryParams = $.param(
-        {
+        scopedParams({
             start_date: startD,
             end_date: endD,
             stream: stream,
             conditions: conditions
-        },
+        }),
         true
     );
     let url = base_endpoint + '?' + queryParams;
@@ -452,12 +785,14 @@ async function WordCloud(containerId, stream, title='Significant Terms') {
 
     let base_endpoint = `/${window.country}/tfidf_top_terms`;
     let queryParams = $.param(
-        {
+        scopedParams({
             start_date: startD,
             end_date: endD,
             stream: stream,
-            limit: 50
-        },
+            limit: 50,
+            metric: window.tfidfMetric,
+            max_document_frequency: 0.80
+        }),
         true
     );
     let url = base_endpoint + '?' + queryParams;
@@ -465,9 +800,10 @@ async function WordCloud(containerId, stream, title='Significant Terms') {
         titleText: title,
         titleUseHTML: isHTML(title),
         chartHeightRatio: null,
-        chartWidth: null
+        chartWidth: null,
+        seriesName: window.tfidfMetric === 'daily_peak' ? 'Daily TF-IDF' : 'Period average'
     }
-    let mappingKeys = {'categoryKey': 'lemma', 'valueKey': 'mean_value'};
+    let mappingKeys = {'categoryKey': 'lemma', 'valueKey': 'mean_value', 'dateKey': 'date_id'};
     try {
         await fetch(url)
             .then(response => response.json())
@@ -533,6 +869,27 @@ async function HumanMobilitySSIFieldsTimeline(containerId, customOptions, stream
     return SSIFieldsTimeline(containerId, 5, customOptions, [15, 16, 18], stream);
 }
 
+async function ScopeAwareSSIFieldsTimeline(containerId, customOptions, stream='si'){
+    if (isHumanMobilityScope()){
+        return HumanMobilitySSIFieldsTimeline(containerId, customOptions, stream);
+    }
+    return SSITimeline(containerId, [3, 5], customOptions, stream);
+}
+
+async function SearchInterestSection(){
+    if (isHumanMobilityScope()){
+        $('#si-human-mobility-section').show();
+        $('#si-global-section').hide();
+        return HumanMobilitySSIFieldsTimeline('si-human-mobility-fields', {titleText: ''});
+    }
+    $('#si-human-mobility-section').hide();
+    $('#si-global-section').show();
+    SSITimeline('si-food-insecurity', 3, {titleText: ''});
+    SSIFieldsTimeline('si-food-insecurity-fields', 3, {titleText: ''});
+    SSITimeline('si-conflict-total', 5, {titleText: ''});
+    return SSIFieldsTimeline('si-conflict-total-fields', 5, {titleText: ''});
+}
+
 function extractLatestValue(htmlString) {
     // Crea un nuovo documento DOMParser
     let parser = new DOMParser();
@@ -551,12 +908,12 @@ async function TalkingPoints(containerId, stream, endP='/talking_points_on_condi
     endD = stream == "mc" ? window.mcEndDate : window.tgEndDate;
     
     let queryParams = $.param(
-        {
+        topicScopedParams({
             start_date: startD,
             end_date: endD,
             stream: stream,
             conditions: conditions
-        },
+        }, stream),
         true
     );
     let url = base_endpoint + '?' + queryParams;
@@ -845,12 +1202,12 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     let stream = 'tg';
     let base_endpoint = `/${window.country}/filter_attention_trends`;
     let queryParams = $.param(
-        {
+        topicScopedParams({
             start_date: start_date,
             end_date: end_date,
             conditions: JSON.stringify(window.countryConditions[stream]),
             stream: stream
-        },
+        }, stream),
         true
     );
     let url = base_endpoint + '?' + queryParams;
@@ -881,6 +1238,7 @@ $('#tg-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     );
 
     WordCloud('tg-top-terms', 'tg', '');
+    CorpusSummary(stream);
     fillSearchBar(stream);
 
 });
@@ -896,12 +1254,12 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     let stream = 'mc';
     let base_endpoint = `/${window.country}/filter_attention_trends`;
     let queryParams = $.param(
-        {
+        topicScopedParams({
             start_date: start_date,
             end_date: end_date,
             conditions: JSON.stringify(window.countryConditions[stream]),
             stream: stream
-        },
+        }, stream),
         true
     );
     let url = base_endpoint + '?' + queryParams;
@@ -927,6 +1285,7 @@ $('#mc-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
         '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
     
     MCStoryWidget();
+    CorpusSummary(stream);
     fillSearchBar(stream);
     EmotionTrends(
         `${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]),
@@ -944,7 +1303,7 @@ $('#si-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     window.startDates['si'][0] = parseInt(picker.startDate.format('YYYYMMDD'));
     window.startDates['si'][1] = parseInt(picker.endDate.format('YYYYMMDD'));
 
-    HumanMobilitySSIFieldsTimeline('si-human-mobility-fields', {titleText: ''});
+    SearchInterestSection();
 
 });
 $('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker) {
@@ -960,17 +1319,22 @@ $('#oa-filter-bar .datepicker').on('apply.daterangepicker', function(ev, picker)
     overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', '', conditions, 'column');
     AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', '', conditions);
     AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', '', conditions);
-    HumanMobilitySSIFieldsTimeline('oa-ssi-trends', {titleText: ''}, stream);
+    ScopeAwareSSIFieldsTimeline('oa-ssi-trends', {titleText: ''}, stream);
+    CorpusCoverageCharts();
     fillSearchBar(stream);
 });
 
 $('#oa-tab').on('show.bs.tab', function (e) {
+    window.activeCountryStream = 'oa';
+    updateTopicFilterModeControls();
     $('#oa-filter-bar').show();
     $('#mc-filter-bar').hide();
     $('#tg-filter-bar').hide();
     $('#si-filter-bar').hide();
 });
 $('#tg-tab').on('show.bs.tab', function (e) {
+    window.activeCountryStream = 'tg';
+    updateTopicFilterModeControls();
     $('#tg-filter-bar').show();
     $('#mc-filter-bar').hide();
     $('#si-filter-bar').hide();
@@ -978,6 +1342,8 @@ $('#tg-tab').on('show.bs.tab', function (e) {
 
 });
 $('#mc-tab').on('show.bs.tab', function (e) {
+    window.activeCountryStream = 'mc';
+    updateTopicFilterModeControls();
     $('#mc-filter-bar').show();
     $('#tg-filter-bar').hide();
     $('#si-filter-bar').hide();
@@ -985,6 +1351,8 @@ $('#mc-tab').on('show.bs.tab', function (e) {
 
 });
 $('#si-tab').on('show.bs.tab', function (e) {
+    window.activeCountryStream = 'si';
+    updateTopicFilterModeControls();
     $('#si-filter-bar').show();
     $('#mc-filter-bar').hide();
     $('#tg-filter-bar').hide();
@@ -1268,14 +1636,14 @@ async function MCStoryWidget(){
     }
     let base_endpoint = `/${window.country}/mc_stories`;
     let queryParams = $.param(
-        {
+        scopedParams({
             start_date: window.mcStartDate,
             end_date: window.mcEndDate,
             conditions: JSON.stringify(window.countryConditions["mc"]),
             sorted_by: 'date',
             limit: window.MessagesLimit["mc"],
             offset: window.MessagesOffset["mc"]
-        },
+        }),
         true
     );
     let url = base_endpoint + '?' + queryParams;
@@ -1338,7 +1706,7 @@ async function TgMessageWidget(){
 
     let base_endpoint = `/${window.country}/tg_messages`;
     let queryParams = $.param(
-        {
+        scopedParams({
             start_date: window.tgStartDate,
             end_date: window.tgEndDate,
             conditions: JSON.stringify(window.countryConditions["tg"]),
@@ -1347,7 +1715,7 @@ async function TgMessageWidget(){
             limit: window.MessagesLimit["tg"],
             offset: window.MessagesOffset["tg"]
             
-        },
+        }),
         true
     );
     
@@ -1435,6 +1803,45 @@ function fillSearchBar(stream){
     }
 }
 
+function renderTopicFilteredCharts(stream){
+    let start_date = stream == 'mc' ? window.mcStartDate : window.tgStartDate;
+    let end_date = stream == 'mc' ? window.mcEndDate : window.tgEndDate;
+    let queryParams = $.param(
+        topicScopedParams({
+            start_date: start_date,
+            end_date: end_date,
+            conditions: JSON.stringify(window.countryConditions[stream]),
+            stream: stream
+        }, stream),
+        true
+    );
+    let customOptions = {titleText: '', titleUseHTML: false};
+
+    $(`#${stream}-attention-trends`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    renderTimeSeriesFromUrl(
+        `${stream}-attention-trends`,
+        `/${window.country}/filter_attention_trends?${queryParams}`,
+        customOptions,
+        'date'
+    );
+
+    let categoryKey = hasTopicCondition(stream) ? 'topic' : 'domain';
+    $(`#${stream}-domains-bar-chart`).html('<div class="spinner-border country-chart-spinner" role="status"><span class="visually-hidden">Loading...</span></div>');
+    renderBarChartFromUrl(
+        `${stream}-domains-bar-chart`,
+        `/${window.country}/domain_ranking?${queryParams}`,
+        {'categoryKey': categoryKey, 'valueKey': 'frequency'},
+        customOptions
+    );
+
+    TalkingPoints(
+        `${stream}-talking-points`,
+        stream,
+        '/talking_points_on_conditions',
+        JSON.stringify(window.countryConditions[stream])
+    );
+}
+
 
 
 
@@ -1469,7 +1876,8 @@ $(document).ready(async function (){
         overallTrends('oa-anomaly-trends', 'oa', '/overall_trend_hc', 'anomaly', "", window.countryConditions['oa'], 'column');
         AttentionTrends('oa-attention-trends', 'oa', '/overall_trend', 'attention', "", window.countryConditions['oa']);
         AttentionTrends('oa-sentiment-trends', 'oa', '/overall_trend', 'sentiment', "", window.countryConditions['oa']);
-        HumanMobilitySSIFieldsTimeline('oa-ssi-trends', {titleText: ""}, 'oa');
+        ScopeAwareSSIFieldsTimeline('oa-ssi-trends', {titleText: ""}, 'oa');
+        CorpusCoverageCharts();
         // fetch('/static/hc/oa-anomaly.json')  // Specifica il percorso al tuo file JSON
         //     .then(response => {
         //         if (!response.ok) {
@@ -1507,11 +1915,45 @@ $(document).ready(async function (){
         // MCLocations('mc-locations');
         // MCPersons('mc-persons');
         // MCOrgs('mc-orgs');
-        HumanMobilitySSIFieldsTimeline('si-human-mobility-fields', {titleText: ''});
+        SearchInterestSection();
 
         TgMessageWidget();
         MCStoryWidget();
+        CorpusSummary('tg');
+        CorpusSummary('mc');
     };
+
+    updateTopicFilterModeControls();
+    updateTfidfMetricControl();
+    updateCorpusCoverageIntervalControl();
+
+    $('.topic-filter-option').on('click', function (){
+        let stream = $(this).data('stream');
+        let nextMode = $(this).data('topic-filter-mode');
+        if (nextMode == topicFilterMode(stream)){
+            return;
+        }
+        setTopicFilterMode(stream, nextMode);
+        renderTopicFilteredCharts(stream);
+    });
+
+    $('.tfidf-metric-option').on('click', function (){
+        let metric = $(this).data('tfidf-metric');
+        if (metric === window.tfidfMetric){
+            return;
+        }
+        setTfidfMetric(metric);
+        WordCloud('tg-top-terms', 'tg', '');
+    });
+
+    $('.coverage-interval-option').on('click', function (){
+        let interval = $(this).data('coverage-interval');
+        if (interval === window.corpusCoverageInterval){
+            return;
+        }
+        setCorpusCoverageInterval(interval);
+        CorpusCoverageCharts();
+    });
 
 
      function renderNonChartCards(){
@@ -1578,6 +2020,9 @@ $(document).ready(async function (){
         //window.conditionCounter[stream] = 0;
         window.countryConditions[stream] =  [];
         window.MessagesOffset[stream] = 0;
+        if (['tg', 'mc'].includes(stream)){
+            setTopicFilterMode(stream, 'strict');
+        }
         $(`#${stream}-query-form`).html('');
         addCon(`${stream}-query-form`);
         renderCharts();
@@ -1628,18 +2073,21 @@ $(document).ready(async function (){
             alert('Query empty. Select at least one field.')
             return
         }
+        if (['tg', 'mc'].includes(stream)){
+            updateTopicFilterModeControl(stream);
+        }
         window.MessagesOffset[stream] = 0;
         $('.builder-container').hide();
         $('#modal-overlay').hide();
         if (['mc', 'tg'].includes(stream)){
             let base_endpoint = `/${window.country}/filter_attention_trends`;
             let queryParams = $.param(
-                {
+                topicScopedParams({
                     start_date: start_date,
                     end_date: end_date,
                     conditions: JSON.stringify(window.countryConditions[stream]),
                     stream: stream
-                },
+                }, stream),
                 true
             );
             let url = base_endpoint + '?' + queryParams;
@@ -1676,6 +2124,7 @@ $(document).ready(async function (){
                 '/talking_points_on_conditions', JSON.stringify(window.countryConditions[stream]))
             TgMessageWidget();
             MCStoryWidget();
+            CorpusSummary(stream);
             EmotionTrends(
                 `${stream}-emotion-trends`, stream, JSON.stringify(window.countryConditions[stream]),
                 {titleText: ''}
@@ -1684,7 +2133,7 @@ $(document).ready(async function (){
             overallTrends('oa-anomaly-trends', stream, '/overall_trend_hc', 'anomaly', '', window.countryConditions[stream], 'column');
             AttentionTrends('oa-attention-trends', stream, '/overall_trend', 'attention', '' , window.countryConditions[stream]);
             AttentionTrends('oa-sentiment-trends', stream, '/overall_trend', 'sentiment', '' , window.countryConditions[stream]);
-            HumanMobilitySSIFieldsTimeline('oa-ssi-trends', {titleText: ''}, stream);
+            ScopeAwareSSIFieldsTimeline('oa-ssi-trends', {titleText: ''}, stream);
         }
         fillSearchBar(stream);
         

@@ -1,5 +1,19 @@
 <div id="modal-overlay"></div>
-<div class="d-flex flex-row p-4">
+<div class="dashboard-filter-controls">
+    <div class="topic-filter-mode-toggle" data-stream="tg" aria-label="Telegram topic filter behavior" hidden>
+        <span class="topic-filter-mode-label">Topic filter</span>
+        <button type="button" class="topic-filter-option" data-stream="tg" data-topic-filter-mode="strict"
+                title="Show only the explicitly selected topics and their domains.">Selected topics</button>
+        <button type="button" class="topic-filter-option" data-stream="tg" data-topic-filter-mode="context"
+                title="Show topics and domains related to records matching the selected topics.">Related context</button>
+    </div>
+    <div class="topic-filter-mode-toggle" data-stream="mc" aria-label="Media topic filter behavior" hidden>
+        <span class="topic-filter-mode-label">Topic filter</span>
+        <button type="button" class="topic-filter-option" data-stream="mc" data-topic-filter-mode="strict"
+                title="Show only the explicitly selected topics and their domains.">Selected topics</button>
+        <button type="button" class="topic-filter-option" data-stream="mc" data-topic-filter-mode="context"
+                title="Show topics and domains related to records matching the selected topics.">Related context</button>
+    </div>
 
     <div id="oa-filter-bar" class="filter-bar" style="cursor: pointer;">
         <div class="filter-top">
@@ -116,3 +130,5 @@
     </div>
     
 </div>
+<section id="tg-corpus-summary" class="corpus-summary-strip" data-stream="tg" aria-live="polite" hidden></section>
+<section id="mc-corpus-summary" class="corpus-summary-strip" data-stream="mc" aria-live="polite" hidden></section>

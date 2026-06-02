@@ -7,7 +7,8 @@ const noDataHTML = `
 function remapData(data, mappingKeys) {
     return data.map(item => ({
         'name': item[mappingKeys.categoryKey],
-        'weight': parseFloat(item[mappingKeys.valueKey])
+        'weight': parseFloat(item[mappingKeys.valueKey]),
+        'dateId': mappingKeys.dateKey ? item[mappingKeys.dateKey] : null
     }));
 }
 
@@ -79,9 +80,10 @@ export function renderWordCloud(chartId, data, mappingKeys, customOptions) {
 		xAxisTitleEnabled: false,
 		yAxisTitleEnabled: false,
 		yAxisTitleText: 'Value',
-        infoTooltipText: 'This is a chart tooltip for wordcloud data.',
+	        infoTooltipText: 'This is a chart tooltip for wordcloud data.',
+			seriesName: 'Period average',
 
-	};
+		};
     // Merge custom options with default options
 	const opts = { ...defaultOptions, ...customOptions };
     let height = opts.chartHeightRatio ? (opts.chartHeightRatio * 100) + '%' : null;
@@ -109,13 +111,18 @@ export function renderWordCloud(chartId, data, mappingKeys, customOptions) {
             visible: false,
         },
         tooltip: {
-            valueDecimals: 2
+            formatter: function () {
+                let dateLabel = this.point.dateId
+                    ? `<br/>Day: <b>${this.point.dateId}</b>`
+                    : '';
+                return `<b>${this.point.name}</b><br/>${this.series.name}: <b>${Highcharts.numberFormat(this.point.weight, 3)}</b>${dateLabel}`;
+            }
         },
         series: [{
             type: 'wordcloud',
             //colorByPoint: false,
             data: remappedData,
-            name: 'Prevalence'
+            name: opts.seriesName
         }],
         responsive: {
 			rules: [{

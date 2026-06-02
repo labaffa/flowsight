@@ -396,12 +396,20 @@ async def latest_sentiment_score(pool):
 
 
 
+def _previous_period(start_date: int, end_date: int) -> tuple[int, int]:
+    date1 = dt.datetime.strptime(str(start_date), "%Y%m%d")
+    date2 = dt.datetime.strptime(str(end_date), "%Y%m%d")
+    day_difference = (date2 - date1).days + 1
+    prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
+    prev_end_date = int((date1 - dt.timedelta(days=1)).strftime("%Y%m%d"))
+    return prev_start_date, prev_end_date
+
+
 async def latest_sentiment_with_delta_for_period(pool, start_date, end_date, stream):
     date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
     date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
     day_difference = (date2 - date1).days + 1
-    prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
-    prev_end_date = start_date
+    prev_start_date, prev_end_date = _previous_period(start_date, end_date)
 
     if stream == "tg":
         agg_model = models.TgSentimentDayDomainAgg
@@ -504,9 +512,11 @@ async def domain_ranking_in_period(
     if stream == "tg":
         agg_model = models.TgTopicIdPositive
         count_model = models.TgDailyCounts
+        record_id_name = "message_unique_id"
     elif stream == "mc":
         agg_model = models.MCTopicIdPositive
         count_model = models.MCDailyCounts
+        record_id_name = "story_id"
     else:
         raise ValueError(f'Stream {stream} not allowed')
     q = (
@@ -520,7 +530,8 @@ async def domain_ranking_in_period(
                 AND cm.date_id BETWEEN {start_date} AND {end_date}
         )
         select 
-            sum(1)::float/(SELECT total_count FROM total_count) as frequency
+            count(DISTINCT tticda.{record_id_name})::float /
+                nullif((SELECT total_count FROM total_count), 0) as frequency
             , domain_id
             , dom.name as domain
         from {tablename(agg_model)} tticda 
@@ -659,8 +670,7 @@ async def tg_talking_points_with_delta(pool, country_id: int, start_date: int, e
     date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
     date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
     day_difference = (date2 - date1).days + 1
-    prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
-    prev_end_date = start_date
+    prev_start_date, prev_end_date = _previous_period(start_date, end_date)
 
     q = (
         f'''
@@ -737,8 +747,7 @@ async def mc_talking_points_with_delta(pool, country_id: int, start_date: int, e
     date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
     date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
     day_difference = (date2 - date1).days + 1
-    prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
-    prev_end_date = start_date
+    prev_start_date, prev_end_date = _previous_period(start_date, end_date)
 
     q = (
         f'''
@@ -1320,6 +1329,23 @@ async def mc_stories_no_duplicates(
     return result
 
 
+TOPIC_FILTER_MODES = {"strict", "context"}
+
+
+def normalize_topic_filter_mode(topic_filter_mode: str = "strict") -> str:
+    normalized = (topic_filter_mode or "strict").strip().lower()
+    if normalized not in TOPIC_FILTER_MODES:
+        allowed = ", ".join(sorted(TOPIC_FILTER_MODES))
+        raise ValueError(f"Topic filter mode {topic_filter_mode} not allowed. Expected one of: {allowed}")
+    return normalized
+
+
+def topic_output_clause(conditions, topic_filter_mode: str, topic_table_alias: str) -> str:
+    if normalize_topic_filter_mode(topic_filter_mode) != "strict":
+        return ""
+    return generate_filter_clauses(conditions, topic_table_alias=topic_table_alias)[0]
+
+
 def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_alias="ts", topic_col='topic_unique_id'):
     nested_dicts = lambda: defaultdict(nested_dicts)
     topic_clause, notin_clause, sentiment_clause, emotion_clause = "", "", "", ""
@@ -1498,7 +1524,7 @@ async def get_filtered_message_ids(pool, conditions, start_date, end_date, count
 
 
 async def time_series_from_filtered_messages(
-        pool, conditions, country_id, start_date, end_date, stream="tg"
+        pool, conditions, country_id, start_date, end_date, stream="tg", topic_filter_mode="strict"
     ):
     """
     This function must be used only if topics are present in conditions, i.e. the variable topic_clause
@@ -1530,26 +1556,40 @@ async def time_series_from_filtered_messages(
         daily_counts_table = models.MCDailyCounts
     else:
         raise ValueError(f'Stream {stream} not allowed')
+    output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
     q = (
         f'''
-        
+            WITH qualified_records AS (
+                SELECT DISTINCT
+                    ttip.{record_col_name},
+                    ttip.country_id,
+                    ttip.date_id
+                FROM {tablename(topic_table)} ttip
+                JOIN {tablename(sentiment_table)} ts
+                    ON ttip.{record_col_name} = ts.{record_col_name}
+                    AND ttip.country_id = ts.country_id
+                WHERE
+                    ttip.date_id BETWEEN {start_date} AND {end_date}
+                    AND ttip.country_id = {country_id}
+                    {topic_clause}
+                    {sentiment_clause}
+                    {emotion_clause}
+            )
             select
-                ttip.date_id as date_id
-                , sum(ttip.topic_norm_prevalence)/tdc.count as value
+                qr.date_id as date_id
+                , sum(all_ttip.topic_norm_prevalence)/tdc.count as value
                 , t.topic as topic
-            from {tablename(topic_table)} ttip
-            join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
-                and (ttip.country_id = ts.country_id)
+            from qualified_records qr
+            join {tablename(topic_table)} all_ttip
+                on all_ttip.{record_col_name} = qr.{record_col_name}
+                and all_ttip.country_id = qr.country_id
+                and all_ttip.date_id = qr.date_id
             join {tablename(daily_counts_table)} tdc on 
-                tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
-            join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
-            where 
-                (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
-                and ttip.country_id = {country_id}
-                {topic_clause}
-                {sentiment_clause}
-                {emotion_clause}
-            group by ttip.country_id, ttip.date_id, t.topic, tdc.count
+                tdc.date_id = qr.date_id and tdc.country_id = qr.country_id
+            join {tablename(models.Topic)} t on t.id = all_ttip.topic_unique_id
+            where 1 = 1
+                {output_topic_clause}
+            group by qr.country_id, qr.date_id, t.topic, tdc.count
             ;
         '''
     )
@@ -1561,7 +1601,9 @@ async def time_series_from_filtered_messages(
     return result    
 
 
-async def hot_topics_with_topic_condition(pool, conditions, country_id, start_date, end_date, stream):
+async def hot_topics_with_topic_condition(
+    pool, conditions, country_id, start_date, end_date, stream, topic_filter_mode="strict"
+):
     """
     This function must be used only if topics are present in conditions, i.e. the variable topic_clause
     is not an empty string.
@@ -1593,6 +1635,7 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
         record_id_name = "story_id"
     else:
         raise ValueError(f'Stream {stream} not allowed')
+    output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
     q = (
         f'''
         WITH total_count AS (
@@ -1602,21 +1645,36 @@ async def hot_topics_with_topic_condition(pool, conditions, country_id, start_da
             WHERE
                 cm.country_id = {country_id}
                 AND cm.date_id BETWEEN {start_date} AND {end_date}
-        )
-            select
-                sum(1)::float/(SELECT total_count FROM total_count) as frequency
-                , t.topic as topic
-            from {tablename(topic_model)} ttip
-            join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
-                and (ts.country_id = ttip.country_id)
-            join {tablename(models.Topic)} as t on ttip.topic_unique_id = t.id
-            
-            where 
-                (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
-                and ttip.country_id = {country_id}
+        ),
+        qualified_records AS (
+            SELECT DISTINCT
+                ttip.{record_id_name},
+                ttip.country_id,
+                ttip.date_id
+            FROM {tablename(topic_model)} ttip
+            JOIN {tablename(sentiment_model)} ts
+                ON ts.{record_id_name} = ttip.{record_id_name}
+                AND ts.country_id = ttip.country_id
+            WHERE
+                ttip.date_id BETWEEN {start_date} AND {end_date}
+                AND ttip.country_id = {country_id}
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
+        )
+            select
+                count(DISTINCT qr.{record_id_name})::float /
+                    nullif((SELECT total_count FROM total_count), 0) as frequency
+                , t.topic as topic
+            from qualified_records qr
+            join {tablename(topic_model)} all_ttip
+                on all_ttip.{record_id_name} = qr.{record_id_name}
+                and all_ttip.country_id = qr.country_id
+                and all_ttip.date_id = qr.date_id
+            join {tablename(models.Topic)} as t on all_ttip.topic_unique_id = t.id
+            
+            where 1 = 1
+                {output_topic_clause}
             group by t.topic
             order by frequency desc
             ;
@@ -1673,7 +1731,8 @@ async def hot_topics_without_topic_condition(
                 AND cm.date_id BETWEEN {start_date} AND {end_date}
         )
             select
-                sum(1)::float/(SELECT total_count FROM total_count) as frequency
+                count(DISTINCT ttip.{record_id_name})::float /
+                    nullif((SELECT total_count FROM total_count), 0) as frequency
                 , domain_id
                 , dom.name as domain
 
@@ -1727,8 +1786,7 @@ async def talking_points_on_conditions_bkp(pool, conditions, country_id, start_d
     date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
     date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
     day_difference = (date2 - date1).days + 1
-    prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
-    prev_end_date = start_date
+    prev_start_date, prev_end_date = _previous_period(start_date, end_date)
     
 
     q = (
@@ -1810,7 +1868,9 @@ async def talking_points_on_conditions_bkp(pool, conditions, country_id, start_d
     return result
 
 
-async def talking_points_on_conditions(pool, conditions, country_id, start_date, end_date, stream):
+async def talking_points_on_conditions(
+    pool, conditions, country_id, start_date, end_date, stream, topic_filter_mode="strict"
+):
     if conditions is not None:
         topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
     else:
@@ -1832,9 +1892,9 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
     date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
     date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
     day_difference = (date2 - date1).days + 1
-    prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
-    prev_end_date = start_date
+    prev_start_date, prev_end_date = _previous_period(start_date, end_date)
 
+    output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "ttip")
     q = (
         f'''
         with latest_count as (
@@ -1901,30 +1961,45 @@ async def talking_points_on_conditions(pool, conditions, country_id, start_date,
             select 	
                 *
             from filt_latest_msg
+        ),
+        record_domain_metrics as (
+            select
+                l.{record_id_name}
+                , l._type
+                , t.domain_id
+                , d.name as domain
+                , max(ts.sentiment) as sentiment
+            from tot_messages l
+            join {tablename(topic_model)} ttip
+                on l.{record_id_name} = ttip.{record_id_name}
+                and ttip.country_id = {country_id}
+            join {tablename(sentiment_model)} ts
+                on ttip.{record_id_name} = ts.{record_id_name}
+                and ttip.country_id = ts.country_id
+            join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
+            join {tablename(models.Domain)} d on t.domain_id = d.id
+            where 1 = 1
+                {output_topic_clause}
+            group by l.{record_id_name}, l._type, t.domain_id, d.name
         )
 
 	
             select 
-                sum(topic_norm_prevalence)/
+                count(*)::float/
                 case 
-                    when l._type = 'prev' then prev_count.value
-                    when l._type = 'latest' then latest_count.value
+                    when rdm._type = 'prev' then prev_count.value
+                    when rdm._type = 'latest' then latest_count.value
                     else 1  -- default
                 end as attention
-                , avg(sentiment) as sentiment
-                , t.domain_id as domain_id
-                , d.name as domain
-                , _type as type
-            from tot_messages l
-            join  {tablename(topic_model)} ttip on l.{record_id_name} = ttip.{record_id_name}
-            join {tablename(sentiment_model)} ts on ttip.{record_id_name} = ts.{record_id_name}
-                and ttip.country_id = ts.country_id
-            join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id
-            join {tablename(models.Domain)} d on t.domain_id = d.id
+                , avg(rdm.sentiment) as sentiment
+                , rdm.domain_id as domain_id
+                , rdm.domain as domain
+                , rdm._type as type
+            from record_domain_metrics rdm
             join latest_count on true
             join prev_count on true
             
-            group by t.domain_id, d.name, l._type, prev_count.value, latest_count.value
+            group by rdm.domain_id, rdm.domain, rdm._type, prev_count.value, latest_count.value
             ;
                 '''
         )
@@ -1966,26 +2041,75 @@ async def tfidf_top_terms(pool, alpha_2: str, start_date: int, end_date: int, st
 
 
 async def tfidf_day_agg_top_terms(
-        pool, alpha_2: str, start_date: int, end_date: int, stream: str="tg", limit: int=50):
+        pool, alpha_2: str, start_date: int, end_date: int, stream: str="tg", limit: int=50,
+        metric: str="period_average", max_document_frequency: float=0.80):
     if stream == "tg":
         model = models.TFIDFDayAgg[alpha_2]
     # elif stream == "mc":
     #     pass
     else:
         raise ValueError(f'Stream {stream} not allowed for tfidf')
-    q = (
-        f"""
-        select 	
-            tz.lemma as lemma
-            , avg(tz.tfidf) as mean_value
-        from {tablename(model)} tz 
-        where 
-           tz.date_id between {start_date} and {end_date}
-        group by tz.lemma 
-        order by avg(tz.tfidf) desc 
-        limit {limit}
-        """
-    )
+    if metric == "period_average":
+        q = (
+            f"""
+            with active_days as (
+                select count(distinct tz.date_id)::float as value
+                from {tablename(model)} tz
+                where tz.date_id between {start_date} and {end_date}
+            ),
+            corpus_days as (
+                select count(distinct tz.date_id)::float as value
+                from {tablename(model)} tz
+            ),
+            allowed_terms as (
+                select tz.lemma
+                from {tablename(model)} tz
+                cross join corpus_days
+                group by tz.lemma, corpus_days.value
+                having count(distinct tz.date_id)::float /
+                    nullif(corpus_days.value, 0) < {max_document_frequency}
+            )
+            select
+                tz.lemma as lemma
+                , sum(tz.tfidf) / nullif(active_days.value, 0) as mean_value
+            from {tablename(model)} tz
+            join allowed_terms using (lemma)
+            cross join active_days
+            where
+               tz.date_id between {start_date} and {end_date}
+            group by tz.lemma, active_days.value
+            order by mean_value desc
+            limit {limit}
+            """
+        )
+    elif metric == "daily_peak":
+        q = (
+            f"""
+            with corpus_days as (
+                select count(distinct tz.date_id)::float as value
+                from {tablename(model)} tz
+            ),
+            allowed_terms as (
+                select tz.lemma
+                from {tablename(model)} tz
+                cross join corpus_days
+                group by tz.lemma, corpus_days.value
+                having count(distinct tz.date_id)::float /
+                    nullif(corpus_days.value, 0) < {max_document_frequency}
+            )
+            select
+                tz.date_id
+                , tz.lemma
+                , tz.tfidf as mean_value
+            from {tablename(model)} tz
+            join allowed_terms using (lemma)
+            where tz.date_id between {start_date} and {end_date}
+            order by tz.tfidf desc, tz.date_id desc, tz.lemma
+            limit {limit}
+            """
+        )
+    else:
+        raise ValueError(f"TF-IDF metric {metric} not allowed")
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(q)
@@ -2227,7 +2351,10 @@ async def chart_studio_bar_chart_from_stream(
     else:
         raise ValueError(f'Stream {stream} not allowed')
     if field_type == "attention":
-        frequency_clause = " sum(1)::float/(SELECT total_count FROM total_count) as frequency"
+        frequency_clause = (
+            f" count(DISTINCT ttip.{record_col_name})::float / "
+            "nullif((SELECT total_count FROM total_count), 0) as frequency"
+        )
         distinct_clause = ""
         field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
         joint_topic_clause = f"join {tablename(models.Topic)} t on t.id = ttip.topic_unique_id"

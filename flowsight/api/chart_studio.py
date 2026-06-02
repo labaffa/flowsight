@@ -19,6 +19,10 @@ def _default_country_alpha_2(request: fastapi.Request) -> str:
     return request.app.default_country_alpha_2
 
 
+def _is_hm_scope(scope: str) -> bool:
+    return (scope or "hm").strip().lower() != "global"
+
+
 @router.get("/studio_line_chart")
 async def get_studio_time_series(
     request: fastapi.Request,
@@ -27,6 +31,7 @@ async def get_studio_time_series(
     fields,
     countries,
     conditions: str = "",
+    scope: str = "hm",
 ):
     conditions = json.loads(conditions) if conditions else None
     fields = json.loads(fields)
@@ -42,12 +47,23 @@ async def get_studio_time_series(
                     request.app.async_pool, field["country_id"], start_date, end_date, conditions
                 )
             )
-        else:
+        elif _is_hm_scope(scope):
             sql_coros.append(
                 human_mobility_utils.chart_studio_time_series_from_stream(
                     request.app.async_pool,
                     conditions,
                     alpha_2,
+                    field["country_id"],
+                    start_date,
+                    end_date,
+                    field,
+                )
+            )
+        else:
+            sql_coros.append(
+                utils.chart_studio_time_series_from_stream(
+                    request.app.async_pool,
+                    conditions,
                     field["country_id"],
                     start_date,
                     end_date,
@@ -103,6 +119,7 @@ async def get_studio_bar_chart(
     fields,
     countries,
     conditions: str = "",
+    scope: str = "hm",
 ):
     conditions = json.loads(conditions) if conditions else None
     fields = json.loads(fields)
@@ -118,12 +135,23 @@ async def get_studio_bar_chart(
                     request.app.async_pool, field["country_id"], start_date, end_date, conditions
                 )
             )
-        else:
+        elif _is_hm_scope(scope):
             sql_coros.append(
                 human_mobility_utils.chart_studio_bar_chart_from_stream(
                     request.app.async_pool,
                     conditions,
                     alpha_2,
+                    field["country_id"],
+                    start_date,
+                    end_date,
+                    field,
+                )
+            )
+        else:
+            sql_coros.append(
+                utils.chart_studio_bar_chart_from_stream(
+                    request.app.async_pool,
+                    conditions,
                     field["country_id"],
                     start_date,
                     end_date,
@@ -154,9 +182,21 @@ async def get_telegram_messages(
     sorted_by: str = "date",
     limit: int = 10,
     offset: int = 0,
+    scope: str = "hm",
 ):
     conditions = json.loads(conditions) if conditions else None
-    return await human_mobility_utils.tg_messages(
+    if _is_hm_scope(scope):
+        return await human_mobility_utils.tg_messages(
+            request.app.async_pool,
+            _default_country_alpha_2(request),
+            start_date,
+            end_date,
+            sorted_by,
+            limit,
+            conditions,
+            offset,
+        )
+    return await utils.tg_messages_no_duplicates(
         request.app.async_pool,
         _default_country_alpha_2(request),
         start_date,
@@ -178,9 +218,21 @@ async def get_mc_stories(
     sorted_by: str = "date",
     limit: int = 10,
     offset: int = 0,
+    scope: str = "hm",
 ):
     conditions = json.loads(conditions) if conditions else None
-    return await human_mobility_utils.mc_stories(
+    if _is_hm_scope(scope):
+        return await human_mobility_utils.mc_stories(
+            request.app.async_pool,
+            _default_country_alpha_2(request),
+            start_date,
+            end_date,
+            sorted_by,
+            limit,
+            conditions,
+            offset,
+        )
+    return await utils.mc_stories(
         request.app.async_pool,
         _default_country_alpha_2(request),
         start_date,

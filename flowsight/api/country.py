@@ -37,6 +37,95 @@ def _resolve_country_code(request: fastapi.Request, alpha_2: str) -> str:
     return request.app.default_country_alpha_2
 
 
+def _is_hm_scope(scope: str) -> bool:
+    return (scope or "hm").strip().lower() != "global"
+
+
+def _resolve_topic_filter_mode(topic_filter_mode: str) -> str:
+    try:
+        return utils.normalize_topic_filter_mode(topic_filter_mode)
+    except ValueError as exc:
+        raise fastapi.HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _format_talking_points(data):
+    response = []
+    nested_dicts = lambda: defaultdict(nested_dicts)
+    by_domain_layer = nested_dicts()
+    for d in data:
+        k = "prev_value" if d["type"] == "prev" else "latest_value"
+        by_domain_layer[d["domain"]]["attention"][k] = d["attention"]
+        by_domain_layer[d["domain"]]["sentiment"][k] = d["sentiment"]
+    for domain, layer in by_domain_layer.items():
+        for lname, values in layer.items():
+            response.append({
+                "domain": domain,
+                "layer": lname,
+                "latest_value": values.get("latest_value"),
+                "prev_value": values.get("prev_value"),
+            })
+    return [x for x in response if x["latest_value"]]
+
+
+@router.get("/{alpha_2}/corpus_summary")
+async def get_corpus_summary(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    conditions: str="",
+):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in ["tg", "mc"]:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"Stream {stream} not allowed."
+        )
+    conditions = json.loads(conditions) if conditions else None
+    data = await human_mobility_utils.corpus_summary(
+        request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
+    )
+    hm_records_in_period = data["hm_records_in_period"]
+    data["stream"] = stream
+    data["period"] = {"start_date": start_date, "end_date": end_date}
+    data["filtered_hm_coverage"] = (
+        data["filtered_hm_records_in_period"] / hm_records_in_period
+        if hm_records_in_period
+        else None
+    )
+    return data
+
+
+@router.get("/{alpha_2}/corpus_coverage_series")
+async def get_corpus_coverage_series(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    interval: str="auto",
+):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in ["tg", "mc"]:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"Stream {stream} not allowed."
+        )
+    try:
+        return await human_mobility_utils.corpus_coverage_series(
+            request.app.async_pool,
+            alpha_2,
+            country_id,
+            start_date,
+            end_date,
+            stream,
+            interval,
+        )
+    except ValueError as exc:
+        raise fastapi.HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.get("/{alpha_2}/domain_ranking")
 async def get_domain_rank_in_period_for_country(
     request: fastapi.Request,
@@ -44,7 +133,9 @@ async def get_domain_rank_in_period_for_country(
     start_date: int, 
     end_date: int,
     stream: str,
-    conditions: str=""
+    conditions: str="",
+    scope: str="hm",
+    topic_filter_mode: str="strict",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     alpha_2 = _resolve_country_code(request, alpha_2)
@@ -53,19 +144,36 @@ async def get_domain_rank_in_period_for_country(
             status_code=400, detail=f'Stream {stream} not allowed.'
         )
     conditions = json.loads(conditions) if conditions else None
+    topic_filter_mode = _resolve_topic_filter_mode(topic_filter_mode)
     topic_clause = utils.generate_filter_clauses(conditions)[0]
-    if not conditions:  # default
-        response = await human_mobility_utils.domain_ranking(
-            request.app.async_pool, alpha_2, country_id, start_date, end_date, stream
+    if _is_hm_scope(scope):
+        if not conditions:  # default
+            response = await human_mobility_utils.domain_ranking(
+                request.app.async_pool, alpha_2, country_id, start_date, end_date, stream
+            )
+        else:
+            if topic_clause:
+                response = await human_mobility_utils.hot_topics_with_topic_condition(
+                    request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream,
+                    topic_filter_mode
+                )
+            else:
+                response = await human_mobility_utils.hot_topics_without_topic_condition(
+                    request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
+                )
+    elif not conditions:
+        response = await utils.domain_ranking_in_period(
+            request.app.async_pool, country_id, start_date, end_date, stream
         )
     else:
         if topic_clause:
-            response = await human_mobility_utils.hot_topics_with_topic_condition(
-                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
+            response = await utils.hot_topics_with_topic_condition(
+                request.app.async_pool, conditions, country_id, start_date, end_date, stream,
+                topic_filter_mode
             )
         else:
-            response = await human_mobility_utils.hot_topics_without_topic_condition(
-                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
+            response = await utils.hot_topics_without_topic_condition(
+                request.app.async_pool, conditions, country_id, start_date, end_date, stream
             )
     return response
 
@@ -95,38 +203,27 @@ async def get_talking_points_for_country_in_period(
     alpha_2: str,
     start_date: int,
     end_date: int,
-    stream: str
+    stream: str,
+    scope: str="hm",
+    topic_filter_mode: str="strict",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     alpha_2 = _resolve_country_code(request, alpha_2)
+    topic_filter_mode = _resolve_topic_filter_mode(topic_filter_mode)
     if stream not in ["tg", "mc"]:
         raise fastapi.HTTPException(
             status_code=400, detail=f'{stream} stream not allowed'
         )
-    data = await human_mobility_utils.talking_points(
-        request.app.async_pool,
-        None, alpha_2, country_id, start_date, end_date, stream
-    )
-    response = []
-    nested_dicts = lambda: defaultdict(nested_dicts)
-    by_domain_layer = nested_dicts()
-    for d in data:
-        if d["type"] == "prev":
-            k = "prev_value"
-        else:
-            k = "latest_value"
-        by_domain_layer[d["domain"]]["attention"][k] = d["attention"]
-        by_domain_layer[d["domain"]]["sentiment"][k] = d["sentiment"]
-    for domain, layer in by_domain_layer.items():
-        for lname, values in layer.items():
-            response.append({
-                "domain": domain,
-                "layer": lname,
-                "latest_value": values.get("latest_value"),
-                "prev_value": values.get("prev_value")
-            })
-    response = [x for x in response if x["latest_value"]]
-    return response
+    if _is_hm_scope(scope):
+        data = await human_mobility_utils.talking_points(
+            request.app.async_pool,
+            None, alpha_2, country_id, start_date, end_date, stream, topic_filter_mode
+        )
+    else:
+        data = await utils.talking_points_on_conditions(
+            request.app.async_pool, None, country_id, start_date, end_date, stream, topic_filter_mode
+        )
+    return _format_talking_points(data)
 
 
 @router.get("/{alpha_2}/attention_trends")
@@ -136,7 +233,8 @@ async def get_tg_domains_for_country_in_period(
     start_date: int,
     end_date: int, 
     stream: str,
-    conditions: str=""
+    conditions: str="",
+    scope: str="hm",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     alpha_2 = _resolve_country_code(request, alpha_2)
@@ -144,14 +242,23 @@ async def get_tg_domains_for_country_in_period(
         raise fastapi.HTTPException(
             status_code=400, detail=f'{stream} stream not allowed'
         )
-    data = await human_mobility_utils.attention_trends(
-        request.app.async_pool,
-        alpha_2,
-        country_id,
-        start_date,
-        end_date,
-        stream,
-    )
+    if _is_hm_scope(scope):
+        data = await human_mobility_utils.attention_trends(
+            request.app.async_pool,
+            alpha_2,
+            country_id,
+            start_date,
+            end_date,
+            stream,
+        )
+    elif stream == "tg":
+        data = await utils.tg_domain_prevalences_in_period_for_country(
+            request.app.async_pool, country_id, start_date, end_date
+        )
+    else:
+        data = await utils.mc_domain_prevalences_in_period_for_country(
+            request.app.async_pool, country_id, start_date, end_date
+        )
     if not data:
         return []
     domains = request.app.domains
@@ -249,13 +356,19 @@ async def get_telegram_messages(
     conditions: str="",
     sorted_by: str="date",
     limit: int = 10,
-    offset: int = 0
+    offset: int = 0,
+    scope: str="hm",
 ):
     alpha_2 = _resolve_country_code(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
-    response = await human_mobility_utils.tg_messages(
-        request.app.async_pool, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset,
-    )
+    if _is_hm_scope(scope):
+        response = await human_mobility_utils.tg_messages(
+            request.app.async_pool, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset,
+        )
+    else:
+        response = await utils.tg_messages_no_duplicates(
+            request.app.async_pool, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset,
+        )
     # response = list({x["unique_id"]: x for x in response}.values())
     return response
 
@@ -267,11 +380,14 @@ async def get_attention_trends_on_conditions(
     start_date: int,
     end_date: int,
     conditions: str="",
-    stream: str="tg"
+    stream: str="tg",
+    scope: str="hm",
+    topic_filter_mode: str="strict",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     alpha_2 = _resolve_country_code(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
+    topic_filter_mode = _resolve_topic_filter_mode(topic_filter_mode)
     # response = await utils.get_filtered_message_ids(
     #     request.app.async_pool, conditions, start_date, end_date, country_id)
     start_date_dt = dt.datetime.strptime(str(start_date), '%Y%m%d').date()
@@ -279,9 +395,16 @@ async def get_attention_trends_on_conditions(
     response = []
     topic_clause = utils.generate_filter_clauses(conditions)[0]
     if topic_clause:
-        data = await human_mobility_utils.topic_time_series(
-            request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
-        )
+        if _is_hm_scope(scope):
+            data = await human_mobility_utils.topic_time_series(
+                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream,
+                topic_filter_mode
+            )
+        else:
+            data = await utils.time_series_from_filtered_messages(
+                request.app.async_pool, conditions, country_id, start_date, end_date, stream,
+                topic_filter_mode
+            )
         if not data:
             return []
         by_topic = defaultdict(dict)
@@ -300,9 +423,14 @@ async def get_attention_trends_on_conditions(
                 day_data[topic] = by_topic[day].get(topic)
             response.append(day_data)
     else:
-        data = await human_mobility_utils.domain_prevalences(
-            request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
-        )
+        if _is_hm_scope(scope):
+            data = await human_mobility_utils.domain_prevalences(
+                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
+            )
+        else:
+            data = await utils.domain_prevalences_in_period_for_country(
+                request.app.async_pool, country_id, start_date, end_date, stream, conditions
+            )
         if not data:
             return []
         domains = request.app.domains
@@ -333,13 +461,19 @@ async def get_mediacloud_stories(
     limit: int = 10,
     conditions: str="",
     offset: int = 0,
+    scope: str="hm",
     
 ):  
     alpha_2 = _resolve_country_code(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
-    response = await human_mobility_utils.mc_stories(
-        request.app.async_pool, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset
-    )
+    if _is_hm_scope(scope):
+        response = await human_mobility_utils.mc_stories(
+            request.app.async_pool, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset
+        )
+    else:
+        response = await utils.mc_stories(
+            request.app.async_pool, alpha_2, start_date, end_date, sorted_by, limit, conditions, offset
+        )
     # remove duplicates
     # response = list({x["id"]: x for x in response}.values())
     return response
@@ -376,16 +510,26 @@ async def get_hot_topics_on_conditions(
     start_date: int,
     end_date: int,
     conditions: str="",
-    stream: str="tg"
+    stream: str="tg",
+    scope: str="hm",
+    topic_filter_mode: str="strict",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
+    topic_filter_mode = _resolve_topic_filter_mode(topic_filter_mode)
     # response = await utils.get_filtered_message_ids(
     #     request.app.async_pool, conditions, start_date, end_date, country_id)
     alpha_2 = _resolve_country_code(request, alpha_2)
-    data = await human_mobility_utils.hot_topics_with_topic_condition(
-        request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
-    )
+    if _is_hm_scope(scope):
+        data = await human_mobility_utils.hot_topics_with_topic_condition(
+            request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream,
+            topic_filter_mode
+        )
+    else:
+        data = await utils.hot_topics_with_topic_condition(
+            request.app.async_pool, conditions, country_id, start_date, end_date, stream,
+            topic_filter_mode
+        )
     response = data
     return response
 
@@ -397,42 +541,27 @@ async def get_talking_points_on_conditions(
     start_date: int,
     end_date: int,
     conditions: str="",
-    stream:str="tg"
+    stream:str="tg",
+    scope: str="hm",
+    topic_filter_mode: str="strict",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
+    topic_filter_mode = _resolve_topic_filter_mode(topic_filter_mode)
     # response = await utils.get_filtered_message_ids(
     #     request.app.async_pool, conditions, start_date, end_date, country_id)
     alpha_2 = _resolve_country_code(request, alpha_2)
-    data = await human_mobility_utils.talking_points(
-        request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
-    )
-    response = []
-    nested_dicts = lambda: defaultdict(nested_dicts)
-
-    by_domain_layer = nested_dicts()
-
-    for d in data:
-        if d["type"] == "prev":
-            k = "prev_value"
-        else:
-            k = "latest_value"
-        by_domain_layer[d["domain"]]["attention"][k] = d["attention"]
-        by_domain_layer[d["domain"]]["sentiment"][k] = d["sentiment"]
-
-    
-    for domain, layer in by_domain_layer.items():
-        for lname, values in layer.items():
-            o = {
-                "domain": domain,
-                "layer": lname,
-                "latest_value": values.get("latest_value"),
-                "prev_value":  values.get("prev_value")
-            }
-
-            response.append(o)
-    response = [x for x in response if x["latest_value"]]
-    return response
+    if _is_hm_scope(scope):
+        data = await human_mobility_utils.talking_points(
+            request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream,
+            topic_filter_mode
+        )
+    else:
+        data = await utils.talking_points_on_conditions(
+            request.app.async_pool, conditions, country_id, start_date, end_date, stream,
+            topic_filter_mode
+        )
+    return _format_talking_points(data)
 
 
 @router.get("/{alpha_2}/tfidf_top_terms")
@@ -442,12 +571,30 @@ async def get_talking_points_on_conditions(
     start_date: int,
     end_date: int,
     stream:str="tg",
-    limit: int=50
+    limit: int=50,
+    scope: str="hm",
+    metric: str="period_average",
+    max_document_frequency: float=0.80,
 ):
     alpha_2 = _resolve_country_code(request, alpha_2)
-    data = await human_mobility_utils.tfidf_day_agg_top_terms(
-        request.app.async_pool, alpha_2, start_date, end_date, stream, limit
-    )
+    if metric not in ["period_average", "daily_peak"]:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"TF-IDF metric {metric} not allowed."
+        )
+    if not 0 < max_document_frequency <= 1:
+        raise fastapi.HTTPException(
+            status_code=400, detail="max_document_frequency must be greater than 0 and at most 1."
+        )
+    if _is_hm_scope(scope):
+        data = await human_mobility_utils.tfidf_day_agg_top_terms(
+            request.app.async_pool, alpha_2, start_date, end_date, stream, limit, metric,
+            max_document_frequency
+        )
+    else:
+        data = await utils.tfidf_day_agg_top_terms(
+            request.app.async_pool, alpha_2, start_date, end_date, stream, limit, metric,
+            max_document_frequency
+        )
     return data
 
 
@@ -458,7 +605,8 @@ async def get_studio_time_series(
     start_date: int,
     end_date: int,
     fields,
-    conditions: str=""
+    conditions: str="",
+    scope: str="hm",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     alpha_2 = _resolve_country_code(request, alpha_2)
@@ -470,9 +618,14 @@ async def get_studio_time_series(
             sql_coros.append(utils.chart_studio_time_series_from_ssi(
                 request.app.async_pool, country_id, start_date, end_date, conditions
             ))
-        else:
+        elif _is_hm_scope(scope):
             sql_coros.append(human_mobility_utils.chart_studio_time_series_from_stream(
                 request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, x
+                )
+            )
+        else:
+            sql_coros.append(utils.chart_studio_time_series_from_stream(
+                request.app.async_pool, conditions, country_id, start_date, end_date, x
                 )
             )
     sql_responses = await gather(*sql_coros)
@@ -498,13 +651,18 @@ async def get_studio_time_series(
     start_date: int,
     end_date: int,
     stream: str,
-    conditions: str=""
+    conditions: str="",
+    scope: str="hm",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
     alpha_2 = _resolve_country_code(request, alpha_2)
-    sql_data = await human_mobility_utils.emotion_trends(
-        request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream)
+    if _is_hm_scope(scope):
+        sql_data = await human_mobility_utils.emotion_trends(
+            request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream)
+    else:
+        sql_data = await utils.time_series_emotions(
+            request.app.async_pool, conditions, country_id, start_date, end_date, stream)
     if not sql_data:
         return []
     by_field = defaultdict(dict)
@@ -544,19 +702,25 @@ async def get_overall_trend(
     end_date: int,
     trend_type: str,
     conditions: str="",
+    scope: str="hm",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
     alpha_2 = _resolve_country_code(request, alpha_2)
     sql_coros = []
     for stream in ['mc', 'tg']:
-        if trend_type == "anomaly":
+        if _is_hm_scope(scope) and trend_type == "anomaly":
             sql_coros.append(human_mobility_utils.anomaly_time_series(
                 request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
             ))
-        else:
+        elif _is_hm_scope(scope):
             sql_coros.append(human_mobility_utils.overall_time_series(
                 request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, trend_type
+            ))
+        else:
+            sql_coros.append(utils.chart_studio_time_series_from_stream(
+                request.app.async_pool, conditions, country_id, start_date, end_date,
+                {"stream": stream, "type": trend_type}, aggr=True
             ))
     sql_responses = await gather(*sql_coros)
     
@@ -581,7 +745,7 @@ async def get_overall_trend(
     for d in data:
         by_field[d["date"]][d["field"]] = {"value": d["value"], "stream": d["stream"]}
         if trend_type == "anomaly":
-            by_field[d["date"]][d["field"]]["topic_ids"] = d['topic_ids'] if d['topic_ids'] else []
+            by_field[d["date"]][d["field"]]["topic_ids"] = d.get("topic_ids") or []
         fields_set.add(d["field"])
     for day in by_field:
         day_data = {"date": day}
@@ -602,19 +766,25 @@ async def get_overall_trend(
     end_date: int,
     trend_type: str,
     conditions: str="",
+    scope: str="hm",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
     alpha_2 = _resolve_country_code(request, alpha_2)
     sql_coros = []
     for stream in ['mc', 'tg']:
-        if trend_type == "anomaly":
+        if _is_hm_scope(scope) and trend_type == "anomaly":
             sql_coros.append(human_mobility_utils.anomaly_time_series(
                 request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
             ))
-        else:
+        elif _is_hm_scope(scope):
             sql_coros.append(human_mobility_utils.overall_time_series(
                 request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, trend_type
+            ))
+        else:
+            sql_coros.append(utils.chart_studio_time_series_from_stream(
+                request.app.async_pool, conditions, country_id, start_date, end_date,
+                {"stream": stream, "type": trend_type}, aggr=True
             ))
     sql_responses = await gather(*sql_coros)
     data = [x for r in sql_responses for x in r]
@@ -638,7 +808,7 @@ async def get_overall_trend(
     for d in data:
         record = {"date": int(dt.datetime.strptime(str(d["date"]), "%Y-%m-%d").replace(tzinfo=dt.timezone.utc).timestamp() * 1000), "value": d["value"]}
         if trend_type == "anomaly":
-            record["topic_names"] = d['topic_names'] if d['topic_names'] else []
+            record["topic_names"] = d.get("topic_names") or []
         by_field[d["field"]].append(record)
     for series_name, series_data in by_field.items():
         

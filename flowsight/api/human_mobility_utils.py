@@ -5,7 +5,7 @@ from psycopg.rows import dict_row
 
 from flowsight.db import models
 from flowsight.db.utils import tablename
-from flowsight.api.utils import generate_filter_clauses
+from flowsight.api.utils import generate_filter_clauses, topic_output_clause
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,8 @@ def _previous_period(start_date: int, end_date: int) -> tuple[int, int]:
     date2 = dt.datetime.strptime(str(end_date), "%Y%m%d")
     day_difference = (date2 - date1).days + 1
     prev_start_date = int((date1 - dt.timedelta(days=day_difference)).strftime("%Y%m%d"))
-    return prev_start_date, start_date
+    prev_end_date = int((date1 - dt.timedelta(days=1)).strftime("%Y%m%d"))
+    return prev_start_date, prev_end_date
 
 
 def _topic_filter_clause(conditions, table_alias: str = "agg", topic_col: str = "topic_id") -> str:
@@ -57,6 +58,242 @@ def _topic_filter_clause(conditions, table_alias: str = "agg", topic_col: str = 
     if not topic_values:
         return ""
     return f" AND {table_alias}.{topic_col} IN ({', '.join(str(v) for v in topic_values)})"
+
+
+async def corpus_summary(
+    pool,
+    conditions,
+    alpha_2: str,
+    country_id: int,
+    start_date: int,
+    end_date: int,
+    stream: str,
+):
+    alpha_2 = alpha_2.strip().lower()
+    stream_ctx = stream_models(stream, alpha_2)
+    hm_table = tablename(stream_ctx.hm_model)
+    topic_table = tablename(stream_ctx.topic_model)
+    sentiment_table = tablename(stream_ctx.sentiment_model)
+    record_id_col = stream_ctx.record_id_col
+    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+
+    if stream == "tg":
+        raw_table = tablename(models.TgMessageCountry[alpha_2])
+        raw_record_id_col = "unique_id"
+        raw_date_clause = (
+            f"raw.timestamp::date BETWEEN to_date('{start_date}', 'YYYYMMDD') "
+            f"AND to_date('{end_date}', 'YYYYMMDD')"
+        )
+    elif stream == "mc":
+        raw_table = tablename(models.MCStoryCountry[alpha_2])
+        raw_record_id_col = "id"
+        raw_date_clause = (
+            f"raw.publish_date::date BETWEEN to_date('{start_date}', 'YYYYMMDD') "
+            f"AND to_date('{end_date}', 'YYYYMMDD')"
+        )
+    else:
+        raise ValueError(f"Stream {stream} not allowed")
+
+    if conditions:
+        matching_records = f"""
+            SELECT DISTINCT hm.{record_id_col}
+            FROM {hm_table} hm
+            JOIN {topic_table} ttip
+              ON ttip.{record_id_col} = hm.{record_id_col}
+             AND ttip.country_id = hm.country_id
+             AND ttip.date_id = hm.date_id
+            JOIN {sentiment_table} ts
+              ON ts.{record_id_col} = hm.{record_id_col}
+             AND ts.country_id = hm.country_id
+            WHERE hm.country_id = {country_id}
+              AND hm.date_id BETWEEN {start_date} AND {end_date}
+              {topic_clause}
+              {sentiment_clause}
+              {emotion_clause}
+        """
+    else:
+        matching_records = f"""
+            SELECT hm.{record_id_col}
+            FROM {hm_table} hm
+            WHERE hm.country_id = {country_id}
+              AND hm.date_id BETWEEN {start_date} AND {end_date}
+        """
+
+    q = f"""
+        WITH matching_records AS (
+            {matching_records}
+        )
+        SELECT
+            (SELECT count(DISTINCT raw.{raw_record_id_col})
+             FROM {raw_table} raw
+             WHERE raw.country_id = {country_id}) AS all_records_total,
+            (SELECT count(DISTINCT raw.{raw_record_id_col})
+             FROM {raw_table} raw
+             WHERE raw.country_id = {country_id}
+               AND {raw_date_clause}) AS all_records_in_period,
+            (SELECT count(DISTINCT hm.{record_id_col})
+             FROM {hm_table} hm
+             WHERE hm.country_id = {country_id}) AS hm_records_total,
+            (SELECT count(DISTINCT hm.{record_id_col})
+             FROM {hm_table} hm
+             WHERE hm.country_id = {country_id}
+               AND hm.date_id BETWEEN {start_date} AND {end_date}) AS hm_records_in_period,
+            (SELECT count(*) FROM matching_records) AS filtered_hm_records_in_period;
+    """
+
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            return await cur.fetchone()
+
+
+def _resolve_coverage_interval(start_date: int, end_date: int, interval: str) -> str:
+    allowed_intervals = {"auto", "day", "week", "month"}
+    if interval not in allowed_intervals:
+        raise ValueError(
+            f"Interval {interval} not allowed. Use one of: {', '.join(sorted(allowed_intervals))}."
+        )
+    date1 = dt.datetime.strptime(str(start_date), "%Y%m%d")
+    date2 = dt.datetime.strptime(str(end_date), "%Y%m%d")
+    if date2 < date1:
+        raise ValueError("end_date must not be earlier than start_date.")
+    if interval != "auto":
+        return interval
+    selected_days = (date2 - date1).days + 1
+    if selected_days <= 60:
+        return "day"
+    if selected_days <= 365:
+        return "week"
+    return "month"
+
+
+async def corpus_coverage_series(
+    pool,
+    alpha_2: str,
+    country_id: int,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    interval: str = "auto",
+):
+    alpha_2 = alpha_2.strip().lower()
+    stream_ctx = stream_models(stream, alpha_2)
+    hm_table = tablename(stream_ctx.hm_model)
+    hm_record_id_col = stream_ctx.record_id_col
+    resolved_interval = _resolve_coverage_interval(start_date, end_date, interval)
+    previous_start_date, previous_end_date = _previous_period(start_date, end_date)
+
+    if stream == "tg":
+        raw_table = tablename(models.TgMessageCountry[alpha_2])
+        raw_record_id_col = "unique_id"
+        raw_date_col = "timestamp"
+    elif stream == "mc":
+        raw_table = tablename(models.MCStoryCountry[alpha_2])
+        raw_record_id_col = "id"
+        raw_date_col = "publish_date"
+    else:
+        raise ValueError(f"Stream {stream} not allowed")
+
+    series_q = f"""
+        WITH buckets AS (
+            SELECT generate_series(
+                date_trunc('{resolved_interval}', to_date('{start_date}', 'YYYYMMDD'))::date,
+                date_trunc('{resolved_interval}', to_date('{end_date}', 'YYYYMMDD'))::date,
+                interval '1 {resolved_interval}'
+            )::date AS period_start
+        ),
+        all_counts AS (
+            SELECT
+                date_trunc('{resolved_interval}', raw.{raw_date_col})::date AS period_start,
+                count(DISTINCT raw.{raw_record_id_col}) AS all_records
+            FROM {raw_table} raw
+            WHERE raw.country_id = {country_id}
+              AND raw.{raw_date_col}::date BETWEEN to_date('{start_date}', 'YYYYMMDD')
+                                               AND to_date('{end_date}', 'YYYYMMDD')
+            GROUP BY 1
+        ),
+        hm_counts AS (
+            SELECT
+                date_trunc('{resolved_interval}', to_date(hm.date_id::text, 'YYYYMMDD'))::date AS period_start,
+                count(DISTINCT hm.{hm_record_id_col}) AS hm_records
+            FROM {hm_table} hm
+            WHERE hm.country_id = {country_id}
+              AND hm.date_id BETWEEN {start_date} AND {end_date}
+            GROUP BY 1
+        )
+        SELECT
+            extract(epoch FROM b.period_start)::bigint * 1000 AS date,
+            b.period_start::text AS period,
+            coalesce(ac.all_records, 0) AS all_records,
+            coalesce(hc.hm_records, 0) AS hm_records,
+            CASE
+                WHEN coalesce(ac.all_records, 0) = 0 THEN NULL
+                ELSE coalesce(hc.hm_records, 0)::float / ac.all_records
+            END AS hm_coverage
+        FROM buckets b
+        LEFT JOIN all_counts ac USING (period_start)
+        LEFT JOIN hm_counts hc USING (period_start)
+        ORDER BY b.period_start;
+    """
+    summary_q = f"""
+        SELECT
+            (SELECT count(DISTINCT raw.{raw_record_id_col})
+             FROM {raw_table} raw
+             WHERE raw.country_id = {country_id}
+               AND raw.{raw_date_col}::date BETWEEN to_date('{start_date}', 'YYYYMMDD')
+                                                AND to_date('{end_date}', 'YYYYMMDD')) AS all_records,
+            (SELECT count(DISTINCT hm.{hm_record_id_col})
+             FROM {hm_table} hm
+             WHERE hm.country_id = {country_id}
+               AND hm.date_id BETWEEN {start_date} AND {end_date}) AS hm_records,
+            (SELECT count(DISTINCT raw.{raw_record_id_col})
+             FROM {raw_table} raw
+             WHERE raw.country_id = {country_id}
+               AND raw.{raw_date_col}::date BETWEEN to_date('{previous_start_date}', 'YYYYMMDD')
+                                                AND to_date('{previous_end_date}', 'YYYYMMDD')) AS previous_all_records,
+            (SELECT count(DISTINCT hm.{hm_record_id_col})
+             FROM {hm_table} hm
+             WHERE hm.country_id = {country_id}
+               AND hm.date_id BETWEEN {previous_start_date} AND {previous_end_date}) AS previous_hm_records;
+    """
+
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(series_q)
+            data = await cur.fetchall()
+            await cur.execute(summary_q)
+            summary = await cur.fetchone()
+
+    coverage = (
+        summary["hm_records"] / summary["all_records"]
+        if summary["all_records"]
+        else None
+    )
+    previous_coverage = (
+        summary["previous_hm_records"] / summary["previous_all_records"]
+        if summary["previous_all_records"]
+        else None
+    )
+    coverage_change_pp = (
+        (coverage - previous_coverage) * 100
+        if coverage is not None and previous_coverage is not None
+        else None
+    )
+    summary["hm_coverage"] = coverage
+    summary["previous_hm_coverage"] = previous_coverage
+    summary["hm_coverage_change_pp"] = coverage_change_pp
+    return {
+        "stream": stream,
+        "interval": resolved_interval,
+        "requested_interval": interval,
+        "period": {"start_date": start_date, "end_date": end_date},
+        "previous_period": {
+            "start_date": previous_start_date,
+            "end_date": previous_end_date,
+        },
+        "summary": summary,
+        "data": data,
+    }
 
 
 async def attention_trends(
@@ -195,6 +432,7 @@ async def topic_time_series(
     start_date: int,
     end_date: int,
     stream: str,
+    topic_filter_mode: str = "strict",
 ):
     stream_ctx = stream_models(stream, alpha_2)
     hm_table = tablename(stream_ctx.hm_model)
@@ -202,6 +440,7 @@ async def topic_time_series(
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
     topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
 
     q = f"""
         WITH hm_daily_count AS (
@@ -247,6 +486,8 @@ async def topic_time_series(
          AND hdc.date_id = qr.date_id
         JOIN {tablename(models.Topic)} t
           ON t.id = all_ttip.topic_unique_id
+        WHERE 1 = 1
+          {output_topic_clause}
         GROUP BY qr.country_id, qr.date_id, t.topic, hdc.hm_count
         ORDER BY qr.date_id, t.topic;
     """
@@ -278,7 +519,8 @@ async def domain_ranking(
               AND hm.date_id BETWEEN {start_date} AND {end_date}
         )
         SELECT
-            count(*)::float / nullif((SELECT total_count FROM hm_total_count), 0) AS frequency,
+            count(DISTINCT hm.{record_id_col})::float /
+                nullif((SELECT total_count FROM hm_total_count), 0) AS frequency,
             t.domain_id,
             dom.name AS domain
         FROM {hm_table} hm
@@ -310,6 +552,7 @@ async def talking_points(
     start_date: int,
     end_date: int,
     stream: str,
+    topic_filter_mode: str = "strict",
 ):
     stream_ctx = stream_models(stream, alpha_2)
     hm_table = tablename(stream_ctx.hm_model)
@@ -317,6 +560,7 @@ async def talking_points(
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
     topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
     prev_start_date, prev_end_date = _previous_period(start_date, end_date)
 
     q = f"""
@@ -376,34 +620,54 @@ async def talking_points(
             SELECT * FROM filt_prev_records
             UNION
             SELECT * FROM filt_latest_records
+        ),
+        record_domain_metrics AS (
+            SELECT
+                qr.{record_id_col},
+                qr.country_id,
+                qr.date_id,
+                qr._type,
+                t.domain_id,
+                dom.name AS domain,
+                max(ts.sentiment) AS sentiment
+            FROM qualified_records qr
+            JOIN {topic_table} all_ttip
+              ON all_ttip.{record_id_col} = qr.{record_id_col}
+             AND all_ttip.country_id = qr.country_id
+             AND all_ttip.date_id = qr.date_id
+            JOIN {sentiment_table} ts
+              ON ts.{record_id_col} = qr.{record_id_col}
+             AND ts.country_id = qr.country_id
+            JOIN {tablename(models.Topic)} t
+              ON t.id = all_ttip.topic_unique_id
+            JOIN {tablename(models.Domain)} dom
+              ON dom.id = t.domain_id
+            WHERE 1 = 1
+              {output_topic_clause}
+            GROUP BY
+                qr.{record_id_col},
+                qr.country_id,
+                qr.date_id,
+                qr._type,
+                t.domain_id,
+                dom.name
         )
         SELECT
-            sum(all_ttip.topic_norm_prevalence) /
+            count(*)::float /
                 CASE
-                    WHEN qr._type = 'prev' THEN nullif(prev_count.value, 0)
-                    WHEN qr._type = 'latest' THEN nullif(latest_count.value, 0)
+                    WHEN rdm._type = 'prev' THEN nullif(prev_count.value, 0)
+                    WHEN rdm._type = 'latest' THEN nullif(latest_count.value, 0)
                     ELSE 1
                 END AS attention,
-            avg(ts.sentiment) AS sentiment,
-            t.domain_id AS domain_id,
-            dom.name AS domain,
-            qr._type AS type
-        FROM qualified_records qr
-        JOIN {topic_table} all_ttip
-          ON all_ttip.{record_id_col} = qr.{record_id_col}
-         AND all_ttip.country_id = qr.country_id
-         AND all_ttip.date_id = qr.date_id
-        JOIN {sentiment_table} ts
-          ON ts.{record_id_col} = qr.{record_id_col}
-         AND ts.country_id = qr.country_id
-        JOIN {tablename(models.Topic)} t
-          ON t.id = all_ttip.topic_unique_id
-        JOIN {tablename(models.Domain)} dom
-          ON dom.id = t.domain_id
+            avg(rdm.sentiment) AS sentiment,
+            rdm.domain_id AS domain_id,
+            rdm.domain AS domain,
+            rdm._type AS type
+        FROM record_domain_metrics rdm
         JOIN latest_count ON true
         JOIN prev_count ON true
-        GROUP BY t.domain_id, dom.name, qr._type, prev_count.value, latest_count.value
-        ORDER BY qr._type, attention DESC;
+        GROUP BY rdm.domain_id, rdm.domain, rdm._type, prev_count.value, latest_count.value
+        ORDER BY rdm._type, attention DESC;
     """
 
     async with pool.connection() as conn:
@@ -615,21 +879,70 @@ async def tfidf_day_agg_top_terms(
     end_date: int,
     stream: str = "tg",
     limit: int = 50,
+    metric: str = "period_average",
+    max_document_frequency: float = 0.80,
 ):
     if stream != "tg":
         raise ValueError(f"Stream {stream} not allowed for human mobility tfidf")
     model = models.TgHumanMobilityTFIDFDayAgg[alpha_2.strip().lower()]
+    hm_model = models.TgHumanMobilityMessageCountry[alpha_2.strip().lower()]
 
-    q = f"""
-        SELECT
-            tz.lemma AS lemma,
-            avg(tz.tfidf) AS mean_value
-        FROM {tablename(model)} tz
-        WHERE tz.date_id BETWEEN {start_date} AND {end_date}
-        GROUP BY tz.lemma
-        ORDER BY avg(tz.tfidf) DESC
-        LIMIT {limit};
-    """
+    if metric == "period_average":
+        q = f"""
+            WITH active_days AS (
+                SELECT count(DISTINCT hm.date_id)::float AS value
+                FROM {tablename(hm_model)} hm
+                WHERE hm.date_id BETWEEN {start_date} AND {end_date}
+            ),
+            corpus_days AS (
+                SELECT count(DISTINCT hm.date_id)::float AS value
+                FROM {tablename(hm_model)} hm
+            ),
+            allowed_terms AS (
+                SELECT tz.lemma
+                FROM {tablename(model)} tz
+                CROSS JOIN corpus_days
+                GROUP BY tz.lemma, corpus_days.value
+                HAVING count(DISTINCT tz.date_id)::float /
+                    nullif(corpus_days.value, 0) < {max_document_frequency}
+            )
+            SELECT
+                tz.lemma AS lemma,
+                sum(tz.tfidf) / nullif(active_days.value, 0) AS mean_value
+            FROM {tablename(model)} tz
+            JOIN allowed_terms USING (lemma)
+            CROSS JOIN active_days
+            WHERE tz.date_id BETWEEN {start_date} AND {end_date}
+            GROUP BY tz.lemma, active_days.value
+            ORDER BY mean_value DESC
+            LIMIT {limit};
+        """
+    elif metric == "daily_peak":
+        q = f"""
+            WITH corpus_days AS (
+                SELECT count(DISTINCT hm.date_id)::float AS value
+                FROM {tablename(hm_model)} hm
+            ),
+            allowed_terms AS (
+                SELECT tz.lemma
+                FROM {tablename(model)} tz
+                CROSS JOIN corpus_days
+                GROUP BY tz.lemma, corpus_days.value
+                HAVING count(DISTINCT tz.date_id)::float /
+                    nullif(corpus_days.value, 0) < {max_document_frequency}
+            )
+            SELECT
+                tz.date_id,
+                tz.lemma,
+                tz.tfidf AS mean_value
+            FROM {tablename(model)} tz
+            JOIN allowed_terms USING (lemma)
+            WHERE tz.date_id BETWEEN {start_date} AND {end_date}
+            ORDER BY tz.tfidf DESC, tz.date_id DESC, tz.lemma
+            LIMIT {limit};
+        """
+    else:
+        raise ValueError(f"TF-IDF metric {metric} not allowed")
 
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
@@ -864,7 +1177,8 @@ async def chart_studio_bar_chart_from_stream(
                 ),
                 {qualified_records_cte}
                 SELECT
-                    count(*)::float / nullif((SELECT total_count FROM hm_total_count), 0) AS frequency,
+                    count(DISTINCT qr.{record_id_col})::float /
+                        nullif((SELECT total_count FROM hm_total_count), 0) AS frequency,
                     c.name || ' - ' || t.topic || ' - ' || '{suffix}' AS field
                 FROM qualified_records qr
                 JOIN {topic_table} all_ttip
@@ -948,6 +1262,7 @@ async def hot_topics_with_topic_condition(
     start_date: int,
     end_date: int,
     stream: str,
+    topic_filter_mode: str = "strict",
 ):
     stream_ctx = stream_models(stream, alpha_2)
     hm_table = tablename(stream_ctx.hm_model)
@@ -955,6 +1270,7 @@ async def hot_topics_with_topic_condition(
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
     topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
 
     q = f"""
         WITH hm_total_count AS (
@@ -983,7 +1299,8 @@ async def hot_topics_with_topic_condition(
               {emotion_clause}
         )
         SELECT
-            count(*)::float / nullif((SELECT total_count FROM hm_total_count), 0) AS frequency,
+            count(DISTINCT qr.{record_id_col})::float /
+                nullif((SELECT total_count FROM hm_total_count), 0) AS frequency,
             t.topic AS topic
         FROM qualified_records qr
         JOIN {topic_table} all_ttip
@@ -992,6 +1309,8 @@ async def hot_topics_with_topic_condition(
          AND all_ttip.date_id = qr.date_id
         JOIN {tablename(models.Topic)} t
           ON t.id = all_ttip.topic_unique_id
+        WHERE 1 = 1
+          {output_topic_clause}
         GROUP BY t.topic
         ORDER BY frequency DESC;
     """
@@ -1045,7 +1364,8 @@ async def hot_topics_without_topic_condition(
               {emotion_clause}
         )
         SELECT
-            count(*)::float / nullif((SELECT total_count FROM hm_total_count), 0) AS frequency,
+            count(DISTINCT qr.{record_id_col})::float /
+                nullif((SELECT total_count FROM hm_total_count), 0) AS frequency,
             t.domain_id,
             dom.name AS domain
         FROM qualified_records qr

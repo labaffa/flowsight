@@ -185,3 +185,6 @@ node_modules/
 .docker.env
 .RData
 .Rhistory
+
+# local database backups
+dumps/

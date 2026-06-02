@@ -1093,14 +1093,47 @@ input.discard{
 
 
 .vscomp-toggle-button, .sub-condition select {
-    border: 1px solid rgb(48,80,136) !important;
+    border: 1px solid var(--flowsight-border-subtle) !important;
     height: 2rem !important;
-    background-color: white !important;
+    background-color: var(--flowsight-card) !important;
     font-family: inherit !important;
     font-size: 1rem !important;
-    color:rgba(80, 80, 80, 1) !important;
+    color: var(--flowsight-text) !important;
     font-weight: normal !important;
     border-radius: 0.2rem !important;
+}
+
+/* Virtual Select Dropdown Theming */
+.vscomp-dropbox {
+    background-color: var(--flowsight-card) !important;
+    border: 1px solid var(--flowsight-border-subtle) !important;
+    color: var(--flowsight-text) !important;
+}
+
+.vscomp-option {
+    color: var(--flowsight-text) !important;
+}
+
+.vscomp-option.focused, .vscomp-option:hover {
+    background-color: var(--flowsight-surface) !important;
+}
+
+.vscomp-option.selected {
+    background-color: var(--flowsight-accent-surface) !important;
+    color: var(--flowsight-accent-soft) !important;
+}
+
+.vscomp-search-container {
+    background-color: var(--flowsight-card) !important;
+    border-bottom: 1px solid var(--flowsight-border-subtle) !important;
+}
+
+.vscomp-search-input {
+    color: var(--flowsight-text) !important;
+}
+
+.vscomp-no-options, .vscomp-no-search-results {
+    color: var(--flowsight-muted) !important;
 }
 
 .table-container {
@@ -1128,7 +1161,8 @@ input.discard{
 }
 
 #available-fields li, #selected-fields li, #available-variables li, #selected-variables li{
-    background-color: white;
+    background-color: var(--flowsight-surface);
+    color: var(--flowsight-text);
     display: flex;
     justify-content: space-between;
     align-items: center;

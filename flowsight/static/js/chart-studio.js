@@ -60,6 +60,13 @@ Highcharts.setOptions({
 window.startDate = window.dateRanges.min_date;
 window.endDate = window.dateRanges.max_date;
 
+function contentScope(){
+    return 'hm';
+}
+
+function scopedParams(params){
+    return {...params, scope: contentScope()};
+}
 
 window.conditionCounter = {
     "studio": 0
@@ -171,6 +178,68 @@ const noDataHTMLMedia = `
     </div>
 `;
 
+function setupCollapsibleTopicGroups(eleId){
+    let element = document.querySelector(eleId);
+    let select = element.virtualSelect;
+    let collapsedGroups = new Set(
+        select.options.filter(option => option.isGroupTitle).map(option => option.index)
+    );
+    let afterSetVisibleOptionsCount = select.afterSetVisibleOptionsCount.bind(select);
+    let afterRenderOptions = select.afterRenderOptions.bind(select);
+
+    function applyCollapsedGroups(){
+        if (select.searchValue){
+            return;
+        }
+        select.options.forEach(option => {
+            if (option.isGroupOption && collapsedGroups.has(option.groupIndex)){
+                option.isVisible = false;
+            }
+        });
+        select.visibleOptionsCount = select.options.filter(option => option.isVisible).length;
+    }
+
+    function markGroupState(){
+        select.$options.querySelectorAll('.vscomp-option.group-title').forEach(group => {
+            let isExpanded = !collapsedGroups.has(parseInt(group.dataset.index));
+            let toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'topic-group-toggle';
+            toggle.setAttribute('aria-label', `${isExpanded ? 'Collapse' : 'Expand'} ${group.textContent.trim()}`);
+            toggle.textContent = isExpanded ? '-' : '+';
+            group.dataset.expanded = isExpanded.toString();
+            group.setAttribute('aria-expanded', isExpanded.toString());
+            group.appendChild(toggle);
+        });
+    }
+
+    select.afterSetVisibleOptionsCount = function (){
+        applyCollapsedGroups();
+        afterSetVisibleOptionsCount();
+    };
+    select.afterRenderOptions = function (){
+        afterRenderOptions();
+        markGroupState();
+    };
+    element.addEventListener('click', function (event){
+        let toggle = event.target.closest('.topic-group-toggle');
+        if (!toggle || !element.contains(toggle)){
+            return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        let group = toggle.closest('.vscomp-option.group-title');
+        let groupIndex = parseInt(group.dataset.index);
+        if (collapsedGroups.has(groupIndex)){
+            collapsedGroups.delete(groupIndex);
+        } else {
+            collapsedGroups.add(groupIndex);
+        }
+        select.setVisibleOptionsCount();
+    }, true);
+    select.setVisibleOptionsCount();
+}
+
 function initTopicField(eleId){
     const a = {};
     window.topics.forEach( t => {
@@ -189,12 +258,16 @@ function initTopicField(eleId){
       ele: eleId,
       options: groupedOptions,
       multiple: true,
-      search: false,
+      search: true,
+      searchGroup: true,
+      markSearchResults: true,
+      searchPlaceholderText: 'Search topics...',
       disableSelectAll: true,
       showSelectedOptionsFirst: true,
       placeholder: 'Select topic...'
     }
     )
+    setupCollapsibleTopicGroups(eleId);
   }
 
   function conditionTemplate(index, stream, logicDiv){
@@ -624,13 +697,13 @@ $('#create-chart-button').on('click', function(){
 
     let studio_endpoint = studioFilterStructure['charts'][window.selectedChart]['endpoint'];
     let studioQueryParams = $.param(
-        {
+        scopedParams({
             start_date: start_date,
             end_date: end_date,
             conditions: JSON.stringify(window.countryConditions[stream]),
             fields: JSON.stringify(Object.values(window.selectedFields)),
             countries: JSON.stringify(window.selectedCountries),
-        },
+        }),
         true
     );
     let studioUrl = studio_endpoint + '?' + studioQueryParams;
@@ -716,7 +789,7 @@ async function TgMessageWidget(){
     
     let base_endpoint = `/tg_messages_from_many_countries`;
     let queryParams = $.param(
-        {
+        scopedParams({
             start_date: window.startDate,
             end_date: window.endDate,
             conditions: JSON.stringify(window.countryConditions["studio"]),
@@ -725,7 +798,7 @@ async function TgMessageWidget(){
             offset: window.MessagesOffset["tg"],
             countries: JSON.stringify(countries_list)
             
-        },
+        }),
         true
     );
     
@@ -804,7 +877,7 @@ async function MCStoryWidget(){
     let countries = window.selectedCountries;
     let base_endpoint = `/mc_stories_from_many_countries`;
     let queryParams = $.param(
-        {
+        scopedParams({
             start_date: window.startDate,
             end_date: window.endDate,
             conditions: JSON.stringify(window.countryConditions["studio"]),
@@ -812,7 +885,7 @@ async function MCStoryWidget(){
             limit: window.MessagesLimit["mc"],
             offset: window.MessagesOffset["mc"],
             countries: JSON.stringify(countries)
-        },
+        }),
         true
     );
     let url = base_endpoint + '?' + queryParams;

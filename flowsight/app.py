@@ -84,7 +84,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=config.BRANDING["name"],
     description=config.BRANDING["tagline"],
-    version="0.0.1",
+    version="0.1.1",
     contact={
         "name": config.BRANDING["name"],
     },
@@ -106,7 +106,6 @@ app.mount("/static", StaticFiles(directory="flowsight/static"), name="static")
 
 
 app.include_router(api.studio_router)
-app.include_router(ui.country.router)
 app.include_router(ui.country_v2.router)
 app.include_router(ui.chart_studio.router)
 app.include_router(api.country_router, tags=["country"])

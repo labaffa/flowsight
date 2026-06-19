@@ -44,18 +44,18 @@ async def _render_default_country_v2(request: fastapi.Request) -> HTMLResponse:
         "fews_countries": [country_ctx["alpha_2"]],
         "branding": config.BRANDING,
         "version": config.VERSION,
-        "page_title": f'{config.BRANDING["name"]} v2 | {country_ctx["country_name"]}',
+        "page_title": f'{config.BRANDING["name"]} | {country_ctx["country_name"]}',
     }
     return templates.TemplateResponse("country_v2.html", data)
 
 
-@router.get("/v2", response_class=HTMLResponse, include_in_schema=False)
-async def read_home_v2(request: fastapi.Request):
+@router.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def read_home(request: fastapi.Request):
     return await _render_default_country_v2(request)
 
 
-@router.get("/country/{alpha_2}/v2", response_class=HTMLResponse, include_in_schema=False)
-async def read_country_v2(request: fastapi.Request, alpha_2: str):
+@router.get("/country/{alpha_2}", response_class=HTMLResponse, include_in_schema=False)
+async def read_country(request: fastapi.Request, alpha_2: str):
     if alpha_2.strip().lower() != request.app.default_country_alpha_2:
         raise fastapi.HTTPException(status_code=404, detail="Only Sudan is available in FlowSight.")
-    return RedirectResponse(url="/v2", status_code=307)
+    return RedirectResponse(url="/", status_code=307)

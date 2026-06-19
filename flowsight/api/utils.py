@@ -26,10 +26,13 @@ SQL_GEN_MAPPING = {
 async def get_framework(pool):
     q = (f'''
         SELECT 
-            t.id as topic_id, t.topic, t.theme, t.sub_theme, t.domain_id
+            t.id as topic_id, t.topic, t.theme as theme, t.sub_theme as sub_theme, d.id as domain_id
             , d.name as domain
+            , i.id as indicator_id
+            , i.name as indicator
         FROM {tablename(models.Topic)} t 
         JOIN {tablename(models.Domain)} d ON t.domain_id = d.id
+        LEFT JOIN {models.Topic.__table__.schema}.indicator i ON t.indicator_id = i.id
         ;''')
     async with pool.connection() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
@@ -55,9 +58,9 @@ async def latest_attention_and_sentiment_per_domain(pool):
                 , 'tg' as data_stream
             from {tablename(TopicIdDayDomainAggTg)} tti
             join {tablename(models.Country)} cou on tti.country_id = cou.country_code
-            
+
             union all
-            
+
             SELECT 
                 dense_rank() over (
                     partition by tti.country_id, tti.domain_id 
@@ -73,27 +76,8 @@ async def latest_attention_and_sentiment_per_domain(pool):
             from {tablename(TgSentimentDayDomainAgg)} tti
             join {tablename(models.Country)} cou on tti.country_id = cou.country_code
 
-            
             union all
-            
-            SELECT 
-                dense_rank() over (
-                    partition by tti.country_id, tti.domain_id 
-                    order by (tti.date_id) desc
-                ) as row_num
-                ,tti.domain_id as domain_id 
-                , tti.date_id as date_id 
-                , tti.country_id as country_id 
-                , lower(cou.alpha_2) as alpha_2
-                , tti.sentiment as value  
-                , 'sentiment' as analysis
-                , 'mc' as data_stream
-            from {tablename(MCSentimentDayDomainAgg)} tti
-            join {tablename(models.Country)} cou on tti.country_id = cou.country_code
 
-            
-            union all
-            
             SELECT 
                 dense_rank() over (
                     partition by tti.country_id, tti.domain_id 
@@ -107,6 +91,23 @@ async def latest_attention_and_sentiment_per_domain(pool):
                 , 'attention' as analysis
                 , 'mc' as data_stream
             from {tablename(MCTopicIdDayDomainAgg)} tti
+            join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+
+            union all
+
+            SELECT 
+                dense_rank() over (
+                    partition by tti.country_id, tti.domain_id 
+                    order by (tti.date_id) desc
+                ) as row_num
+                ,tti.domain_id as domain_id 
+                , tti.date_id as date_id 
+                , tti.country_id as country_id 
+                , lower(cou.alpha_2) as alpha_2
+                , tti.sentiment as value  
+                , 'sentiment' as analysis
+                , 'mc' as data_stream
+            from {tablename(MCSentimentDayDomainAgg)} tti
             join {tablename(models.Country)} cou on tti.country_id = cou.country_code
 
             union all
@@ -266,9 +267,6 @@ async def layers_data_for_given_time_period(pool, start_date, end_date):
 
 
 async def top_topics_in_period(pool, start_date, end_date, top_n=3, stream: str="tg"):
-    date1 = dt.datetime.strptime(str(start_date), '%Y%m%d')
-    date2 = dt.datetime.strptime(str(end_date), '%Y%m%d')
-    day_difference = (date2 - date1).days + 1
     if stream == "tg":
         agg_model = models.TopicIdDayAggTg
     elif stream == "mc":
@@ -282,8 +280,16 @@ async def top_topics_in_period(pool, start_date, end_date, top_n=3, stream: str=
             SELECT
                 am.country_id
                 , am.topic_id
-                , sum(am.topic_norm_prevalence)/{day_difference} AS avg_prevalence
-                , ROW_NUMBER() OVER (PARTITION BY am.country_id ORDER BY AVG(am.topic_norm_prevalence) DESC) AS rank
+                , sum(am.topic_norm_prevalence)/(
+                    (
+                        to_date(cast({end_date} as text), 'YYYYMMDD')
+                        - to_date(cast({start_date} as text), 'YYYYMMDD')
+                    ) + 1
+                ) AS avg_prevalence
+                , ROW_NUMBER() OVER (
+                    PARTITION BY am.country_id
+                    ORDER BY AVG(am.topic_norm_prevalence) DESC
+                ) AS rank
             FROM {tablename(agg_model)} am
             WHERE date_id BETWEEN {start_date} and {end_date} 
             GROUP BY am.country_id, am.topic_id
@@ -317,29 +323,46 @@ async def top_topics_on_latest(pool, top_n=3, stream: str="tg"):
 
     """
     if stream == "tg":
-        agg_model = models.TopicIdDayAggTg
+        topic_model = models.TgTopicIdPositive
+        count_model = models.TgDailyCounts
+        record_id_col = "message_unique_id"
     elif stream == "mc":
-        agg_model = models.MCTopicIdDayAgg
+        topic_model = models.MCTopicIdPositive
+        count_model = models.MCDailyCounts
+        record_id_col = "story_id"
     else:
         raise ValueError(f'Stream {stream} not allowed')
     q = (f'''
     WITH row_numbers AS (
     SELECT row_number() OVER (
-        PARTITION BY tti.country_id
-        ORDER BY tti.topic_norm_prevalence desc
+        PARTITION BY latest.country_id
+        ORDER BY latest.np desc, latest.topic_id
     )   AS row_num
-        , tti.country_id AS country_id
+        , latest.country_id AS country_id
         , lower(cou.alpha_2) as alpha_2
-        , tti.topic_id AS topic_id
+        , latest.topic_id AS topic_id
         , t.topic as topic
-       	, tti.topic_norm_prevalence AS np
-     	, tti.date_id
-    
-    FROM {tablename(agg_model)} AS tti
-    join {tablename(models.Topic)} t on tti.topic_id = t.id
-    join {tablename(models.Country)} cou on tti.country_id = cou.country_code
+       	, latest.np AS np
+     	, latest.date_id
+    FROM (
+        SELECT
+            ttip.country_id
+            , ttip.topic_unique_id as topic_id
+            , ttip.date_id
+            , count(DISTINCT ttip.{record_id_col})::float /
+                nullif(tdc.count, 0) AS np
+        FROM {tablename(topic_model)} AS ttip
+        join {tablename(count_model)} tdc
+            on ttip.country_id = tdc.country_id
+            and ttip.date_id = tdc.date_id
+        join {tablename(models.DateRanges)} dr on
+            ttip.country_id = dr.country_id and ttip.date_id = dr.max_date_id and dr.stream = '{stream}'
+        group by ttip.country_id, ttip.topic_unique_id, ttip.date_id, tdc.count
+    ) latest
+    join {tablename(models.Topic)} t on latest.topic_id = t.id
+    join {tablename(models.Country)} cou on latest.country_id = cou.country_code
     join {tablename(models.DateRanges)} dr on 
-        tti.country_id = dr.country_id and tti.date_id = dr.max_date_id and dr.stream = '{stream}'
+        latest.country_id = dr.country_id and latest.date_id = dr.max_date_id and dr.stream = '{stream}'
     )
     
     SELECT 
@@ -605,7 +628,7 @@ async def topic_rankings_by_domain_in_period(
             , t.domain_id as domain_id
         from {tablename(models.TgTopicIdCountDayAgg)} tticda 
         join {tablename(models.Date)} d on tticda.date_id = d.id
-        join {tablename(models.Topic)} t on tticda.topic_id = t.id 
+        join {tablename(models.Topic)} t on tticda.topic_id = t.id
         where
             tticda.country_id = {country_id} and
             (d.id >= {start_date} and d.id <= {end_date})
@@ -628,6 +651,23 @@ async def tg_talking_points_data(pool, country_id: int, start_date: int, end_dat
 
     q = (
         f'''
+        with tg_attention as (
+            select
+                ttip.country_id
+                , ttip.date_id
+                , t.domain_id
+                , count(DISTINCT ttip.message_unique_id)::float /
+                    nullif(tdc.count, 0) as avg_value
+            from {tablename(models.TgTopicIdPositive)} ttip
+            join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
+            join {tablename(models.TgDailyCounts)} tdc
+                on ttip.country_id = tdc.country_id
+                and ttip.date_id = tdc.date_id
+            where
+                ttip.date_id >= {start_date} and ttip.date_id <= {end_date}
+                and ttip.country_id = {country_id}
+            group by ttip.country_id, ttip.date_id, t.domain_id, tdc.count
+        )
         select 
             tsdda.domain_id 
             , d.name as domain
@@ -646,13 +686,10 @@ async def tg_talking_points_data(pool, country_id: int, start_date: int, end_dat
         select 
             tsdda.domain_id 
             , d.name as domain
-            , sum(tsdda.topic_norm_prevalence)/{day_difference} as avg_value
+            , sum(tsdda.avg_value)/{day_difference} as avg_value
             , 'attention' as layer
-        from {tablename(models.TopicIdDayDomainAggTg)} tsdda 
+        from tg_attention tsdda 
         join {tablename(models.Domain)} d on tsdda.domain_id = d.id
-        where 
-            tsdda.date_id >= {start_date} and tsdda.date_id <= {end_date}
-            and tsdda.country_id = {country_id}
         group by tsdda.domain_id, d.name
         
 
@@ -685,15 +722,46 @@ async def tg_talking_points_with_delta(pool, country_id: int, start_date: int, e
                 and ts.country_id = {country_id}
             group by ts.domain_id
         ),
+        latest_attention as (
+            select
+                t.country_id
+                , t.date_id
+                , top.domain_id
+                , count(DISTINCT t.message_unique_id)::float /
+                    nullif(tdc.count, 0) as value
+            from {tablename(models.TgTopicIdPositive)} t
+            join {tablename(models.Topic)} top on t.topic_unique_id = top.id
+            join {tablename(models.TgDailyCounts)} tdc
+                on t.country_id = tdc.country_id
+                and t.date_id = tdc.date_id
+            where
+                t.date_id >= {start_date} and t.date_id <= {end_date}
+                and t.country_id = {country_id}
+            group by t.country_id, t.date_id, top.domain_id, tdc.count
+        ),
+        prev_attention as (
+            select
+                t.country_id
+                , t.date_id
+                , top.domain_id
+                , count(DISTINCT t.message_unique_id)::float /
+                    nullif(tdc.count, 0) as value
+            from {tablename(models.TgTopicIdPositive)} t
+            join {tablename(models.Topic)} top on t.topic_unique_id = top.id
+            join {tablename(models.TgDailyCounts)} tdc
+                on t.country_id = tdc.country_id
+                and t.date_id = tdc.date_id
+            where
+                t.date_id >= {prev_start_date} and t.date_id <= {prev_end_date}
+                and t.country_id = {country_id}
+            group by t.country_id, t.date_id, top.domain_id, tdc.count
+        ),
         ti_prev_values 
         as (
             select 
                 ts.domain_id
-                , sum(ts.topic_norm_prevalence)/{day_difference} as prev_value
-            from {tablename(models.TopicIdDayDomainAggTg)} ts
-            where  
-                ts.date_id >= {prev_start_date} and ts.date_id <= {prev_end_date}
-                and ts.country_id = {country_id}
+                , sum(ts.value)/{day_difference} as prev_value
+            from prev_attention ts
             group by ts.domain_id
         )
         select 
@@ -720,15 +788,12 @@ async def tg_talking_points_with_delta(pool, country_id: int, start_date: int, e
             ts.domain_id as domain_id
             , d.name as domain
             , 'attention' as layer
-            , sum(ts.topic_norm_prevalence)/{day_difference} as latest_value
+            , sum(ts.value)/{day_difference} as latest_value
             , coalesce(ti_prev_values.prev_value, 0) as prev_value
             
-        from {tablename(models.TopicIdDayDomainAggTg)} ts
+        from latest_attention ts
         join {tablename(models.Domain)} d on ts.domain_id = d.id
         left join ti_prev_values on ts.domain_id = ti_prev_values.domain_id
-        where 
-            ts.date_id >= {start_date} and ts.date_id <= {end_date}
-            and ts.country_id = {country_id}
         group by ts.domain_id, d.name, ti_prev_values.prev_value
 
         
@@ -762,15 +827,46 @@ async def mc_talking_points_with_delta(pool, country_id: int, start_date: int, e
                 and ts.country_id = {country_id}
             group by ts.domain_id
         ),
+        latest_attention as (
+            select
+                t.country_id
+                , t.date_id
+                , top.domain_id
+                , count(DISTINCT t.story_id)::float /
+                    nullif(tdc.count, 0) as value
+            from {tablename(models.MCTopicIdPositive)} t
+            join {tablename(models.Topic)} top on t.topic_unique_id = top.id
+            join {tablename(models.MCDailyCounts)} tdc
+                on t.country_id = tdc.country_id
+                and t.date_id = tdc.date_id
+            where
+                t.date_id >= {start_date} and t.date_id <= {end_date}
+                and t.country_id = {country_id}
+            group by t.country_id, t.date_id, top.domain_id, tdc.count
+        ),
+        prev_attention as (
+            select
+                t.country_id
+                , t.date_id
+                , top.domain_id
+                , count(DISTINCT t.story_id)::float /
+                    nullif(tdc.count, 0) as value
+            from {tablename(models.MCTopicIdPositive)} t
+            join {tablename(models.Topic)} top on t.topic_unique_id = top.id
+            join {tablename(models.MCDailyCounts)} tdc
+                on t.country_id = tdc.country_id
+                and t.date_id = tdc.date_id
+            where
+                t.date_id >= {prev_start_date} and t.date_id <= {prev_end_date}
+                and t.country_id = {country_id}
+            group by t.country_id, t.date_id, top.domain_id, tdc.count
+        ),
         ti_prev_values 
         as (
             select 
                 ts.domain_id
-                , sum(ts.topic_norm_prevalence)/{day_difference} as prev_value
-            from {tablename(models.MCTopicIdDayDomainAgg)} ts
-            where  
-                ts.date_id >= {prev_start_date} and ts.date_id <= {prev_end_date}
-                and ts.country_id = {country_id}
+                , sum(ts.value)/{day_difference} as prev_value
+            from prev_attention ts
             group by ts.domain_id
         )
         select 
@@ -797,15 +893,12 @@ async def mc_talking_points_with_delta(pool, country_id: int, start_date: int, e
             ts.domain_id as domain_id
             , d.name as domain
             , 'attention' as layer
-            , sum(ts.topic_norm_prevalence)/{day_difference} as latest_value
+            , sum(ts.value)/{day_difference} as latest_value
             , coalesce(ti_prev_values.prev_value, 0) as prev_value
             
-        from {tablename(models.MCTopicIdDayDomainAgg)} ts
+        from latest_attention ts
         join {tablename(models.Domain)} d on ts.domain_id = d.id
         left join ti_prev_values on ts.domain_id = ti_prev_values.domain_id
-        where 
-            ts.date_id >= {start_date} and ts.date_id <= {end_date}
-            and ts.country_id = {country_id}
         group by ts.domain_id, d.name, ti_prev_values.prev_value
 
         
@@ -829,13 +922,17 @@ async def tg_domain_prevalences_in_period_for_country(
         select 
             d.date_actual as date
             , d2.name as domain
-            , topic_norm_prevalence as value
-        from {tablename(models.TopicIdDayDomainAggTg)} tiddat 
-        join {tablename(models.Date)} d on tiddat.date_id = d.id
-        join {tablename(models.Domain)} d2 on tiddat.domain_id = d2.id
+            , count(DISTINCT ttip.message_unique_id)::float / nullif(tdc.count, 0) as value
+        from {tablename(models.TgTopicIdPositive)} ttip
+        join {tablename(models.TgDailyCounts)} tdc on
+            tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
+        join {tablename(models.Date)} d on ttip.date_id = d.id
+        join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
+        join {tablename(models.Domain)} d2 on t.domain_id = d2.id
         where 
-            tiddat.country_id = {country_id}
-            and tiddat.date_id >= {start_date} and tiddat.date_id <= {end_date}
+            ttip.country_id = {country_id}
+            and ttip.date_id >= {start_date} and ttip.date_id <= {end_date}
+        group by d.date_actual, d2.name, tdc.count
         ;
         '''
     )
@@ -855,13 +952,17 @@ async def mc_domain_prevalences_in_period_for_country(
         select 
             d.date_actual as date
             , d2.name as domain
-            , topic_norm_prevalence as value
-        from {tablename(models.MCTopicIdDayDomainAgg)} tiddat 
-        join {tablename(models.Date)} d on tiddat.date_id = d.id
-        join {tablename(models.Domain)} d2 on tiddat.domain_id = d2.id
+            , count(DISTINCT ttip.story_id)::float / nullif(tdc.count, 0) as value
+        from {tablename(models.MCTopicIdPositive)} ttip
+        join {tablename(models.MCDailyCounts)} tdc on
+            tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
+        join {tablename(models.Date)} d on ttip.date_id = d.id
+        join {tablename(models.Topic)} t on ttip.topic_unique_id = t.id
+        join {tablename(models.Domain)} d2 on t.domain_id = d2.id
         where 
-            tiddat.country_id = {country_id}
-            and tiddat.date_id >= {start_date} and tiddat.date_id <= {end_date}
+            ttip.country_id = {country_id}
+            and ttip.date_id >= {start_date} and ttip.date_id <= {end_date}
+        group by d.date_actual, d2.name, tdc.count
         ;
         '''
     )
@@ -898,7 +999,7 @@ async def domain_prevalences_in_period_for_country(
             d.date_actual as date
             , d2.name as domain
             -- , avg(topic_norm_prevalence) as value
-            , sum(ttip.topic_norm_prevalence)/tdc.count  AS value
+            , count(DISTINCT ttip.{record_col_name})::float / nullif(tdc.count, 0) AS value
         from {tablename(topic_model)} ttip
         join {tablename(sentiment_model)} ts on ttip.{record_col_name} = ts.{record_col_name}
             and (ttip.country_id = ts.country_id)
@@ -1577,7 +1678,7 @@ async def time_series_from_filtered_messages(
             )
             select
                 qr.date_id as date_id
-                , sum(all_ttip.topic_norm_prevalence)/tdc.count as value
+                , count(DISTINCT qr.{record_col_name})::float / nullif(tdc.count, 0) as value
                 , t.topic as topic
             from qualified_records qr
             join {tablename(topic_table)} all_ttip
@@ -1607,7 +1708,7 @@ async def hot_topics_with_topic_condition(
     """
     This function must be used only if topics are present in conditions, i.e. the variable topic_clause
     is not an empty string.
-    It does an avereage prevalence for each topic selected within country and period and other conditions
+    It computes an attention rate for each topic selected within country and period and other conditions
 
     Args:
         pool (_type_): _description_
@@ -1749,7 +1850,7 @@ async def hot_topics_without_topic_condition(
                 {topic_clause}
                 {sentiment_clause}
                 {emotion_clause}
-            group by dom.name, domain_id
+            group by dom.name, t.domain_id
             order by frequency desc
             ;
         '''
@@ -1765,7 +1866,7 @@ async def hot_topics_without_topic_condition(
 async def talking_points_on_conditions_bkp(pool, conditions, country_id, start_date, end_date):
     """
     This function can be used on any kind of conditions (topic, sentiment, emotion)
-    It does an avereage prevalence for each domain of the framekork within country and period and other conditions
+    It computes an attention rate for each domain of the framework within country and period and other conditions
 
     the version with the first two with clauses (msg_count_in_latest_period, msg_count_in_prev_previous) has 
     never been tested. Search on previous commits for tested one
@@ -2169,7 +2270,7 @@ async def chart_studio_time_series_from_stream(
     else:
         raise ValueError(f'Stream {stream} not allowed')
     if field_type == "attention":
-        value_clause = ", sum(ttip.topic_norm_prevalence)/tdc.count as value"
+        value_clause = f", count(DISTINCT ttip.{record_col_name})::float / nullif(tdc.count, 0) as value"
         distinct_clause = ""
         if not aggr:
             field_clause = f", c.name || ' - '  || t.topic || ' - ' || {suffix}  as field"
@@ -2186,19 +2287,17 @@ async def chart_studio_time_series_from_stream(
         joint_topic_clause = " "
         group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
     elif field_type == "emotion":
-        value_clause = (
-            """, json_build_object(
-                    'anger', sum(anger::float)/tdc.count,
-                    'anticipation', sum(anticipation::float)/tdc.count,
-                    'disgust', sum(disgust::float)/tdc.count,
-                    'fear', sum(fear::float)/tdc.count,
-                    'joy', sum(joy::float)/tdc.count,
-                    'sadness', sum(sadness::float)/tdc.count,
-                    'surprise', sum(surprise::float)/tdc.count,
-                    'trust', sum(trust::float)/tdc.count
-                ) AS value  
-            """
-            )
+        value_clause = f""", json_build_object(
+                'anger', count(*) FILTER (WHERE ts.anger > 0)::float / nullif(count(DISTINCT ttip.{record_col_name}), 0),
+                'anticipation', count(*) FILTER (WHERE ts.anticipation > 0)::float / nullif(count(DISTINCT ttip.{record_col_name}), 0),
+                'disgust', count(*) FILTER (WHERE ts.disgust > 0)::float / nullif(count(DISTINCT ttip.{record_col_name}), 0),
+                'fear', count(*) FILTER (WHERE ts.fear > 0)::float / nullif(count(DISTINCT ttip.{record_col_name}), 0),
+                'joy', count(*) FILTER (WHERE ts.joy > 0)::float / nullif(count(DISTINCT ttip.{record_col_name}), 0),
+                'sadness', count(*) FILTER (WHERE ts.sadness > 0)::float / nullif(count(DISTINCT ttip.{record_col_name}), 0),
+                'surprise', count(*) FILTER (WHERE ts.surprise > 0)::float / nullif(count(DISTINCT ttip.{record_col_name}), 0),
+                'trust', count(*) FILTER (WHERE ts.trust > 0)::float / nullif(count(DISTINCT ttip.{record_col_name}), 0)
+            ) AS value  
+        """
         distinct_clause = " distinct on (date_actual) "
         field_clause = f", c.name  || ' - Emotion - ' || {suffix} as field"
         joint_topic_clause = " "
@@ -2527,46 +2626,43 @@ async def time_series_emotions(
         daily_counts_table = models.MCDailyCounts
     else:
         raise ValueError(f'Stream {stream} not allowed')
-    value_clause = (
-            """, json_build_object(
-                    'anger', avg(anger::float),
-                    'anticipation', avg(anticipation::float),
-                    'disgust', avg(disgust::float),
-                    'fear', avg(fear::float),
-                    'joy', avg(joy::float),
-                    'sadness', avg(sadness::float),
-                    'surprise', avg(surprise::float),
-                    'trust', avg(trust::float)
-                ) AS value  
-            """
-    )
-    distinct_clause = " distinct on (date_actual) "
-    field_clause = f", c.name  || ' - Emotion - ' || '{stream}' as field"
-    joint_topic_clause = " "
-    group_by_clause = "group by ttip.country_id, d.date_actual, tdc.count, c.name"
 
     q = (
         f'''
+            with qualified_records as (
+                select distinct
+                    ttip.{record_col_name},
+                    ttip.country_id,
+                    ttip.date_id
+                from {tablename(topic_table)} ttip
+                join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
+                    and ttip.country_id = ts.country_id
+                where 
+                    ttip.date_id between {start_date} and {end_date}
+                    and ttip.country_id = {country_id}
+                    {topic_clause}
+                    {sentiment_clause}
+                    {emotion_clause}
+            )
             select
-                -- {distinct_clause}
-                d.date_actual as date
-                {value_clause}
-                {field_clause}
-            from {tablename(topic_table)} ttip
-            join {tablename(sentiment_table)} ts on ttip.{record_col_name} = ts.{record_col_name}
-                and ttip.country_id = ts.country_id
-            join {tablename(daily_counts_table)} tdc on 
-                tdc.date_id = ttip.date_id and tdc.country_id = ttip.country_id
-            join {tablename(models.Date)} d on ttip.date_id = d.id
+                d.date_actual as date,
+                json_build_object(
+                    'anger', count(*) FILTER (WHERE ts.anger > 0)::float / nullif(count(DISTINCT qr.{record_col_name}), 0),
+                    'anticipation', count(*) FILTER (WHERE ts.anticipation > 0)::float / nullif(count(DISTINCT qr.{record_col_name}), 0),
+                    'disgust', count(*) FILTER (WHERE ts.disgust > 0)::float / nullif(count(DISTINCT qr.{record_col_name}), 0),
+                    'fear', count(*) FILTER (WHERE ts.fear > 0)::float / nullif(count(DISTINCT qr.{record_col_name}), 0),
+                    'joy', count(*) FILTER (WHERE ts.joy > 0)::float / nullif(count(DISTINCT qr.{record_col_name}), 0),
+                    'sadness', count(*) FILTER (WHERE ts.sadness > 0)::float / nullif(count(DISTINCT qr.{record_col_name}), 0),
+                    'surprise', count(*) FILTER (WHERE ts.surprise > 0)::float / nullif(count(DISTINCT qr.{record_col_name}), 0),
+                    'trust', count(*) FILTER (WHERE ts.trust > 0)::float / nullif(count(DISTINCT qr.{record_col_name}), 0)
+                ) AS value,
+                c.name  || ' - Emotion - ' || '{stream}' as field
+            from qualified_records qr
+            join {tablename(sentiment_table)} ts on qr.{record_col_name} = ts.{record_col_name}
+                and qr.country_id = ts.country_id
+            join {tablename(models.Date)} d on qr.date_id = d.id
             join {tablename(models.Country)} c on c.country_code = {country_id}
-            {joint_topic_clause}
-            where 
-                (ttip.date_id >= {start_date} and ttip.date_id <= {end_date}) 
-                and ttip.country_id = {country_id}
-                {topic_clause}
-                {sentiment_clause}
-                {emotion_clause}
-            {group_by_clause}
+            group by qr.country_id, d.date_actual, c.name
             ;
         '''
     )

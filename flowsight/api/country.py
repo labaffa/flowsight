@@ -97,6 +97,38 @@ async def get_corpus_summary(
     return data
 
 
+@router.get("/{alpha_2}/social_listening_summary")
+async def get_social_listening_summary(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    conditions: str="",
+):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    conditions = json.loads(conditions) if conditions else None
+    return await human_mobility_utils.social_listening_summary(
+        request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date
+    )
+
+
+@router.get("/{alpha_2}/media_monitoring_summary")
+async def get_media_monitoring_summary(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    conditions: str="",
+):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    conditions = json.loads(conditions) if conditions else None
+    return await human_mobility_utils.media_monitoring_summary(
+        request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date
+    )
+
+
 @router.get("/{alpha_2}/corpus_coverage_series")
 async def get_corpus_coverage_series(
     request: fastapi.Request,
@@ -284,6 +316,105 @@ async def get_tg_domains_for_country_in_period(
         response.append(day_data)
     response = sorted(response, key=lambda x: x["date"])
     return response
+
+
+@router.get("/{alpha_2}/hm_indicator_attention_trends")
+async def get_hm_indicator_attention_trends(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    interval: str = "auto",
+    conditions: str = "",
+):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in ["tg", "mc"]:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{stream} stream not allowed"
+        )
+    conditions = json.loads(conditions) if conditions else None
+    try:
+        return await human_mobility_utils.hm_indicator_attention_trends(
+            request.app.async_pool,
+            conditions,
+            alpha_2,
+            country_id,
+            start_date,
+            end_date,
+            stream,
+            interval,
+        )
+    except ValueError as exc:
+        raise fastapi.HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/{alpha_2}/hm_topic_attention_trends")
+async def get_hm_topic_attention_trends(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    interval: str = "auto",
+    conditions: str = "",
+    topic_filter_mode: str = "strict",
+):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in ["tg", "mc"]:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{stream} stream not allowed"
+        )
+    conditions = json.loads(conditions) if conditions else None
+    topic_filter_mode = _resolve_topic_filter_mode(topic_filter_mode)
+    try:
+        return await human_mobility_utils.hm_topic_attention_trends(
+            request.app.async_pool,
+            conditions,
+            alpha_2,
+            country_id,
+            start_date,
+            end_date,
+            stream,
+            interval,
+            topic_filter_mode,
+        )
+    except ValueError as exc:
+        raise fastapi.HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/{alpha_2}/hm_indicator_anomaly_trends")
+async def get_hm_indicator_anomaly_trends(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    interval: str = "auto",
+    conditions: str = "",
+):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in ["tg", "mc"]:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"{stream} stream not allowed"
+        )
+    conditions = json.loads(conditions) if conditions else None
+    try:
+        return await human_mobility_utils.hm_indicator_anomaly_trends(
+            request.app.async_pool,
+            conditions,
+            alpha_2,
+            country_id,
+            start_date,
+            end_date,
+            stream,
+            interval,
+        )
+    except ValueError as exc:
+        raise fastapi.HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/{alpha_2}/mc_entity_in_period")
@@ -564,6 +695,26 @@ async def get_talking_points_on_conditions(
     return _format_talking_points(data)
 
 
+@router.get("/{alpha_2}/hm_indicator_talking_points")
+async def get_hm_indicator_talking_points(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    conditions: str="",
+    stream: str="tg",
+    topic_filter_mode: str="strict",
+):
+    country_id = _resolve_country_id(request, alpha_2)
+    conditions = json.loads(conditions) if conditions else None
+    topic_filter_mode = _resolve_topic_filter_mode(topic_filter_mode)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    data = await human_mobility_utils.hm_indicator_talking_points(
+        request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, topic_filter_mode
+    )
+    return _format_talking_points(data)
+
+
 @router.get("/{alpha_2}/tfidf_top_terms")
 async def get_talking_points_on_conditions(
     request: fastapi.Request,
@@ -703,6 +854,7 @@ async def get_overall_trend(
     trend_type: str,
     conditions: str="",
     scope: str="hm",
+    interval: str="auto",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
@@ -711,11 +863,11 @@ async def get_overall_trend(
     for stream in ['mc', 'tg']:
         if _is_hm_scope(scope) and trend_type == "anomaly":
             sql_coros.append(human_mobility_utils.anomaly_time_series(
-                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
+                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, interval
             ))
         elif _is_hm_scope(scope):
             sql_coros.append(human_mobility_utils.overall_time_series(
-                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, trend_type
+                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, trend_type, interval
             ))
         else:
             sql_coros.append(utils.chart_studio_time_series_from_stream(
@@ -767,6 +919,7 @@ async def get_overall_trend(
     trend_type: str,
     conditions: str="",
     scope: str="hm",
+    interval: str="auto",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     conditions = json.loads(conditions) if conditions else None
@@ -775,11 +928,11 @@ async def get_overall_trend(
     for stream in ['mc', 'tg']:
         if _is_hm_scope(scope) and trend_type == "anomaly":
             sql_coros.append(human_mobility_utils.anomaly_time_series(
-                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream
+                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, interval
             ))
         elif _is_hm_scope(scope):
             sql_coros.append(human_mobility_utils.overall_time_series(
-                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, trend_type
+                request.app.async_pool, conditions, alpha_2, country_id, start_date, end_date, stream, trend_type, interval
             ))
         else:
             sql_coros.append(utils.chart_studio_time_series_from_stream(

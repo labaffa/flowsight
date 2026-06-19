@@ -416,8 +416,14 @@ export function processChartData(data, dateKey, customKeys=[]) {
 		for (const item of data) {
 			const dateParts = item[dateKey].split('-').map(part => parseInt(part));
 			const date = Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]);
-			
-			const value = parseFloat(item[topic]) ? item[topic] : 0;
+
+			let value = item[topic];
+			if (value === null || value === undefined || value === '') {
+				value = null;
+			} else {
+				const parsed = parseFloat(value);
+				value = Number.isNaN(parsed) ? null : parsed;
+			}
 			series.data.push({x: date, y: value});
 		}
 		series.data = series.data.sort(function(a, b) { return a.x - b.x; });

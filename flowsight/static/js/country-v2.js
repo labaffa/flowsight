@@ -461,24 +461,26 @@ function renderSelectedTopicSummary() {
         ${grouped.map((domain) => `
             <div class="fsv2-topic-selection-group">
                 <div class="fsv2-topic-selection-domain">${escapeHtml(domain.name)}</div>
-                ${domain.indicators.map((indicator, index) => `
-                    <div class="fsv2-topic-selection-indicator">
-                        <div class="fsv2-topic-selection-indicator-label">
-                            <span class="fsv2-dot" style="background:${indicatorColor(indicator.name, index)}"></span>
-                            ${escapeHtml(indicator.name)}
+                <div class="fsv2-topic-selection-indicators">
+                    ${domain.indicators.map((indicator, index) => `
+                        <div class="fsv2-topic-selection-indicator">
+                            <div class="fsv2-topic-selection-indicator-label">
+                                <span class="fsv2-dot" style="background:${indicatorColor(indicator.name, index)}"></span>
+                                ${escapeHtml(indicator.name)}
+                            </div>
+                            <div class="fsv2-topic-selection-pills">
+                                ${indicator.topics.map((topic) => `
+                                    <span class="fsv2-topic-selection-pill">
+                                        <span>${escapeHtml(topic.topic || "")}</span>
+                                        <button type="button" data-remove-topic-id="${Number(topic.topic_id)}" aria-label="Remove ${escapeHtml(topic.topic || "")}">
+                                            <i class="ti ti-x" aria-hidden="true"></i>
+                                        </button>
+                                    </span>
+                                `).join("")}
+                            </div>
                         </div>
-                        <div class="fsv2-topic-selection-pills">
-                            ${indicator.topics.map((topic) => `
-                                <span class="fsv2-topic-selection-pill">
-                                    <span>${escapeHtml(topic.topic || "")}</span>
-                                    <button type="button" data-remove-topic-id="${Number(topic.topic_id)}" aria-label="Remove ${escapeHtml(topic.topic || "")}">
-                                        <i class="ti ti-x" aria-hidden="true"></i>
-                                    </button>
-                                </span>
-                            `).join("")}
-                        </div>
-                    </div>
-                `).join("")}
+                    `).join("")}
+                </div>
             </div>
         `).join("")}
     `;
@@ -529,18 +531,49 @@ function renderTopicTree() {
     container.innerHTML = hierarchy.map((domain) => {
         let domainKey = slugifyKey(domain.name);
         let domainOpen = searchValue ? true : openDomains.has(domainKey);
+        let domainTopics = domain.indicators.flatMap((indicator) => indicator.topics);
+        let domainSelectedCount = domainTopics.filter((topic) => selectedIds.has(topic.id)).length;
+        let domainAllSelected = domainTopics.length > 0 && domainSelectedCount === domainTopics.length;
+        let domainPartialSelected = domainSelectedCount > 0 && !domainAllSelected;
         return `
         <details class="fsv2-topic-group" data-domain-key="${domainKey}" ${domainOpen ? "open" : ""}>
-            <summary>${escapeHtml(domain.name)}</summary>
+            <summary>
+                <span class="fsv2-topic-summary-main">
+                    <input
+                        type="checkbox"
+                        class="fsv2-topic-group-checkbox"
+                        data-select-scope="domain"
+                        data-domain-key="${domainKey}"
+                        ${domainAllSelected ? "checked" : ""}
+                        data-partial="${domainPartialSelected ? "true" : "false"}"
+                    >
+                    <span>${escapeHtml(domain.name)}</span>
+                    <span class="fsv2-topic-summary-count">${domainSelectedCount}/${domainTopics.length}</span>
+                </span>
+            </summary>
             <div class="fsv2-topic-group-body">
                 ${domain.indicators.map((indicator, indicatorIndex) => {
                     let indicatorKey = `${domainKey}::${slugifyKey(indicator.name)}`;
                     let indicatorOpen = openIndicators.has(indicatorKey);
+                    let indicatorSelectedCount = indicator.topics.filter((topic) => selectedIds.has(topic.id)).length;
+                    let indicatorAllSelected = indicator.topics.length > 0 && indicatorSelectedCount === indicator.topics.length;
+                    let indicatorPartialSelected = indicatorSelectedCount > 0 && !indicatorAllSelected;
                     return `
                     <details class="fsv2-topic-subgroup" data-indicator-key="${indicatorKey}" ${indicatorOpen ? "open" : ""}>
                         <summary>
-                            <span class="fsv2-dot" style="background:${indicatorColor(indicator.name, indicatorIndex)}"></span>
-                            ${escapeHtml(indicator.name)}
+                            <span class="fsv2-topic-summary-main">
+                                <input
+                                    type="checkbox"
+                                    class="fsv2-topic-group-checkbox"
+                                    data-select-scope="indicator"
+                                    data-indicator-key="${indicatorKey}"
+                                    ${indicatorAllSelected ? "checked" : ""}
+                                    data-partial="${indicatorPartialSelected ? "true" : "false"}"
+                                >
+                                <span class="fsv2-dot" style="background:${indicatorColor(indicator.name, indicatorIndex)}"></span>
+                                <span>${escapeHtml(indicator.name)}</span>
+                                <span class="fsv2-topic-summary-count">${indicatorSelectedCount}/${indicator.topics.length}</span>
+                            </span>
                         </summary>
                         <div class="fsv2-topic-options">
                             ${indicator.topics.map((topic) => `
@@ -561,6 +594,9 @@ function renderTopicTree() {
         </details>
     `;
     }).join("");
+    container.querySelectorAll(".fsv2-topic-group-checkbox[data-partial=\"true\"]").forEach((checkbox) => {
+        checkbox.indeterminate = true;
+    });
 }
 
 function syncControlsFromState() {
@@ -583,10 +619,24 @@ function updateRangePresetButtons() {
     });
 }
 
-function toggleFilterPanel(forceOpen = null) {
-    let panel = document.getElementById("fsv2-filter-panel");
-    if (!panel) return;
-    panel.hidden = forceOpen == null ? !panel.hidden : !forceOpen;
+function setFilterPanel(panelId, forceOpen = null) {
+    let panelIds = ["fsv2-topic-filter-panel", "fsv2-date-filter-panel"];
+    for (let id of panelIds) {
+        let panel = document.getElementById(id);
+        if (!panel) continue;
+        if (id !== panelId) {
+            panel.hidden = true;
+            continue;
+        }
+        panel.hidden = forceOpen == null ? !panel.hidden : !forceOpen;
+    }
+}
+
+function closeFilterPanels() {
+    ["fsv2-topic-filter-panel", "fsv2-date-filter-panel"].forEach((id) => {
+        let panel = document.getElementById(id);
+        if (panel) panel.hidden = true;
+    });
 }
 
 function syncWorkspaceRailHeights() {
@@ -654,6 +704,35 @@ function buildConditionsFromState() {
     }));
 }
 
+function mergeSelectedTopics(topicEntries) {
+    let selectedById = new Map(
+        (window.fsV2State.selectedTopicIds || []).map((id, index) => [
+            Number(id),
+            String(window.fsV2State.selectedTopicNames?.[index] || ""),
+        ])
+    );
+    for (let topic of topicEntries) {
+        selectedById.set(Number(topic.id), String(topic.name || ""));
+    }
+    window.fsV2State.selectedTopicIds = Array.from(selectedById.keys());
+    window.fsV2State.selectedTopicNames = Array.from(selectedById.values());
+    buildConditionsFromState();
+}
+
+function removeSelectedTopicsByIds(topicIds) {
+    let remove = new Set(topicIds.map((id) => Number(id)));
+    let nextIds = [];
+    let nextNames = [];
+    (window.fsV2State.selectedTopicIds || []).forEach((id, index) => {
+        if (remove.has(Number(id))) return;
+        nextIds.push(Number(id));
+        nextNames.push(String(window.fsV2State.selectedTopicNames?.[index] || ""));
+    });
+    window.fsV2State.selectedTopicIds = nextIds;
+    window.fsV2State.selectedTopicNames = nextNames;
+    buildConditionsFromState();
+}
+
 function markTabsStale() {
     window.fsV2State.loadedTabs.summary = false;
     window.fsV2State.loadedTabs.social = false;
@@ -682,7 +761,7 @@ function applyFilterState() {
     buildConditionsFromState();
     markTabsStale();
     syncControlsFromState();
-    toggleFilterPanel(false);
+    closeFilterPanels();
     refreshActiveTab().catch(console.error);
 }
 
@@ -696,14 +775,15 @@ function resetFilterState() {
     buildConditionsFromState();
     markTabsStale();
     syncControlsFromState();
+    closeFilterPanels();
     refreshActiveTab().catch(console.error);
 }
 
 function setupFilterBar() {
     populateTopicSelect();
     syncControlsFromState();
-    document.getElementById("fsv2-add-filter-btn")?.addEventListener("click", () => toggleFilterPanel());
-    document.getElementById("fsv2-date-range-btn")?.addEventListener("click", () => toggleFilterPanel());
+    document.getElementById("fsv2-add-filter-btn")?.addEventListener("click", () => setFilterPanel("fsv2-topic-filter-panel"));
+    document.getElementById("fsv2-date-range-btn")?.addEventListener("click", () => setFilterPanel("fsv2-date-filter-panel"));
     document.getElementById("fsv2-apply-btn")?.addEventListener("click", applyFilterState);
     document.getElementById("fsv2-reset-btn")?.addEventListener("click", resetFilterState);
     document.getElementById("fsv2-topic-search")?.addEventListener("input", () => renderTopicTree());
@@ -729,23 +809,64 @@ function setupFilterBar() {
         updateRangePresetButtons();
     });
     document.getElementById("fsv2-topic-tree")?.addEventListener("click", (event) => {
+        let groupCheckbox = event.target.closest(".fsv2-topic-group-checkbox");
+        if (groupCheckbox) {
+            event.preventDefault();
+            event.stopPropagation();
+            let hierarchy = topicHierarchy();
+            if (groupCheckbox.dataset.selectScope === "domain") {
+                let domainKey = groupCheckbox.dataset.domainKey || "";
+                let domain = hierarchy.find((item) => slugifyKey(item.name) === domainKey);
+                if (!domain) return;
+                let domainTopics = domain.indicators.flatMap((indicator) => indicator.topics);
+                let allSelected = domainTopics.every((topic) => (window.fsV2State.selectedTopicIds || []).includes(Number(topic.id)));
+                if (allSelected) {
+                    removeSelectedTopicsByIds(domainTopics.map((topic) => topic.id));
+                } else {
+                    mergeSelectedTopics(domainTopics);
+                }
+                renderTopicTree();
+                updateTopicChip();
+                renderSelectedTopicSummary();
+                return;
+            }
+            if (groupCheckbox.dataset.selectScope === "indicator") {
+                let indicatorKey = groupCheckbox.dataset.indicatorKey || "";
+                let match = null;
+                for (let domain of hierarchy) {
+                    let domainKey = slugifyKey(domain.name);
+                    for (let indicator of domain.indicators) {
+                        if (`${domainKey}::${slugifyKey(indicator.name)}` === indicatorKey) {
+                            match = indicator;
+                            break;
+                        }
+                    }
+                    if (match) break;
+                }
+                if (!match) return;
+                let allSelected = match.topics.every((topic) => (window.fsV2State.selectedTopicIds || []).includes(Number(topic.id)));
+                if (allSelected) {
+                    removeSelectedTopicsByIds(match.topics.map((topic) => topic.id));
+                } else {
+                    mergeSelectedTopics(match.topics);
+                }
+                renderTopicTree();
+                updateTopicChip();
+                renderSelectedTopicSummary();
+                return;
+            }
+        }
         let button = event.target.closest(".fsv2-topic-option");
         if (!button) return;
         let topicId = Number(button.dataset.topicId);
         let topicName = button.dataset.topicName || button.textContent.trim();
         let selectedIds = [...(window.fsV2State.selectedTopicIds || [])];
-        let selectedNames = [...(window.fsV2State.selectedTopicNames || [])];
         let existingIndex = selectedIds.indexOf(topicId);
         if (existingIndex >= 0) {
-            selectedIds.splice(existingIndex, 1);
-            selectedNames.splice(existingIndex, 1);
+            removeSelectedTopicsByIds([topicId]);
         } else {
-            selectedIds.push(topicId);
-            selectedNames.push(topicName);
+            mergeSelectedTopics([{ id: topicId, name: topicName }]);
         }
-        window.fsV2State.selectedTopicIds = selectedIds;
-        window.fsV2State.selectedTopicNames = selectedNames;
-        buildConditionsFromState();
         renderTopicTree();
         updateTopicChip();
         renderSelectedTopicSummary();
@@ -761,7 +882,7 @@ function setupFilterBar() {
             refreshActiveTab().catch(console.error);
             return;
         }
-        toggleFilterPanel(true);
+        setFilterPanel("fsv2-topic-filter-panel", true);
     });
     document.getElementById("fsv2-topic-selection-summary")?.addEventListener("click", (event) => {
         let button = event.target.closest("[data-remove-topic-id]");

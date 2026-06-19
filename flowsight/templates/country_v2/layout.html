@@ -43,13 +43,18 @@
             <button type="button" class="fsv2-btn fsv2-btn-primary" id="fsv2-apply-btn">Apply</button>
         </div>
     </section>
-    <section class="fsv2-filter-panel" id="fsv2-filter-panel" hidden>
+    <section class="fsv2-filter-panel" id="fsv2-topic-filter-panel" hidden>
         <div class="fsv2-filter-field" id="fsv2-topic-filter-field">
             <label for="fsv2-topic-search">Indicator component</label>
             <input type="search" id="fsv2-topic-search" placeholder="Search indicator components">
-            <div class="fsv2-topic-selection-summary" id="fsv2-topic-selection-summary" hidden></div>
-            <div class="fsv2-topic-tree" id="fsv2-topic-tree" role="tree" aria-label="Indicator component filter"></div>
+            <div class="fsv2-topic-filter-body">
+                <div class="fsv2-topic-tree" id="fsv2-topic-tree" role="tree" aria-label="Indicator component filter"></div>
+                <div class="fsv2-topic-selection-summary" id="fsv2-topic-selection-summary" hidden></div>
+            </div>
         </div>
+    </section>
+
+    <section class="fsv2-filter-panel fsv2-filter-panel-date" id="fsv2-date-filter-panel" hidden>
         <div class="fsv2-filter-field fsv2-filter-field-wide">
             <label>Quick ranges</label>
             <div class="fsv2-range-presets" role="group" aria-label="Quick date ranges">

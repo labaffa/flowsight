@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% include "base/head.html" %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css" />
+<link href="{{ url_for('static', path='/css/flowsight-v2.css').include_query_params(version=version) }}" rel="stylesheet">
+</head>
+<body class="flowsight-v2-body">
+    {% include "country_v2/layout.html" %}
+    {% include "base/highcharts_local.html" %}
+
+    <script>
+        window.fsV2Bootstrap = {
+            country: JSON.parse('{{ country|tojson }}'),
+            countryName: JSON.parse('{{ country_name|tojson }}'),
+            dateRanges: JSON.parse('{{ date_ranges|tojson }}'),
+            topics: JSON.parse('{{ topics|tojson }}'),
+            version: JSON.parse('{{ version|tojson }}')
+        };
+    </script>
+    <script type="module" src="{{ url_for('static', path='/js/country-v2.js').include_query_params(version=version) }}"></script>
+</body>
+</html>

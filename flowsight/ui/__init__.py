@@ -1,1 +1,1 @@
-from flowsight.ui import country, chart_studio
+from flowsight.ui import country, country_v2, chart_studio

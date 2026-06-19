@@ -1,0 +1,121 @@
+<main class="fsv2-main">
+    <section class="fsv2-kpi-row fsv2-kpi-row-four">
+        <article class="fsv2-kpi-card fsv2-kpi-card-compact">
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-tg"></span>Telegram HM messages</div>
+            <div class="fsv2-kpi-value" id="fsv2-social-kpi-messages-value">Loading...</div>
+            <div class="fsv2-kpi-label" id="fsv2-social-kpi-messages-label">Selected period</div>
+            <div class="fsv2-kpi-meta" id="fsv2-social-kpi-messages-meta">Loading Telegram summary</div>
+        </article>
+
+        <article class="fsv2-kpi-card fsv2-kpi-card-compact">
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-mc"></span>Active channels</div>
+            <div class="fsv2-kpi-value" id="fsv2-social-kpi-channels-value">Loading...</div>
+            <div class="fsv2-kpi-label" id="fsv2-social-kpi-channels-label">Telegram channels in source set</div>
+            <div class="fsv2-kpi-meta" id="fsv2-social-kpi-channels-meta">Loading Telegram summary</div>
+        </article>
+
+        <article class="fsv2-kpi-card fsv2-kpi-card-compact">
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-alert"></span>Average sentiment</div>
+            <div class="fsv2-kpi-value" id="fsv2-social-kpi-sentiment-value">Loading...</div>
+            <div class="fsv2-kpi-label" id="fsv2-social-kpi-sentiment-label">Mean sentiment in matched HM messages</div>
+            <div class="fsv2-kpi-meta" id="fsv2-social-kpi-sentiment-meta">Loading Telegram summary</div>
+        </article>
+
+        <article class="fsv2-kpi-card fsv2-kpi-card-compact">
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-violet"></span>Indicators detected</div>
+            <div class="fsv2-kpi-value" id="fsv2-social-kpi-indicators-value">Loading...</div>
+            <div class="fsv2-kpi-label" id="fsv2-social-kpi-indicators-label">HM indicators active in matched messages</div>
+            <div class="fsv2-kpi-meta" id="fsv2-social-kpi-indicators-meta">Loading Telegram summary</div>
+        </article>
+    </section>
+
+    <section class="fsv2-grid fsv2-social-grid fsv2-social-top-grid">
+        <article class="fsv2-card fsv2-social-card fsv2-domain-card">
+            <div class="fsv2-card-head">
+                <div>
+                    <h2>Domain comparison</h2>
+                    <p>Share of Telegram HM messages tagged in each domain during the selected period</p>
+                </div>
+                <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+            </div>
+            <div class="fsv2-chart-surface fsv2-domain-surface" id="fsv2-social-domain-chart"></div>
+        </article>
+
+        <article class="fsv2-card fsv2-social-card">
+            <div class="fsv2-card-head">
+                <div>
+                    <h2>Talking points</h2>
+                    <p>HM indicators ranked by attention and sentiment change versus previous period</p>
+                </div>
+                <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+            </div>
+            <div class="fsv2-social-table" id="fsv2-social-talking-points"></div>
+        </article>
+
+        <article class="fsv2-card fsv2-social-card">
+            <div class="fsv2-card-head">
+                <div>
+                    <h2>Significant terms</h2>
+                    <p>Top 50 terms overrepresented in Telegram HM messages for the selected period</p>
+                </div>
+                <div class="fsv2-pill-toggle" aria-label="Significant terms ranking">
+                    <button type="button" class="fsv2-pill-toggle-btn fsv2-pill-toggle-btn-active" data-tfidf-metric="period_average">Period average</button>
+                    <button type="button" class="fsv2-pill-toggle-btn" data-tfidf-metric="daily_peak">Daily peaks</button>
+                </div>
+            </div>
+            <div class="fsv2-term-cloud" id="fsv2-social-tfidf"></div>
+            <div class="fsv2-tfidf-note">
+                <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected HM messages.</span>
+                <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>High distinctiveness</span>
+                <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-medium"></span>Medium distinctiveness</span>
+                <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-soft"></span>Emerging distinctiveness</span>
+            </div>
+        </article>
+    </section>
+
+    <section class="fsv2-workspace fsv2-workspace-social">
+        <div class="fsv2-workspace-main">
+            <section class="fsv2-grid">
+                <article class="fsv2-card fsv2-attention-card fsv2-card-full">
+                    <div class="fsv2-card-head">
+                        <div>
+                            <h2>Telegram attention trends</h2>
+                            <p>HM indicator share within Telegram HM messages · scale 0–1</p>
+                        </div>
+                        <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="fsv2-chart-surface fsv2-attention-surface" id="fsv2-social-attention-chart"></div>
+                </article>
+
+                <article class="fsv2-card fsv2-trend-card fsv2-card-full">
+                    <div class="fsv2-card-head">
+                        <div>
+                            <h2>Telegram sentiment</h2>
+                            <p>Sentiment score · Telegram · scale -1 to 1</p>
+                        </div>
+                        <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="fsv2-chart-surface fsv2-trend-surface" id="fsv2-social-sentiment-chart"></div>
+                </article>
+            </section>
+        </div>
+
+        <aside class="fsv2-workspace-rail">
+            <article class="fsv2-card fsv2-feed-card">
+                <div class="fsv2-card-head">
+                    <div>
+                        <h2>Actual messages</h2>
+                        <p>Telegram HM messages matching the current global filters</p>
+                    </div>
+                    <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+                </div>
+                <div class="fsv2-feed-scroll">
+                    <div class="fsv2-message-list fsv2-feed-list" id="fsv2-social-messages"></div>
+                </div>
+                <div class="fsv2-social-actions">
+                    <button type="button" class="fsv2-btn fsv2-btn-secondary" id="fsv2-social-load-more">Load more messages</button>
+                </div>
+            </article>
+        </aside>
+    </section>
+</main>

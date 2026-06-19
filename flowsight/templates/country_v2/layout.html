@@ -1,0 +1,114 @@
+<div class="fsv2-wrap">
+    <header class="fsv2-header">
+        <div class="fsv2-brand">
+            <span class="fsv2-wordmark">{{ branding.nav_title }}</span>
+            <span class="fsv2-divider"></span>
+            <span class="fsv2-tagline">{{ branding.nav_subtitle }}</span>
+        </div>
+        <nav class="fsv2-nav" aria-label="Header links">
+            <span class="fsv2-nav-link" role="link" aria-disabled="true">Chart studio</span>
+        </nav>
+        <div class="fsv2-country-pill">
+            <i class="ti ti-map-pin" aria-hidden="true"></i>
+            <span>Country focus: {{ country_name }}</span>
+            <i class="ti ti-chevron-down" aria-hidden="true"></i>
+        </div>
+    </header>
+
+    <section class="fsv2-filterbar">
+        <span class="fsv2-filter-label">Apply filter</span>
+        <button type="button" class="fsv2-chip fsv2-chip-active" id="fsv2-topic-chip" hidden>
+            <i class="ti ti-tag" aria-hidden="true"></i>
+            <span id="fsv2-topic-chip-label">Indicator component</span>
+            <i class="ti ti-x" id="fsv2-topic-chip-clear" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="fsv2-chip" id="fsv2-add-filter-btn">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            <span>Add filter</span>
+        </button>
+        <span class="fsv2-filter-sep"></span>
+        <span class="fsv2-filter-label">Interval</span>
+        <div class="fsv2-interval-group" role="group" aria-label="Interval">
+            <button type="button" class="fsv2-interval" data-interval="auto">Auto</button>
+            <button type="button" class="fsv2-interval fsv2-interval-active" data-interval="day">Daily</button>
+            <button type="button" class="fsv2-interval" data-interval="week">Weekly</button>
+            <button type="button" class="fsv2-interval" data-interval="month">Monthly</button>
+        </div>
+        <button type="button" class="fsv2-date-range" id="fsv2-date-range-btn">
+            <i class="ti ti-calendar" aria-hidden="true"></i>
+            <span id="fsv2-date-range-label">Loading date range</span>
+        </button>
+        <div class="fsv2-filter-actions">
+            <button type="button" class="fsv2-btn fsv2-btn-secondary" id="fsv2-reset-btn">Reset</button>
+            <button type="button" class="fsv2-btn fsv2-btn-primary" id="fsv2-apply-btn">Apply</button>
+        </div>
+    </section>
+    <section class="fsv2-filter-panel" id="fsv2-filter-panel" hidden>
+        <div class="fsv2-filter-field" id="fsv2-topic-filter-field">
+            <label for="fsv2-topic-search">Indicator component</label>
+            <input type="search" id="fsv2-topic-search" placeholder="Search indicator components">
+            <div class="fsv2-topic-selection-summary" id="fsv2-topic-selection-summary" hidden></div>
+            <div class="fsv2-topic-tree" id="fsv2-topic-tree" role="tree" aria-label="Indicator component filter"></div>
+        </div>
+        <div class="fsv2-filter-field fsv2-filter-field-wide">
+            <label>Quick ranges</label>
+            <div class="fsv2-range-presets" role="group" aria-label="Quick date ranges">
+                <button type="button" class="fsv2-range-preset" data-range-preset="1m">1 month</button>
+                <button type="button" class="fsv2-range-preset" data-range-preset="6m">6 months</button>
+                <button type="button" class="fsv2-range-preset" data-range-preset="1y">1 year</button>
+                <button type="button" class="fsv2-range-preset" data-range-preset="5y">5 years</button>
+                <button type="button" class="fsv2-range-preset" data-range-preset="10y">10 years</button>
+                <button type="button" class="fsv2-range-preset" data-range-preset="all">All</button>
+            </div>
+        </div>
+        <div class="fsv2-filter-field">
+            <label for="fsv2-start-date">Start date</label>
+            <input type="date" id="fsv2-start-date">
+        </div>
+        <div class="fsv2-filter-field">
+            <label for="fsv2-end-date">End date</label>
+            <input type="date" id="fsv2-end-date">
+        </div>
+    </section>
+
+    <nav class="fsv2-tabs" aria-label="Sections">
+        <button type="button" class="fsv2-tab fsv2-tab-active" data-panel="summary">Summary</button>
+        <button type="button" class="fsv2-tab" data-panel="social">Social listening</button>
+        <button type="button" class="fsv2-tab" data-panel="media">Media monitoring</button>
+        <button type="button" class="fsv2-tab" data-panel="search">Search interest</button>
+    </nav>
+
+    <section class="fsv2-tab-panel" data-panel="summary">
+        {% include "country_v2/summary.html" %}
+    </section>
+
+    <section class="fsv2-tab-panel" data-panel="social" hidden>
+        {% include "country_v2/social_listening.html" %}
+    </section>
+
+    <section class="fsv2-tab-panel" data-panel="media" hidden>
+        {% include "country_v2/media_monitoring.html" %}
+    </section>
+
+    <section class="fsv2-tab-panel" data-panel="search" hidden>
+        {% include "country_v2/search_interest.html" %}
+    </section>
+
+    <footer class="fsv2-footer">
+        <div class="fsv2-footer-logos">
+            <img src="/static/img/cgiar_logo.svg" alt="CGIAR Food Frontiers and Security">
+            <img src="/static/img/alliance_logo.png" alt="Alliance Bioversity &amp; CIAT">
+        </div>
+        <div class="fsv2-footer-sep" aria-hidden="true"></div>
+        <div class="fsv2-footer-copy">
+            <span>
+                This work is part of the CGIAR Science Program on Food Frontiers and Security (FFS). We would like to thank all funders who supported this research through their contributions to the CGIAR Trust Fund:
+                <a href="https://www.cgiar.org/funders/" target="_blank" rel="noreferrer">https://www.cgiar.org/funders/</a>
+            </span>
+        </div>
+        <div class="fsv2-footer-links" aria-label="Footer links">
+            <span>About</span>
+            <span>Chart studio</span>
+        </div>
+    </footer>
+</div>

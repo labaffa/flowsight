@@ -1,0 +1,99 @@
+<main class="fsv2-main">
+    <section class="fsv2-kpi-row fsv2-kpi-row-four">
+        <article class="fsv2-kpi-card fsv2-kpi-card-compact">
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-mc"></span>News media HM stories</div>
+            <div class="fsv2-kpi-value" id="fsv2-media-kpi-stories-value">Loading...</div>
+            <div class="fsv2-kpi-label" id="fsv2-media-kpi-stories-label">Selected period</div>
+            <div class="fsv2-kpi-meta" id="fsv2-media-kpi-stories-meta">Loading news media summary</div>
+        </article>
+
+        <article class="fsv2-kpi-card fsv2-kpi-card-compact">
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-tg"></span>Active sources</div>
+            <div class="fsv2-kpi-value" id="fsv2-media-kpi-sources-value">Loading...</div>
+            <div class="fsv2-kpi-label" id="fsv2-media-kpi-sources-label">Configured Sudan sources</div>
+            <div class="fsv2-kpi-meta" id="fsv2-media-kpi-sources-meta">Loading news media summary</div>
+        </article>
+
+        <article class="fsv2-kpi-card fsv2-kpi-card-compact">
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-alert"></span>Average sentiment</div>
+            <div class="fsv2-kpi-value" id="fsv2-media-kpi-sentiment-value">Loading...</div>
+            <div class="fsv2-kpi-label" id="fsv2-media-kpi-sentiment-label">Mean sentiment in matched HM stories</div>
+            <div class="fsv2-kpi-meta" id="fsv2-media-kpi-sentiment-meta">Loading news media summary</div>
+        </article>
+
+        <article class="fsv2-kpi-card fsv2-kpi-card-compact">
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-violet"></span>Indicators detected</div>
+            <div class="fsv2-kpi-value" id="fsv2-media-kpi-indicators-value">Loading...</div>
+            <div class="fsv2-kpi-label" id="fsv2-media-kpi-indicators-label">HM indicators active in matched stories</div>
+            <div class="fsv2-kpi-meta" id="fsv2-media-kpi-indicators-meta">Loading news media summary</div>
+        </article>
+    </section>
+
+    <section class="fsv2-workspace">
+        <div class="fsv2-workspace-main">
+            <section class="fsv2-grid fsv2-media-grid">
+                <article class="fsv2-card fsv2-social-card fsv2-domain-card">
+                    <div class="fsv2-card-head">
+                        <div>
+                            <h2>Domain comparison</h2>
+                            <p>Share of news media HM stories tagged in each domain during the selected period</p>
+                        </div>
+                        <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="fsv2-chart-surface fsv2-domain-surface" id="fsv2-media-domain-chart"></div>
+                </article>
+
+                <article class="fsv2-card fsv2-social-card">
+                    <div class="fsv2-card-head">
+                        <div>
+                            <h2>Talking points</h2>
+                            <p>HM indicators ranked by attention and sentiment change versus previous period</p>
+                        </div>
+                        <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="fsv2-social-table" id="fsv2-media-talking-points"></div>
+                </article>
+
+                <article class="fsv2-card fsv2-trend-card fsv2-card-full">
+                    <div class="fsv2-card-head">
+                        <div>
+                            <h2>News media attention trends</h2>
+                            <p>HM indicator share within MediaCloud HM stories · scale 0–1</p>
+                        </div>
+                        <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="fsv2-chart-surface fsv2-attention-surface" id="fsv2-media-attention-chart"></div>
+                </article>
+
+                <article class="fsv2-card fsv2-trend-card fsv2-card-full">
+                    <div class="fsv2-card-head">
+                        <div>
+                            <h2>News media sentiment</h2>
+                            <p>Sentiment score · News media · scale -1 to 1</p>
+                        </div>
+                        <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="fsv2-chart-surface fsv2-trend-surface" id="fsv2-media-sentiment-chart"></div>
+                </article>
+            </section>
+        </div>
+
+        <aside class="fsv2-workspace-rail">
+            <article class="fsv2-card fsv2-feed-card">
+                <div class="fsv2-card-head">
+                    <div>
+                        <h2>Actual stories</h2>
+                        <p>MediaCloud HM stories matching the current global filters</p>
+                    </div>
+                    <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
+                </div>
+                <div class="fsv2-feed-scroll">
+                    <div class="fsv2-message-list fsv2-feed-list" id="fsv2-media-stories"></div>
+                </div>
+                <div class="fsv2-social-actions">
+                    <button type="button" class="fsv2-btn fsv2-btn-secondary" id="fsv2-media-load-more">Load more stories</button>
+                </div>
+            </article>
+        </aside>
+    </section>
+</main>

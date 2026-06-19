@@ -107,6 +107,7 @@ app.mount("/static", StaticFiles(directory="flowsight/static"), name="static")
 
 app.include_router(api.studio_router)
 app.include_router(ui.country.router)
+app.include_router(ui.country_v2.router)
 app.include_router(ui.chart_studio.router)
 app.include_router(api.country_router, tags=["country"])
 app.include_router(api.misc_router, tags=["Util"])

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-VERSION = "13"
+VERSION = "14"
 DEFAULT_COUNTRY_ALPHA_2 = "sd"
 
 COLOR_SCHEMES = {

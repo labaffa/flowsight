@@ -51,11 +51,16 @@ async def get_latest_by_domain(
         SELECT 
             tti.date_id as date_id
             , tti.country_id as country_id
-            , tti.domain_id as domain_id
-            , tti.topic_norm_prevalence as value
+            , top.domain_id as domain_id
+            , count(DISTINCT tti.message_unique_id)::float / nullif(tdc.count, 0) as value
             , 'attention' as source
-        from {tablename(TopicIdDayDomainAggTg)} as tti
-        where tti.date_id = {latest_update_day};
+        from {tablename(models.TgTopicIdPositive)} as tti
+        join {tablename(models.Topic)} top on tti.topic_unique_id = top.id
+        join {tablename(models.TgDailyCounts)} tdc
+            on tti.country_id = tdc.country_id
+            and tti.date_id = tdc.date_id
+        where tti.date_id = {latest_update_day}
+        group by tti.date_id, tti.country_id, top.domain_id, tdc.count;
         '''
         )
     async with request.app.async_pool.connection() as conn:
@@ -128,6 +133,5 @@ async def get_stats_for_map_tooltip(
     for s in sentiment:
         out[s["alpha_2"].strip().lower()][s["stream"]]["sentiment"][s["domain_id"]] = s
     return out
-
 
 

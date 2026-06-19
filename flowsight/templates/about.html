@@ -186,7 +186,7 @@
                                 <td>
                                     <p>
                                         This metric identifies any anomalies in the topic
-                                        prevalence, i.e. topics that are presenting a
+                                        attention rate, i.e. topics that are presenting a
                                         different attention than usual, per country.
                                         They are presented as the count of anomalous
                                         topics for the selected domain and data stream
@@ -197,10 +197,10 @@
                                     
                                     <p>
                                         For every topic, the average and standard
-                                        deviation of the daily normalized prevalences are
+                                        deviation of the daily attention rates are
                                         calculated considering the whole dataset; a topic
                                         is then tagged as anomalous on a specific date
-                                        when its topic normalized prevalence is larger
+                                        when its daily attention rate is larger
                                         than the average + standard deviation.
                                     </p>
                                 
@@ -265,7 +265,7 @@
                         <td>
                             <p>
                                 Comparative overview of topic anomalies, by data source (news and social media). 
-                                The metric identifies any anomalies in topic prevalence, 
+                                The metric identifies any anomalies in topic attention rate, 
                                 i.e. topics that are presenting a different attention than usual.   
                             </p> 
                             <p>
@@ -275,9 +275,9 @@
                             </p>
                             <p>
                                 For every topic, the average and standard deviation of the daily 
-                                normalized prevalences are calculated considering the whole dataset; 
+                                attention rates are calculated considering the whole dataset; 
                                 a topic is then tagged as anomalous on a specific date when its 
-                                topic normalized prevalence is larger than the average + standard deviation.
+                                daily attention rate is larger than the average + standard deviation.
 
                             </p>
                             
@@ -292,10 +292,10 @@
                                 Based on the custom taxonomy developed for 117 topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for each data stream.
                             </p>
                             <p>
-                                By default, when no topic is filtered, the visualization displays an average of topic attention for all topics, for each data stream, per day. 
+                                By default, when no topic is filtered, the visualization displays an average record-level attention rate for all topics, for each data stream, per day. 
                             </p>
                             <p>
-                                Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a Telegram post or news story, normalized on the value of the total word count of that item and scaled on a range from 0 to 1. 
+                                Attention is based on record presence: the share of Telegram posts or news stories in the selected period where a topic is detected at least once. 
 
                             </p>
                             <p>
@@ -428,9 +428,8 @@ The daily sentiment score for each data stream is shown for the selected period.
                                     the for each Domain.
                                     </p>
                                     <p>
-                                        Attention is based on topic prevalence, calculated from the 
-                                    presence of terms associated to a particular topic in a Telegram post, normalized 
-                                    on the value of the total word count of that post and scaled on a range from 0 to 1
+                                        Attention is based on record presence: the share of Telegram posts in the
+                                    selected period where a topic in the selected domain is detected at least once.
                                     </p> 
                                     <p>
                                         The visualization interacts with the filter bar
@@ -537,8 +536,8 @@ The daily sentiment score for each data stream is shown for the selected period.
                             the for each Domain.
                             </p>
                             <p>
-                                Attention is based on topic prevalence, calculated from the presence of terms associated to a particular topic in a news item’s headline, normalized 
-                                on the value of the total word count of that headline and scaled on a range from 0 to 1. 
+                                Attention is based on record presence: the share of news items in the
+                                selected period where a topic in the selected domain is detected at least once. 
                             </p> 
                             <p>
                                 The visualization interacts with the filter bar

@@ -16,15 +16,15 @@ const layerDescriptions = {
             
             <div class="info-box-section">
                 <p>
-                    The attention metric for each domain is calculated from the aggregated presence of 
-                    terms associated to particular topics in a data stream, normalized on the value of 
-                    the total word count and scaled on a range from 0 to 1. 
+                    The attention metric for each domain is calculated as the share of records in the
+                    selected period where at least one child topic under that domain is present.
+                    Scale: 0 to 1.
                 </p>
             </div>
 
             <div class="info-box-section">
                 <p>
-                    Default displays the sum of averages for both data streams for the latest week’s data. 
+                    Default displays the average attention rate across both data streams for the latest week’s data. 
                     If filtering for data stream, the map displays the average attention score only for 
                     countries where the domain was detected in that data stream within the period. 
                     Scale: 0 to 1. 
@@ -60,7 +60,7 @@ const layerDescriptions = {
             <div class="info-box-section">
                 <p>
                     <strong>
-                        This metric identifies any anomalies in the topic prevalence, 
+                        This metric identifies any anomalies in the topic attention rate, 
                         i.e. topics that are presenting a different attention than usual, for the latest week's data, by country.   
                     </strong>
                 <p>
@@ -76,10 +76,10 @@ const layerDescriptions = {
 
             <div class="info-box-section">
                 <p>
-                For every topic, the average and standard deviation of the daily normalized prevalences 
+                For every topic, the average and standard deviation of the daily attention rates 
                 are calculated considering the whole dataset; a topic is then tagged as anomalous on a 
                 specific date when 
-                its topic normalized prevalence is larger than the average + standard deviation.
+                its daily attention rate is larger than the average + standard deviation.
                 </p>
             </div>
         </div>

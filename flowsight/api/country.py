@@ -56,13 +56,18 @@ def _format_talking_points(data):
         k = "prev_value" if d["type"] == "prev" else "latest_value"
         by_domain_layer[d["domain"]]["attention"][k] = d["attention"]
         by_domain_layer[d["domain"]]["sentiment"][k] = d["sentiment"]
+        if d.get("matched_terms"):
+            by_domain_layer[d["domain"]]["matched_terms"] = d["matched_terms"]
     for domain, layer in by_domain_layer.items():
         for lname, values in layer.items():
+            if lname == "matched_terms":
+                continue
             response.append({
                 "domain": domain,
                 "layer": lname,
                 "latest_value": values.get("latest_value"),
                 "prev_value": values.get("prev_value"),
+                "matched_terms": layer.get("matched_terms"),
             })
     return [x for x in response if x["latest_value"]]
 
@@ -137,6 +142,7 @@ async def get_corpus_coverage_series(
     end_date: int,
     stream: str,
     interval: str="auto",
+    conditions: str="",
 ):
     country_id = _resolve_country_id(request, alpha_2)
     alpha_2 = _resolve_country_code(request, alpha_2)
@@ -144,6 +150,7 @@ async def get_corpus_coverage_series(
         raise fastapi.HTTPException(
             status_code=400, detail=f"Stream {stream} not allowed."
         )
+    conditions = json.loads(conditions) if conditions else None
     try:
         return await human_mobility_utils.corpus_coverage_series(
             request.app.async_pool,
@@ -153,6 +160,7 @@ async def get_corpus_coverage_series(
             end_date,
             stream,
             interval,
+            conditions,
         )
     except ValueError as exc:
         raise fastapi.HTTPException(status_code=400, detail=str(exc)) from exc

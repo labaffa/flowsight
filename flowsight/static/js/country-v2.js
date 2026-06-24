@@ -198,11 +198,13 @@ function deriveV2State() {
         overallRange: { start: overall.start, end: overall.end },
         defaultOverallRange: { start: overall.start, end: overall.end },
         searchRange: { start: overall.start, end: overall.end },
+        appliedOverallRange: { start: overall.start, end: overall.end },
         selectedDatePreset: null,
         interval: "auto",
         conditions: [],
         selectedTopicIds: [],
         selectedTopicNames: [],
+        appliedTopicIdsKey: "[]",
         activeTab: "summary",
         loadedTabs: { summary: false, social: false, media: false, search: false },
         tfidfMetric: "period_average",
@@ -210,6 +212,9 @@ function deriveV2State() {
             period_average: null,
             daily_peak: null,
         },
+        socialStaticData: null,
+        mediaStaticData: null,
+        searchInterestSeries: null,
         socialMessagesLimit: 12,
         socialMessagesOffset: 0,
         socialMessagesHasMore: true,
@@ -742,6 +747,21 @@ function markTabsStale() {
         period_average: null,
         daily_peak: null,
     };
+    window.fsV2State.socialStaticData = null;
+    window.fsV2State.mediaStaticData = null;
+    window.fsV2State.searchInterestSeries = null;
+    window.fsV2State.socialMessagesOffset = 0;
+    window.fsV2State.socialMessagesHasMore = true;
+    window.fsV2State.mediaStoriesOffset = 0;
+    window.fsV2State.mediaStoriesHasMore = true;
+}
+
+function markTopicFilterStale() {
+    window.fsV2State.loadedTabs.summary = false;
+    window.fsV2State.loadedTabs.social = false;
+    window.fsV2State.loadedTabs.media = false;
+    window.fsV2State.socialStaticData = null;
+    window.fsV2State.mediaStaticData = null;
     window.fsV2State.socialMessagesOffset = 0;
     window.fsV2State.socialMessagesHasMore = true;
     window.fsV2State.mediaStoriesOffset = 0;
@@ -756,10 +776,20 @@ function applyFilterState() {
     if (!nextStart || !nextEnd || nextStart > nextEnd) {
         return;
     }
+    let previousRange = { ...window.fsV2State.appliedOverallRange };
+    let previousTopicIds = window.fsV2State.appliedTopicIdsKey || "[]";
     window.fsV2State.overallRange = { start: nextStart, end: nextEnd };
     window.fsV2State.searchRange = { start: nextStart, end: nextEnd };
     buildConditionsFromState();
-    markTabsStale();
+    let rangeChanged = previousRange.start !== nextStart || previousRange.end !== nextEnd;
+    let topicsChanged = previousTopicIds !== JSON.stringify(window.fsV2State.selectedTopicIds || []);
+    if (rangeChanged) {
+        markTabsStale();
+    } else if (topicsChanged) {
+        markTopicFilterStale();
+    }
+    window.fsV2State.appliedOverallRange = { start: nextStart, end: nextEnd };
+    window.fsV2State.appliedTopicIdsKey = JSON.stringify(window.fsV2State.selectedTopicIds || []);
     syncControlsFromState();
     closeFilterPanels();
     refreshActiveTab().catch(console.error);
@@ -774,6 +804,8 @@ function resetFilterState() {
     window.fsV2State.interval = "auto";
     buildConditionsFromState();
     markTabsStale();
+    window.fsV2State.appliedOverallRange = { ...window.fsV2State.defaultOverallRange };
+    window.fsV2State.appliedTopicIdsKey = "[]";
     syncControlsFromState();
     closeFilterPanels();
     refreshActiveTab().catch(console.error);
@@ -877,7 +909,8 @@ function setupFilterBar() {
             window.fsV2State.selectedTopicIds = [];
             window.fsV2State.selectedTopicNames = [];
             buildConditionsFromState();
-            markTabsStale();
+            markTopicFilterStale();
+            window.fsV2State.appliedTopicIdsKey = "[]";
             syncControlsFromState();
             refreshActiveTab().catch(console.error);
             return;
@@ -904,9 +937,8 @@ function setupFilterBar() {
     document.querySelectorAll(".fsv2-interval").forEach((button) => {
         button.addEventListener("click", () => {
             window.fsV2State.interval = button.dataset.interval || "auto";
-            markTabsStale();
             updateIntervalButtons();
-            refreshActiveTab().catch(console.error);
+            refreshActiveTab({ intervalOnly: true }).catch(console.error);
         });
     });
 }
@@ -947,6 +979,7 @@ function setupTfidfToggle() {
             if (window.fsV2State.activeTab === "social") {
                 if (window.fsV2State.socialTfidf?.[nextMetric]) {
                     renderCurrentTfidf();
+                    syncSocialTopRow();
                 } else {
                     loadSocialListening().catch(console.error);
                 }
@@ -1365,6 +1398,7 @@ function renderIndicatorAttentionChart(containerId, payload) {
         return;
     }
     let base = baseChartOptions();
+    let legendAtTop = true;
     Highcharts.chart(containerId, {
         ...base,
         chart: {
@@ -1374,7 +1408,7 @@ function renderIndicatorAttentionChart(containerId, payload) {
             spacingRight: 10,
             spacingBottom: 30,
             spacingLeft: 10,
-            marginTop: 8,
+            marginTop: legendAtTop ? 46 : 8,
             marginBottom: 44,
             marginLeft: 78,
             marginRight: 18,
@@ -1408,10 +1442,11 @@ function renderIndicatorAttentionChart(containerId, payload) {
         },
         legend: {
             enabled: true,
-            align: "center",
-            verticalAlign: "bottom",
+            align: "left",
+            verticalAlign: legendAtTop ? "top" : "bottom",
             layout: "horizontal",
-            margin: 12,
+            margin: legendAtTop ? 8 : 12,
+            y: legendAtTop ? 0 : 0,
             itemStyle: { color: colors.text, fontSize: "11px", fontWeight: "normal" },
             itemHoverStyle: { color: colors.dark },
             symbolRadius: 0,
@@ -1876,8 +1911,40 @@ function currentTfidfRows() {
     return window.fsV2State.socialTfidf?.[window.fsV2State.tfidfMetric] || [];
 }
 
+function syncSocialTopRow() {
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            if (window.fsV2State.socialStaticData?.domainRanking) {
+                renderDomainComparisonChart("fsv2-social-domain-chart", window.fsV2State.socialStaticData.domainRanking, "tg");
+            }
+        });
+    });
+}
+
+function syncMediaTopRow() {
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            if (window.fsV2State.mediaStaticData?.domainRanking) {
+                renderDomainComparisonChart("fsv2-media-domain-chart", window.fsV2State.mediaStaticData.domainRanking, "mc");
+            }
+        });
+    });
+}
+
 function renderCurrentTfidf() {
-    renderTfidfPills("fsv2-social-tfidf", currentTfidfRows());
+    let rows = currentTfidfRows();
+    let pills = document.getElementById("fsv2-social-tfidf-pills");
+    let chart = document.getElementById("fsv2-social-tfidf-chart");
+    if (window.fsV2State.tfidfMetric === "daily_peak") {
+        if (pills) pills.hidden = true;
+        if (chart) chart.hidden = false;
+        renderTfidfDailyPeakChart("fsv2-social-tfidf-chart", rows);
+    } else {
+        if (chart) chart.hidden = true;
+        if (pills) pills.hidden = false;
+        renderTfidfPills("fsv2-social-tfidf-pills", rows);
+    }
+    renderTfidfNote();
 }
 
 function normalizeTelegramUsername(value) {
@@ -2160,8 +2227,13 @@ function renderDomainComparisonChart(containerId, payload, stream) {
         if (topic?.domain) return Highcharts.color(domainColor(topic.domain, index)).setOpacity(0.82).get();
         return Highcharts.color(domainColor(row.label, index)).setOpacity(0.82).get();
     };
-    let height = Math.max(220, displayRows.length * 34 + 84);
-    let base = baseChartOptions(height);
+    let base = baseChartOptions(null);
+    let surfaceHeight = container.clientHeight || container.parentElement?.clientHeight || 0;
+    let targetHeight = Math.max(320, surfaceHeight);
+    let pointWidth = Math.max(
+        24,
+        Math.min(56, Math.floor((targetHeight - 72) / Math.max(displayRows.length, 1)) - 2)
+    );
 
     Highcharts.chart(containerId, {
         ...base,
@@ -2169,12 +2241,33 @@ function renderDomainComparisonChart(containerId, payload, stream) {
         chart: {
             ...base.chart,
             type: "bar",
+            height: targetHeight,
+            events: {
+                render: function () {
+                    let chart = this;
+                    let labelText = "Share of HM records (%)";
+                    let y = chart.chartHeight - 8;
+                    let x = chart.plotLeft + (chart.plotWidth / 2);
+                    if (!chart.customBottomAxisTitle) {
+                        chart.customBottomAxisTitle = chart.renderer
+                            .text(labelText, x, y)
+                            .css({
+                                color: colors.text,
+                                fontSize: "10px",
+                            })
+                            .attr({ align: "center", zIndex: 7 })
+                            .add();
+                    } else {
+                        chart.customBottomAxisTitle.attr({ text: labelText, x, y });
+                    }
+                },
+            },
             spacingTop: 8,
             spacingRight: 10,
             spacingBottom: 8,
             spacingLeft: 10,
             marginTop: 8,
-            marginBottom: 18,
+            marginBottom: 48,
             marginLeft: 132,
             marginRight: 24,
         },
@@ -2193,12 +2286,7 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             endOnTick: true,
             tickAmount: 5,
             gridLineColor: colors.grid,
-            title: {
-                text: "Share of HM records",
-                reserveSpace: true,
-                margin: 16,
-                style: { color: colors.text, fontSize: "10px" },
-            },
+            title: { text: null },
             labels: {
                 style: { color: colors.text, fontSize: "10px" },
                 formatter: function () {
@@ -2218,9 +2306,10 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             bar: {
                 animation: false,
                 borderWidth: 0,
-                pointPadding: 0.14,
-                groupPadding: 0.06,
+                pointPadding: 0.04,
+                groupPadding: 0.02,
                 borderRadius: 3,
+                pointWidth,
                 dataLabels: {
                     enabled: true,
                     inside: false,
@@ -2257,6 +2346,7 @@ function renderDomainComparisonChart(containerId, payload, stream) {
 function renderTfidfPills(containerId, rows) {
     let container = document.getElementById(containerId);
     if (!container) return;
+    container.classList.remove("fsv2-term-cloud-compact", "fsv2-term-cloud-tight");
     if (!Array.isArray(rows) || rows.length === 0) {
         container.innerHTML = `
             <div class="fsv2-trend-empty">
@@ -2279,6 +2369,333 @@ function renderTfidfPills(containerId, rows) {
             </div>
         `;
     }).join("");
+    if (container.scrollHeight > container.clientHeight) {
+        container.classList.add("fsv2-term-cloud-compact");
+    }
+    if (container.scrollHeight > container.clientHeight) {
+        container.classList.add("fsv2-term-cloud-tight");
+    }
+}
+
+function renderTfidfNote() {
+    let note = document.getElementById("fsv2-social-tfidf-note");
+    if (!note) return;
+    if (window.fsV2State.tfidfMetric === "daily_peak") {
+        note.innerHTML = `
+            <span><span class="fsv2-dot fsv2-dot-tg"></span>Each point marks one of the top 50 daily TF-IDF peaks in the selected HM period.</span>
+            <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>Higher peaks indicate stronger day-level distinctiveness.</span>
+        `;
+        return;
+    }
+    note.innerHTML = `
+        <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected HM messages.</span>
+        <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>High distinctiveness</span>
+        <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-medium"></span>Medium distinctiveness</span>
+        <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-soft"></span>Emerging distinctiveness</span>
+    `;
+}
+
+function tfidfDateToUtc(dateInt) {
+    if (!dateInt) return null;
+    return dtFromDateInt(Number(dateInt)).getTime();
+}
+
+function tfidfBucketDateId(dateInt, interval) {
+    if (!dateInt) return null;
+    if (interval === "day") return Number(dateInt);
+    let date = dtFromDateInt(Number(dateInt));
+    let bucketDate = interval === "month" ? startOfMonthUTC(date) : startOfWeekUTC(date);
+    return Number(
+        `${bucketDate.getUTCFullYear()}${String(bucketDate.getUTCMonth() + 1).padStart(2, "0")}${String(bucketDate.getUTCDate()).padStart(2, "0")}`
+    );
+}
+
+function truncatePeakTermLabel(term, maxLength = 16) {
+    let raw = String(term || "").trim();
+    if (raw.length <= maxLength) return raw;
+    return `${raw.slice(0, Math.max(0, maxLength - 1))}\u2026`;
+}
+
+function ensureTfidfPeakLabelState(chart, series, interval) {
+    if (!chart || !series) return new Set();
+    let axis = chart.xAxis?.[0];
+    if (!axis) return new Set();
+    let min = axis.min ?? axis.dataMin ?? null;
+    let max = axis.max ?? axis.dataMax ?? null;
+    let cacheKey = [
+        Math.round(min ?? 0),
+        Math.round(max ?? 0),
+        chart.plotWidth,
+        interval,
+        series.points.length,
+    ].join(":");
+    if (chart._tfidfPeakLabelCacheKey === cacheKey && chart._tfidfPeakLabelKeys instanceof Set) {
+        return chart._tfidfPeakLabelKeys;
+    }
+    let visiblePoints = (series.points || []).filter((point) => {
+        if (point.y == null || !point.label_key) return false;
+        if (min != null && point.x < min) return false;
+        if (max != null && point.x > max) return false;
+        return true;
+    });
+    let maxLabels = Math.max(4, Math.min(12, Math.floor(chart.plotWidth / 110)));
+    let minGap = interval === "month" ? 110 : interval === "week" ? 92 : 80;
+    let chosen = [];
+    let keys = new Set();
+    visiblePoints
+        .sort((a, b) => (Number(b.y || 0) - Number(a.y || 0)) || (a.x - b.x))
+        .forEach((point) => {
+            if (keys.size >= maxLabels) return;
+            let pixelX = axis.toPixels(point.x, true);
+            let tooClose = chosen.some((other) => Math.abs(other.pixelX - pixelX) < minGap);
+            if (tooClose) return;
+            chosen.push({ pixelX, key: point.label_key });
+            keys.add(point.label_key);
+        });
+    chart._tfidfPeakLabelCacheKey = cacheKey;
+    chart._tfidfPeakLabelKeys = keys;
+    return keys;
+}
+
+function renderTfidfDailyPeakChart(containerId, rows) {
+    let container = document.getElementById(containerId);
+    if (!container) return;
+    if (!Array.isArray(rows) || rows.length === 0) {
+        container.innerHTML = `
+            <div class="fsv2-trend-empty">
+                <strong>No data available</strong>
+                <span>No significant Telegram HM terms were available in the selected period.</span>
+            </div>
+        `;
+        return;
+    }
+    let colors = chartColors();
+    let chartInterval = "day";
+    let displayRows = Array.isArray(rows) ? rows.map((row, index) => ({
+        ...row,
+        bucket_date_id: tfidfBucketDateId(row.date_id, chartInterval),
+        bucket_rank: null,
+        overall_rank: row.overall_rank || index + 1,
+    })) : [];
+    let base = baseChartOptions(null);
+    let maxValue = 0;
+    for (let row of displayRows) {
+        let value = Number(row.mean_value || 0);
+        if (!Number.isNaN(value) && value > maxValue) {
+            maxValue = value;
+        }
+    }
+    let groupedCounts = new Map();
+    let rawSeriesData = displayRows
+        .map((row, index) => {
+            let x = tfidfDateToUtc(row.date_id);
+            let y = Number(row.mean_value || 0);
+            if (!x || Number.isNaN(y)) return null;
+            let ratio = maxValue > 0 ? y / maxValue : 0;
+            let color = ratio >= 0.66
+                ? colors.tg
+                : ratio >= 0.33
+                    ? "rgba(29, 158, 117, 0.68)"
+                    : "rgba(29, 158, 117, 0.38)";
+            return {
+                x,
+                y,
+                color,
+                term: row.lemma,
+                rank: row.overall_rank || index + 1,
+                date_id: row.date_id,
+                bucket_date_id: row.bucket_date_id,
+                bucket_rank: null,
+                overall_rank: row.overall_rank || null,
+                bucket_count: 1,
+                _rawX: x,
+                _anchorX: x,
+                label_key: `${row.lemma || ""}:${row.date_id || row.bucket_date_id || x}:${index}`,
+            };
+        })
+        .filter(Boolean);
+    let positionedSeriesData = rawSeriesData;
+    positionedSeriesData.forEach((row) => {
+        let key = row._anchorX ?? row.x;
+        groupedCounts.set(key, (groupedCounts.get(key) || 0) + 1);
+    });
+    let seriesData = positionedSeriesData
+        .map((row) => ({
+            ...row,
+            bucket_count: row.cluster_count || row.bucket_count || groupedCounts.get(row._anchorX ?? row.x) || 1,
+        }))
+        .sort((a, b) => a.x - b.x || b.y - a.y);
+    let stemMap = new Map();
+    seriesData.forEach((point) => {
+        let key = point._anchorX ?? point.x;
+        let current = stemMap.get(key);
+        if (!current || point.y > current.y) {
+            stemMap.set(key, { x: key, y: point.y });
+        }
+    });
+    let stemData = Array.from(stemMap.values()).sort((a, b) => a.x - b.x);
+    Highcharts.chart(containerId, {
+        ...base,
+        chart: {
+            ...base.chart,
+            className: "fsv2-tfidf-peak-chart",
+            type: "scatter",
+            height: null,
+            zoomType: "x",
+            panning: { enabled: false },
+            spacingTop: 8,
+            spacingRight: 8,
+            spacingBottom: 8,
+            spacingLeft: 8,
+            marginLeft: 54,
+            marginRight: 16,
+            marginTop: 12,
+            marginBottom: 38,
+            backgroundColor: "transparent",
+            plotBackgroundColor: "transparent",
+        },
+        lang: {
+            resetZoom: "Reset zoom",
+        },
+        xAxis: {
+            ...base.xAxis,
+            tickLength: 0,
+            gridLineWidth: 1,
+            tickPixelInterval: chartInterval === "month" ? 72 : 96,
+            lineColor: colors.grid,
+            labels: {
+                style: { color: colors.text, fontSize: "10px" },
+                formatter: function () {
+                    if (chartInterval === "month") return Highcharts.dateFormat("%b '%y", this.value);
+                    if (chartInterval === "week") return Highcharts.dateFormat("%e %b", this.value);
+                    return Highcharts.dateFormat("%e %b", this.value);
+                },
+            },
+        },
+        yAxis: {
+            ...base.yAxis,
+            min: 0,
+            title: {
+                text: "TF-IDF",
+                reserveSpace: true,
+                margin: 12,
+                style: { color: colors.text, fontSize: "10px" },
+            },
+            tickLength: 0,
+            maxPadding: 0.12,
+            endOnTick: true,
+            gridLineWidth: 1,
+            lineWidth: 0,
+            labels: {
+                style: { color: colors.text, fontSize: "10px" },
+                formatter: function () {
+                    return Number(this.value).toFixed(1);
+                },
+            },
+        },
+        tooltip: {
+            ...base.tooltip,
+            shared: false,
+            formatter: function () {
+                let bucketLabel = formatDateLabel(this.point.date_id);
+                let rankLabel = `Rank: <strong>#${this.point.rank}</strong>`;
+                return `
+                    <strong>${escapeHtml(this.point.term || "")}</strong><br/>
+                    ${bucketLabel}<br/>
+                    TF-IDF: <strong>${Number(this.y || 0).toFixed(2)}</strong><br/>
+                    ${rankLabel}
+                `;
+            },
+        },
+        legend: { enabled: false },
+        resetZoomButton: {
+            position: {
+                align: "right",
+                verticalAlign: "top",
+                x: -6,
+                y: 8,
+            },
+            theme: {
+                fill: "#fbfaf6",
+                stroke: colors.grid,
+                "stroke-width": 1,
+                r: 999,
+                style: {
+                    color: colors.dark,
+                    fontSize: "11px",
+                    fontWeight: "600",
+                },
+                states: {
+                    hover: {
+                        fill: "#ffffff",
+                        style: {
+                            color: colors.dark,
+                        },
+                    },
+                },
+            },
+        },
+        plotOptions: {
+            series: {
+                animation: false,
+                states: { hover: { enabled: true } },
+            },
+            column: {
+                turboThreshold: 0,
+                borderWidth: 0,
+                pointWidth: chartInterval === "month" ? 8 : 6,
+                groupPadding: 0,
+                pointPadding: 0,
+                color: "rgba(29, 158, 117, 0.14)",
+                enableMouseTracking: false,
+            },
+            scatter: {
+                turboThreshold: 0,
+                lineWidth: 0,
+                marker: {
+                    enabled: true,
+                    radius: 4.5,
+                    symbol: "circle",
+                    lineWidth: 1.5,
+                    lineColor: "#fbfaf6",
+                },
+                dataLabels: {
+                    enabled: true,
+                    allowOverlap: false,
+                    crop: false,
+                    overflow: "allow",
+                    padding: 4,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: "rgba(224, 221, 213, 0.92)",
+                    backgroundColor: "rgba(251, 250, 246, 0.96)",
+                    y: -10,
+                    formatter: function () {
+                        let labelKeys = ensureTfidfPeakLabelState(this.series.chart, this.series, chartInterval);
+                        if (!labelKeys.has(this.point.label_key)) return null;
+                        return truncatePeakTermLabel(this.point.term, chartInterval === "day" ? 16 : 14);
+                    },
+                    style: {
+                        color: colors.dark,
+                        fontSize: "10px",
+                        fontWeight: "600",
+                        textOutline: "none",
+                    },
+                },
+            },
+        },
+        series: [{
+            type: "column",
+            name: "Peak stems",
+            data: stemData,
+            color: "rgba(29, 158, 117, 0.14)",
+            borderRadius: 3,
+        }, {
+            type: "scatter",
+            name: "Daily peaks",
+            data: seriesData,
+        }],
+    });
 }
 
 function renderSocialMessages(containerId, rows, append = false) {
@@ -2463,14 +2880,14 @@ async function loadMoreMediaStories() {
     updateMediaLoadMoreButton();
 }
 
-async function loadSummary() {
+async function loadSummary(intervalOnly = false) {
     let { country, overallRange, searchRange, interval, conditions } = window.fsV2State;
     let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
     let conditionPayload = JSON.stringify(conditions || []);
     let attentionEndpoint = hasTopicFilter
         ? `/${country}/hm_topic_attention_trends`
         : `/${country}/hm_indicator_attention_trends`;
-    [
+    let loadingTargets = [
         "fsv2-tg-kpi-chart",
         "fsv2-mc-kpi-chart",
         "fsv2-attention-tg-chart",
@@ -2479,18 +2896,12 @@ async function loadSummary() {
         "fsv2-sentiment-mc-chart",
         "fsv2-anomaly-tg-chart",
         "fsv2-anomaly-mc-chart",
-        "fsv2-ssi-chart",
-    ].forEach(setLoading);
-    let [
-        tgCoverage,
-        mcCoverage,
-        tgAttentionSeries,
-        mcAttentionSeries,
-        sentimentSeries,
-        tgAnomalySeries,
-        mcAnomalySeries,
-        ssiSeries,
-    ] = await Promise.all([
+    ];
+    if (!intervalOnly || !window.fsV2State.searchInterestSeries) {
+        loadingTargets.push("fsv2-ssi-chart");
+    }
+    loadingTargets.forEach(setLoading);
+    let requests = [
         fetchJson(`/${country}/corpus_coverage_series`, {
             start_date: overallRange.start,
             end_date: overallRange.end,
@@ -2541,13 +2952,29 @@ async function loadSummary() {
             conditions: conditionPayload,
             interval,
         }),
-        fetchJson(`/${country}/ssi_fields_series`, {
+    ];
+    if (!intervalOnly || !window.fsV2State.searchInterestSeries) {
+        requests.push(fetchJson(`/${country}/ssi_fields_series`, {
             start_date: searchRange.start,
             end_date: searchRange.end,
             domain_id: 5,
             field_ids: JSON.stringify([15, 16, 18]),
-        }),
-    ]);
+        }));
+    }
+    let results = await Promise.all(requests);
+    let [
+        tgCoverage,
+        mcCoverage,
+        tgAttentionSeries,
+        mcAttentionSeries,
+        sentimentSeries,
+        tgAnomalySeries,
+        mcAnomalySeries,
+    ] = results;
+    let ssiSeries = results[7] || window.fsV2State.searchInterestSeries;
+    if (results[7]) {
+        window.fsV2State.searchInterestSeries = results[7];
+    }
 
     let colors = chartColors();
     renderCoverageKpi(
@@ -2569,11 +2996,13 @@ async function loadSummary() {
     renderSentimentTrendChart("fsv2-sentiment-mc-chart", filterSeriesByName(sentimentSeries, "Media"));
     renderAnomalyTrendChart("fsv2-anomaly-tg-chart", tgAnomalySeries);
     renderAnomalyTrendChart("fsv2-anomaly-mc-chart", mcAnomalySeries);
-    renderSearchInterestChart("fsv2-ssi-chart", extractSeriesMap(ssiSeries));
+    if (ssiSeries) {
+        renderSearchInterestChart("fsv2-ssi-chart", extractSeriesMap(ssiSeries));
+    }
     window.fsV2State.loadedTabs.summary = true;
 }
 
-async function loadSocialListening() {
+async function loadSocialListening(intervalOnly = false) {
     let { country, overallRange, interval, conditions } = window.fsV2State;
     let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
     let conditionPayload = JSON.stringify(conditions || []);
@@ -2581,60 +3010,89 @@ async function loadSocialListening() {
         ? `/${country}/hm_topic_attention_trends`
         : `/${country}/hm_indicator_attention_trends`;
 
-    [
-        "fsv2-social-domain-chart",
-        "fsv2-social-talking-points",
-        "fsv2-social-tfidf",
-        "fsv2-social-attention-chart",
-        "fsv2-social-sentiment-chart",
-        "fsv2-social-messages",
-    ].forEach(setLoading);
+    let needStatic = !intervalOnly || !window.fsV2State.socialStaticData;
+    let loadingTargets = needStatic
+        ? [
+            "fsv2-social-domain-chart",
+            "fsv2-social-talking-points",
+            "fsv2-social-attention-chart",
+            "fsv2-social-sentiment-chart",
+            "fsv2-social-messages",
+        ]
+        : [
+            "fsv2-social-attention-chart",
+            "fsv2-social-sentiment-chart",
+        ];
+    let needTfidf = !window.fsV2State.socialTfidf?.period_average || !window.fsV2State.socialTfidf?.daily_peak;
+    if (needTfidf) {
+        loadingTargets.push("fsv2-social-tfidf-pills", "fsv2-social-tfidf-chart");
+    }
+    loadingTargets.forEach(setLoading);
 
-    let [
-        socialSummary,
-        domainRanking,
-        talkingPoints,
-        tfidfAverage,
-        tfidfDailyPeak,
-        attentionSeries,
-        sentimentSeries,
-    ] = await Promise.all([
-        fetchJson(`/${country}/social_listening_summary`, {
-            start_date: overallRange.start,
-            end_date: overallRange.end,
-            conditions: conditionPayload,
-        }),
-        fetchJson(`/${country}/domain_ranking`, {
-            start_date: overallRange.start,
-            end_date: overallRange.end,
-            stream: "tg",
-            conditions: conditionPayload,
-            scope: "hm",
-        }),
-        fetchJson(`/${country}/hm_indicator_talking_points`, {
-            start_date: overallRange.start,
-            end_date: overallRange.end,
-            stream: "tg",
-            conditions: conditionPayload,
-        }),
-        fetchJson(`/${country}/tfidf_top_terms`, {
-            start_date: overallRange.start,
-            end_date: overallRange.end,
-            stream: "tg",
-            scope: "hm",
-            metric: "period_average",
-            limit: 50,
-            max_document_frequency: 0.8,
-        }),
-        fetchJson(`/${country}/tfidf_top_terms`, {
-            start_date: overallRange.start,
-            end_date: overallRange.end,
-            stream: "tg",
-            scope: "hm",
-            metric: "daily_peak",
-            limit: 50,
-            max_document_frequency: 0.8,
-        }),
+    if (needStatic) {
+        let [
+            socialSummary,
+            domainRanking,
+            talkingPoints,
+        ] = await Promise.all([
+            fetchJson(`/${country}/social_listening_summary`, {
+                start_date: overallRange.start,
+                end_date: overallRange.end,
+                conditions: conditionPayload,
+            }),
+            fetchJson(`/${country}/domain_ranking`, {
+                start_date: overallRange.start,
+                end_date: overallRange.end,
+                stream: "tg",
+                conditions: conditionPayload,
+                scope: "hm",
+            }),
+            fetchJson(`/${country}/hm_indicator_talking_points`, {
+                start_date: overallRange.start,
+                end_date: overallRange.end,
+                stream: "tg",
+                conditions: conditionPayload,
+            }),
+        ]);
+        window.fsV2State.socialStaticData = { socialSummary, domainRanking, talkingPoints };
+        renderSocialSummaryKpis(socialSummary);
+        renderDomainComparisonChart("fsv2-social-domain-chart", domainRanking, "tg");
+        renderTalkingPoints("fsv2-social-talking-points", talkingPoints);
+    }
+
+    if (needTfidf) {
+        let [tfidfAverage, tfidfDailyPeak] = await Promise.all([
+            fetchJson(`/${country}/tfidf_top_terms`, {
+                start_date: overallRange.start,
+                end_date: overallRange.end,
+                stream: "tg",
+                scope: "hm",
+                metric: "period_average",
+                limit: 50,
+                max_document_frequency: 0.8,
+            }),
+            fetchJson(`/${country}/tfidf_top_terms`, {
+                start_date: overallRange.start,
+                end_date: overallRange.end,
+                stream: "tg",
+                scope: "hm",
+                metric: "daily_peak",
+                interval,
+                limit: 50,
+                max_document_frequency: 0.8,
+            }),
+        ]);
+        window.fsV2State.socialTfidf = {
+            period_average: tfidfAverage,
+            daily_peak: tfidfDailyPeak,
+        };
+    }
+    if (needStatic || needTfidf) {
+        renderCurrentTfidf();
+        syncSocialTopRow();
+    }
+
+    let [attentionSeries, sentimentSeries] = await Promise.all([
         fetchJson(attentionEndpoint, {
             start_date: overallRange.start,
             end_date: overallRange.end,
@@ -2651,24 +3109,17 @@ async function loadSocialListening() {
             interval,
         }),
     ]);
-
-    renderSocialSummaryKpis(socialSummary);
-    renderDomainComparisonChart("fsv2-social-domain-chart", domainRanking, "tg");
-    renderTalkingPoints("fsv2-social-talking-points", talkingPoints);
-    window.fsV2State.socialTfidf = {
-        period_average: tfidfAverage,
-        daily_peak: tfidfDailyPeak,
-    };
-    renderCurrentTfidf();
     renderIndicatorAttentionChart("fsv2-social-attention-chart", attentionSeries);
     renderSentimentTrendChart("fsv2-social-sentiment-chart", filterSeriesByName(sentimentSeries, "Social"));
-    window.fsV2State.socialMessagesOffset = 0;
-    await loadMoreSocialMessages();
+    if (needStatic) {
+        window.fsV2State.socialMessagesOffset = 0;
+        await loadMoreSocialMessages();
+    }
     syncWorkspaceRailHeights();
     window.fsV2State.loadedTabs.social = true;
 }
 
-async function loadMediaMonitoring() {
+async function loadMediaMonitoring(intervalOnly = false) {
     let { country, overallRange, interval, conditions } = window.fsV2State;
     let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
     let conditionPayload = JSON.stringify(conditions || []);
@@ -2676,39 +3127,54 @@ async function loadMediaMonitoring() {
         ? `/${country}/hm_topic_attention_trends`
         : `/${country}/hm_indicator_attention_trends`;
 
-    [
-        "fsv2-media-domain-chart",
-        "fsv2-media-talking-points",
-        "fsv2-media-attention-chart",
-        "fsv2-media-sentiment-chart",
-        "fsv2-media-stories",
-    ].forEach(setLoading);
+    let needStatic = !intervalOnly || !window.fsV2State.mediaStaticData;
+    let loadingTargets = needStatic
+        ? [
+            "fsv2-media-domain-chart",
+            "fsv2-media-talking-points",
+            "fsv2-media-attention-chart",
+            "fsv2-media-sentiment-chart",
+            "fsv2-media-stories",
+        ]
+        : [
+            "fsv2-media-attention-chart",
+            "fsv2-media-sentiment-chart",
+        ];
+    loadingTargets.forEach(setLoading);
 
-    let [
-        mediaSummary,
-        domainRanking,
-        talkingPoints,
-        attentionSeries,
-        sentimentSeries,
-    ] = await Promise.all([
-        fetchJson(`/${country}/media_monitoring_summary`, {
-            start_date: overallRange.start,
-            end_date: overallRange.end,
-            conditions: conditionPayload,
-        }),
-        fetchJson(`/${country}/domain_ranking`, {
-            start_date: overallRange.start,
-            end_date: overallRange.end,
-            stream: "mc",
-            conditions: conditionPayload,
-            scope: "hm",
-        }),
-        fetchJson(`/${country}/hm_indicator_talking_points`, {
-            start_date: overallRange.start,
-            end_date: overallRange.end,
-            stream: "mc",
-            conditions: conditionPayload,
-        }),
+    if (needStatic) {
+        let [
+            mediaSummary,
+            domainRanking,
+            talkingPoints,
+        ] = await Promise.all([
+            fetchJson(`/${country}/media_monitoring_summary`, {
+                start_date: overallRange.start,
+                end_date: overallRange.end,
+                conditions: conditionPayload,
+            }),
+            fetchJson(`/${country}/domain_ranking`, {
+                start_date: overallRange.start,
+                end_date: overallRange.end,
+                stream: "mc",
+                conditions: conditionPayload,
+                scope: "hm",
+            }),
+            fetchJson(`/${country}/hm_indicator_talking_points`, {
+                start_date: overallRange.start,
+                end_date: overallRange.end,
+                stream: "mc",
+                conditions: conditionPayload,
+            }),
+        ]);
+        window.fsV2State.mediaStaticData = { mediaSummary, domainRanking, talkingPoints };
+        renderMediaSummaryKpis(mediaSummary);
+        renderDomainComparisonChart("fsv2-media-domain-chart", domainRanking, "mc");
+        renderTalkingPoints("fsv2-media-talking-points", talkingPoints);
+        syncMediaTopRow();
+    }
+
+    let [attentionSeries, sentimentSeries] = await Promise.all([
         fetchJson(attentionEndpoint, {
             start_date: overallRange.start,
             end_date: overallRange.end,
@@ -2725,45 +3191,46 @@ async function loadMediaMonitoring() {
             interval,
         }),
     ]);
-
-    renderMediaSummaryKpis(mediaSummary);
-    renderDomainComparisonChart("fsv2-media-domain-chart", domainRanking, "mc");
-    renderTalkingPoints("fsv2-media-talking-points", talkingPoints);
     renderIndicatorAttentionChart("fsv2-media-attention-chart", attentionSeries);
     renderSentimentTrendChart("fsv2-media-sentiment-chart", filterSeriesByName(sentimentSeries, "Media"));
-    window.fsV2State.mediaStoriesOffset = 0;
-    await loadMoreMediaStories();
+    if (needStatic) {
+        window.fsV2State.mediaStoriesOffset = 0;
+        await loadMoreMediaStories();
+    }
     syncWorkspaceRailHeights();
     window.fsV2State.loadedTabs.media = true;
 }
 
-async function loadSearchInterest() {
+async function loadSearchInterest(intervalOnly = false) {
     let { country, searchRange } = window.fsV2State;
-    setLoading("fsv2-search-ssi-chart");
-    let ssiSeries = await fetchJson(`/${country}/ssi_fields_series`, {
-        start_date: searchRange.start,
-        end_date: searchRange.end,
-        domain_id: 5,
-        field_ids: JSON.stringify([15, 16, 18]),
-    });
-    renderSearchInterestChart("fsv2-search-ssi-chart", extractSeriesMap(ssiSeries));
+    if (!intervalOnly || !window.fsV2State.searchInterestSeries) {
+        setLoading("fsv2-search-ssi-chart");
+        window.fsV2State.searchInterestSeries = await fetchJson(`/${country}/ssi_fields_series`, {
+            start_date: searchRange.start,
+            end_date: searchRange.end,
+            domain_id: 5,
+            field_ids: JSON.stringify([15, 16, 18]),
+        });
+    }
+    renderSearchInterestChart("fsv2-search-ssi-chart", extractSeriesMap(window.fsV2State.searchInterestSeries));
     window.fsV2State.loadedTabs.search = true;
 }
 
-async function refreshActiveTab() {
+async function refreshActiveTab(options = {}) {
+    let intervalOnly = !!options.intervalOnly;
     if (window.fsV2State.activeTab === "social") {
-        await loadSocialListening();
+        await loadSocialListening(intervalOnly);
         return;
     }
     if (window.fsV2State.activeTab === "media") {
-        await loadMediaMonitoring();
+        await loadMediaMonitoring(intervalOnly);
         return;
     }
     if (window.fsV2State.activeTab === "search") {
-        await loadSearchInterest();
+        await loadSearchInterest(intervalOnly);
         return;
     }
-    await loadSummary();
+    await loadSummary(intervalOnly);
 }
 
 async function initV2() {

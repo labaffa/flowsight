@@ -41,7 +41,7 @@
             <div class="fsv2-chart-surface fsv2-domain-surface" id="fsv2-social-domain-chart"></div>
         </article>
 
-        <article class="fsv2-card fsv2-social-card">
+        <article class="fsv2-card fsv2-social-card fsv2-trend-card">
             <div class="fsv2-card-head">
                 <div>
                     <h2>Talking points</h2>
@@ -52,7 +52,7 @@
             <div class="fsv2-social-table" id="fsv2-social-talking-points"></div>
         </article>
 
-        <article class="fsv2-card fsv2-social-card">
+        <article class="fsv2-card fsv2-social-card fsv2-trend-card fsv2-tfidf-card">
             <div class="fsv2-card-head">
                 <div>
                     <h2>Significant terms</h2>
@@ -63,12 +63,15 @@
                     <button type="button" class="fsv2-pill-toggle-btn" data-tfidf-metric="daily_peak">Daily peaks</button>
                 </div>
             </div>
-            <div class="fsv2-term-cloud" id="fsv2-social-tfidf"></div>
-            <div class="fsv2-tfidf-note">
-                <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected HM messages.</span>
-                <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>High distinctiveness</span>
-                <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-medium"></span>Medium distinctiveness</span>
-                <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-soft"></span>Emerging distinctiveness</span>
+            <div class="fsv2-tfidf-body">
+                <div class="fsv2-term-cloud" id="fsv2-social-tfidf-pills"></div>
+                <div class="fsv2-chart-surface fsv2-trend-surface fsv2-term-chart-surface" id="fsv2-social-tfidf-chart" hidden></div>
+                <div class="fsv2-tfidf-note" id="fsv2-social-tfidf-note">
+                    <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected HM messages.</span>
+                    <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>High distinctiveness</span>
+                    <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-medium"></span>Medium distinctiveness</span>
+                    <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-soft"></span>Emerging distinctiveness</span>
+                </div>
             </div>
         </article>
     </section>

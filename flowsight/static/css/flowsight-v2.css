@@ -458,10 +458,12 @@
 
 .fsv2-social-top-grid {
   padding-bottom: 14px;
+  align-items: stretch;
 }
 
 .fsv2-media-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
 }
 
 .fsv2-workspace {
@@ -514,7 +516,8 @@
 .fsv2-domain-surface {
   display: flex;
   align-items: stretch;
-  min-height: 260px;
+  flex: 1 1 auto;
+  min-height: 336px;
   background: transparent;
   border-top: 1px solid var(--fsv2-border);
   border-bottom: 1px solid var(--fsv2-border);
@@ -548,9 +551,10 @@
 }
 
 .fsv2-social-table {
-  min-height: 220px;
+  min-height: 336px;
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
 }
 
 .fsv2-talking-points {
@@ -661,7 +665,111 @@
   flex-wrap: wrap;
   gap: 10px;
   align-content: flex-start;
-  min-height: 220px;
+  flex: 1 1 auto;
+  min-height: 336px;
+  height: 336px;
+  max-height: 336px;
+  overflow: hidden;
+}
+
+.fsv2-term-chart-surface {
+  flex: 1 1 auto;
+  min-height: 336px;
+  height: 336px;
+  max-height: 336px;
+}
+
+.fsv2-tfidf-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.fsv2-tfidf-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 336px;
+  overflow: hidden;
+}
+
+.fsv2-tfidf-card .fsv2-card-head {
+  flex: 0 0 auto;
+}
+
+.fsv2-tfidf-card .fsv2-tfidf-note {
+  flex: 0 0 auto;
+}
+
+.fsv2-term-cloud.fsv2-term-cloud-compact {
+  gap: 8px;
+}
+
+.fsv2-term-cloud.fsv2-term-cloud-tight {
+  gap: 6px;
+}
+
+.fsv2-term-cloud.fsv2-term-cloud-compact .fsv2-term-pill {
+  padding: 7px 10px;
+}
+
+.fsv2-term-cloud.fsv2-term-cloud-tight .fsv2-term-pill {
+  padding: 6px 9px;
+}
+
+.fsv2-term-cloud.fsv2-term-cloud-compact .fsv2-term-pill-label {
+  font-size: 11px;
+}
+
+.fsv2-term-cloud.fsv2-term-cloud-tight .fsv2-term-pill-label {
+  font-size: 10px;
+}
+
+.fsv2-term-cloud.fsv2-term-cloud-compact .fsv2-term-pill-score {
+  min-width: 30px;
+  height: 18px;
+  font-size: 9px;
+}
+
+.fsv2-term-cloud.fsv2-term-cloud-tight .fsv2-term-pill-score {
+  min-width: 28px;
+  height: 17px;
+  font-size: 9px;
+}
+
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-background,
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-plot-background,
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-plot-border {
+  fill: transparent !important;
+}
+
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-grid-line {
+  stroke: rgba(224, 221, 213, 0.9) !important;
+}
+
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-axis-line,
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-tick {
+  stroke: var(--fsv2-border) !important;
+}
+
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-axis-labels text,
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-axis-title,
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-data-label text {
+  fill: var(--fsv2-muted) !important;
+  color: var(--fsv2-muted) !important;
+}
+
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-label-box.highcharts-reset-zoom {
+  fill: #fbfaf6 !important;
+  stroke: var(--fsv2-border) !important;
+  rx: 999px;
+  ry: 999px;
+}
+
+.fsv2-trend-card .fsv2-tfidf-peak-chart .highcharts-reset-zoom text {
+  fill: var(--fsv2-nav) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
 }
 
 .fsv2-term-pill {
@@ -1358,6 +1466,12 @@
   min-height: 260px;
 }
 
+.fsv2-attention-surface > div,
+.fsv2-domain-surface > div {
+  width: 100%;
+  height: 100%;
+}
+
 .fsv2-trend-surface {
   display: flex;
   align-items: stretch;
@@ -1583,7 +1697,7 @@
 }
 
 .fsv2-attention-card .highcharts-legend {
-  transform: translateY(6px);
+  transform: none !important;
 }
 
 .fsv2-loading {

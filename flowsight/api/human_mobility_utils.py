@@ -2018,12 +2018,14 @@ async def tfidf_day_agg_top_terms(
     stream: str = "tg",
     limit: int = 50,
     metric: str = "period_average",
+    interval: str = "auto",
     max_document_frequency: float = 0.80,
 ):
     if stream != "tg":
         raise ValueError(f"Stream {stream} not allowed for human mobility tfidf")
     model = models.TgHumanMobilityTFIDFDayAgg[alpha_2.strip().lower()]
     hm_model = models.TgHumanMobilityMessageCountry[alpha_2.strip().lower()]
+    resolved_interval = _resolve_coverage_interval(start_date, end_date, interval)
 
     if metric == "period_average":
         q = f"""
@@ -2068,15 +2070,24 @@ async def tfidf_day_agg_top_terms(
                 GROUP BY tz.lemma, corpus_days.value
                 HAVING count(DISTINCT tz.date_id)::float /
                     nullif(corpus_days.value, 0) < {max_document_frequency}
+            ),
+            ranked AS (
+                SELECT
+                    tz.date_id,
+                    tz.lemma,
+                    tz.tfidf AS mean_value,
+                    row_number() OVER (ORDER BY tz.tfidf DESC, tz.date_id DESC, tz.lemma) AS overall_rank
+                FROM {tablename(model)} tz
+                JOIN allowed_terms USING (lemma)
+                WHERE tz.date_id BETWEEN {start_date} AND {end_date}
             )
             SELECT
-                tz.date_id,
-                tz.lemma,
-                tz.tfidf AS mean_value
-            FROM {tablename(model)} tz
-            JOIN allowed_terms USING (lemma)
-            WHERE tz.date_id BETWEEN {start_date} AND {end_date}
-            ORDER BY tz.tfidf DESC, tz.date_id DESC, tz.lemma
+                date_id,
+                lemma,
+                mean_value,
+                overall_rank
+            FROM ranked
+            ORDER BY overall_rank
             LIMIT {limit};
         """
     else:

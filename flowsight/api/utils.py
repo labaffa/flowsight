@@ -2203,7 +2203,7 @@ async def tfidf_top_terms(pool, alpha_2: str, start_date: int, end_date: int, st
 
 async def tfidf_day_agg_top_terms(
         pool, alpha_2: str, start_date: int, end_date: int, stream: str="tg", limit: int=50,
-        metric: str="period_average", max_document_frequency: float=0.80):
+        metric: str="period_average", interval: str="auto", max_document_frequency: float=0.80):
     if stream == "tg":
         model = models.TFIDFDayAgg[alpha_2]
     # elif stream == "mc":
@@ -2257,15 +2257,20 @@ async def tfidf_day_agg_top_terms(
                 group by tz.lemma, corpus_days.value
                 having count(distinct tz.date_id)::float /
                     nullif(corpus_days.value, 0) < {max_document_frequency}
+            ),
+            ranked as (
+                select
+                    tz.date_id
+                    , tz.lemma
+                    , tz.tfidf as mean_value
+                    , row_number() over (order by tz.tfidf desc, tz.date_id desc, tz.lemma) as overall_rank
+                from {tablename(model)} tz
+                join allowed_terms using (lemma)
+                where tz.date_id between {start_date} and {end_date}
             )
-            select
-                tz.date_id
-                , tz.lemma
-                , tz.tfidf as mean_value
-            from {tablename(model)} tz
-            join allowed_terms using (lemma)
-            where tz.date_id between {start_date} and {end_date}
-            order by tz.tfidf desc, tz.date_id desc, tz.lemma
+            select date_id, lemma, mean_value, overall_rank
+            from ranked
+            order by overall_rank
             limit {limit}
             """
         )

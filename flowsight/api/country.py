@@ -733,6 +733,7 @@ async def get_talking_points_on_conditions(
     limit: int=50,
     scope: str="hm",
     metric: str="period_average",
+    interval: str="auto",
     max_document_frequency: float=0.80,
 ):
     alpha_2 = _resolve_country_code(request, alpha_2)
@@ -746,12 +747,12 @@ async def get_talking_points_on_conditions(
         )
     if _is_hm_scope(scope):
         data = await human_mobility_utils.tfidf_day_agg_top_terms(
-            request.app.async_pool, alpha_2, start_date, end_date, stream, limit, metric,
+            request.app.async_pool, alpha_2, start_date, end_date, stream, limit, metric, interval,
             max_document_frequency
         )
     else:
         data = await utils.tfidf_day_agg_top_terms(
-            request.app.async_pool, alpha_2, start_date, end_date, stream, limit, metric,
+            request.app.async_pool, alpha_2, start_date, end_date, stream, limit, metric, interval,
             max_document_frequency
         )
     return data

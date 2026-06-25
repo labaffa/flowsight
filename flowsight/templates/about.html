@@ -1,751 +1,160 @@
-<!-- About page of the dashboard -->
-<html>
-
-<!-- HEAD -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
 {% include "base/head.html" %}
-
-<!-- Body of the webpage -->
-<!-- HEADER -->
-
-<body class="d-flex flex-column" cz-shortcut-listen="true">
-    <header>
-        {% include "base/navbar.html" %}
-    </header>
-    
-    
-    <div class="flex-fill justify-content-center fews-tab-content">
-        <div class="user-guide-sidebar">
-            <div class="chapter">
-                <span class="expand-icon">›</span>
-                <a class="m-2" href="#introduction">Introduction</a>
-            </div>
-            <div class="submenu">
-                <a class="m-2" href="#about">About the dashboard</a>
-                <a class="m-2" href="#data-source">Data sources</a>
-                <a class="m-2" href="#data-analysis">Data analysis</a>
-                <a class="m-2" href="#navigation">Navigation</a>
-            </div>
-    
-            <!-- Capitolo 2 -->
-            <div class="chapter">
-                <span class="expand-icon">›</span>
-                <a class="m-2" href="#steps">Steps for using the dashboard</a>
-            </div>
-            <div class="submenu">
-                <div class="chapter">
-                    <span class="expand-icon ">›</span>
-                    <a class="m-2" href="#cross-country">Cross-country analysis</a>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css" />
+<link href="{{ url_for('static', path='/css/flowsight-v2.css').include_query_params(version=version) }}" rel="stylesheet">
+</head>
+<body class="flowsight-v2-body">
+    <div class="fsv2-wrap">
+        <header class="fsv2-header">
+            <div class="fsv2-header-left">
+                <a class="fsv2-back-link" href="/">
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                    <span>Back to {{ branding.home_label }}</span>
+                </a>
+                <div class="fsv2-brand">
+                    <span class="fsv2-wordmark">{{ branding.nav_title }}</span>
+                    <span class="fsv2-divider"></span>
+                    <span class="fsv2-tagline">{{ branding.nav_subtitle }}</span>
                 </div>
-                <div class="submenu">
-                    <a class="m-2" href="#country-tooltips">Country tooltips</a>
-                </div>
-                <div class="chapter">
-                    <span class="expand-icon">›</span>
-                    <a class="m-2" href="#country-level">Country-level analysis</a>
-                </div>
-                <div class="submenu">
-                    <a class="m-2" href="#overall">Overall</a>
-                    <a class="m-2" href="#social">Social Listening</a>
-                    <a class="m-2" href="#media">Media Monitoring</a>
-                    <a class="m-2" href="#search-interest">Search Interest</a>
-
-                </div>
-                <div class="chapter">
-                    <span class="expand-icon">›</span>
-                    <a class="m-2" href="#chart-studio">Chart Studio</a>
-                </div>  
-                <div class="submenu">
-                    <a class="m-2" href="#export">Exporting data</a>
-                </div>
-                   
             </div>
-    
-            <!-- Capitolo 3 -->
-            <div class="chapter">
-        
-                <a class="m-2" href="#acknowledgements">Acknowledgements</a>
+            <nav class="fsv2-nav" aria-label="Header links">
+                <a class="fsv2-nav-link" href="/about">About</a>
+                <a class="fsv2-nav-link" href="/studio">Chart studio</a>
+            </nav>
+            <div class="fsv2-country-pill">
+                <i class="ti ti-map-pin" aria-hidden="true"></i>
+                <span>Country focus: Sudan</span>
             </div>
-            
-                
-        </div>
-    <div class="content-container">
-        <div class="container about-body">
-            
-            
-            <!-- <h1>Getting started</h1>
-            <p>Welcome to the user guide for the dashboard FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS, a pioneering interactive tool dedicated to monitoring digital spaces for conversations, news coverage and search engine interest related to FEWS NET’s dimensions of food security early warning.</p>
-            <p>This short guide covers the basics of using the tool. To access the dashboard, click here.</p>
-            <p>The visualizations have been developed with High Charts. While users familiar with High Charts might have an easier time navigating the functionalities of the dashboard, each feature is described in detail below.</p>
-            <p>Scroll through the guide for a full review of the dashboard or use the menu on the right to skip to a specific topic.</p>
-        
-         -->
-                    <h1 id="introduction" class="fews-text mb-4 text-capitalize bold">User Guide</h1>
-                    <p>The objective of this dashboard is to support food security analysts and practitioners to explore and understand how food security shocks and outcomes are represented in different platforms, focusing on digital content disseminated in FEWS NET-covered countries. The dashboard’s insights complement traditional quantitative and qualitative monitoring by enhancing localized knowledge about areas of concern, informing ongoing analysis, enabling the identification of potential early warning signals arising from the data, and supporting early action.</p>
-                
-                    <h2 id="about" class="bold mb-4">About the dashboard’s conceptual framework</h2>
-                    <p>Given the growing significance of internet-based information flows, the <strong>FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS</strong> dashboard applies a conceptual framework that integrates digital platforms to nowcast food security in FEWS NET-covered countries.</p>
-                    <p>The multi-platform framework for nowcasting food insecurity establishes a multi-modal, multi-media model that leverages various data streams to monitor events from different perspectives. The framework relies on the foundations of Digital Methods, which seeks to explain social phenomena through online dynamics, and specifically on the online issue mapping approach. Online issue mapping comprises digital techniques to detect, analyze and visualize topical affairs. It explores how issues are formed in digital environments.</p>
-                    <p>Online spaces offer opportunities for analyzing and visualizing contemporary issue dynamics due to several aspects: issue traces are accessible online; the analytics leverage on the dynamic features and affordances of online media; and digital platforms provide data (for instance, metadata, links, hashtags, mentions, etc.) that can be structured for systematic analysis.</p>
-                    <p>The framework and resulting dashboard deploy three analytical processes. First, social listening and, second, media monitoring cover different dimensions of public discourse. While social media provides insights into the interests, concerns, and opinions of the general public, news media enables insights into “traditional” event coverage, with more established actors and framings. Thirdly, as the Google search engine is the most visited website in the world, understanding what people are searching in it can reveal the level of interest or concern in a particular topic. The predictive potential of Google Trends supports social listening and media monitoring for nowcasting.</p>
-                
-                    <h2 id="data-source" class="bold mb-4">Data sources</h2>
-                    <p>For the social listening component, Telegram has been selected. Launched as a messaging app in 2013, Telegram is a currently a digital platform that allows users to create and subscribe to broadcasting channels and create and join discussion groups. It currently has 900 million active users on average, per month. Most importantly, Telegram provides an open API, which enables the extraction of publicly available data from channels and groups. For each country, a list of relevant public groups and channels has been curated for data ingestion and monitoring.</p>
-                    <p>Media monitoring is performed through data provided by Media Cloud, an open-source platform for media analysis aimed at academic research. The platform monitors more than 60 thousand online media sources, with stories processed daily. It also contains curated country collections, enabling granularity in local news collection. For each country, all available national collections have been selected for data ingestion and monitoring.</p>
-                    <p>Lastly, search engine data is collected though Google Trends, a platform provided by Google that analyzes the popularity of search queries in Google Search across various regions and languages.</p>
-                
-                    <h2 id="data-analysis" class="bold mb-4">Data analysis</h2>
-                    <p>Each data source requires custom analytical approaches to consider their affordances.</p>
-                    <p>A text mining model developed for topic classification of FEWS NET’s food security reporting was refined to monitor and identify the prevalence of food insecurity drivers and outcomes present on news and social media.</p>
-                    <p>This model is applied to all textual data, detecting topics related to three overarching themes and 11 sub-themes grounded in FEWS NET’s conceptual dimensions of food security and early warning of food insecurity:</p>
-                    <ol>
-                        <li><strong>“Shocks and hazards”</strong> describe events that pose a potential threat to life, health, property, physical security, or the environment, and can have a significant impact on food security. These were grouped into the sub-themes: Climate, Conflict, Markets, Diseases, and Governance.</li>
-                        <li><strong>“Food Security Indicators”</strong> contains indicators related to three of the four pillars of food security: food availability, food access, and food utilization. The fourth pillar – stability – is represented through the shocks from the first theme and the outcomes in the third theme.</li>
-                        <li><strong>“Food, nutrition, and livelihood security outcomes”</strong> comprise sub-themes related to food security status, health, and nutrition indicators, as well as concepts related to livelihood strategies.</li>
-                    </ol>
-                    <p>Sentiment analysis is performed using the algorithms Syuzhet (Jockers, 2015) and SentimentR, which identify not only positive and negative associations, but also a broader range of emotions.</p>
-                    <p>TF-IDF analysis is performed to identify significant and emerging terminology. Specifically for news media, existing Media Cloud algorithms for entity recognition are used to detect people, organizations, and geographic coverage of news stories.</p>
-                    <p>For search interest, the final time series constructed for each country represents a synthetic search interest (SSI) index for food insecurity based on Google Trends data. In the final step of the procedure, weights are applied to allow for cross-country comparison. The first weight considers the worldwide Google Trends interest of each topic while the second one relies on yearly data of internet penetration (WB, 2024) to compensate for the digital divide among countries.</p>
-                
-                    <h2 id="navigation" class="bold mb-4">Navigation</h2>
-                    <p>The dashboard <strong>FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS</strong> is structured as follows:</p>
-                    <ol>
-                        <li><strong>Home page</strong></li>
-                        <li><strong>Country pages</strong>, structured into the following tabs:
-                            <ul >
-                                <li type="a"><strong>Overall</strong></li>
-                                <li type="a"><strong>Social Listening</strong></li>
-                                <li type="a"><strong>Media Monitoring</strong></li>
-                                <li type="a"><strong>Search Interest</strong></li>
-                            </ul>
-                        </li>
-                        <li><strong>Chart Studio</strong></li>
-                        <li><strong>User Guide</strong>
-                        </li>
-                    </ol>
-                
-                    <h2 id="steps" class="bold mb-4">Steps for using the dashboard</h2>
+        </header>
 
+        <nav class="fsv2-tabs" aria-label="About sections">
+            <button type="button" class="fsv2-tab fsv2-tab-active" disabled>About</button>
+        </nav>
 
-                    <h4 id="cross-country" class="bold mb-4">Cross-country analysis on home page</h4>
-                    <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/home.png') }}" alt="" >
-
-                    <p>The user begins exploring the dashboard through the map displayed on the home page.</p>
+        <main class="fsv2-main fsv2-about-main">
+            <article class="fsv2-about-article fsv2-about-article-plain">
+                <header class="fsv2-about-intro fsv2-about-blockless" id="introduction">
+                    <div class="fsv2-kpi-source">
+                        <span class="fsv2-dot fsv2-dot-alert"></span>
+                        Human mobility multimodal dashboard
+                    </div>
+                    <h1>About FlowSight</h1>
                     <p>
-                        By default, the map displays the aggregated Topic Anomaly score for Media
-                        Monitoring and Social Listening for the domain “Climate”, for the latest week, per
-                        country.
+                        Human mobility, understood as voluntary and involuntary movements of
+                        people, often driven by factors such as conflict, economic instability, or
+                        climate change, presents complex challenges for humanitarian response and
+                        policy planning. Timely, accurate insights into mobility patterns and
+                        emerging dynamics are essential to effectively anticipate needs, coordinate
+                        aid, and mitigate risks.
                     </p>
-                    <p>To visualize another domain, click on the options in the side menu on the left of the page. Clicking on a domain will change the map results and expand a drop-down panel with FEWS NET’s definition of that particular theme.</p>
-                    <p>To visualize filtering options, click the 
-                        <svg class="user-guide-burger" xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 619 550 "><path d="M264.5 5.2c14.9-6.9 32.1-6.9 47 0l218.6 101c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 149.8C37.4 145.8 32 137.3 32 128s5.4-17.9 13.9-21.8L264.5 5.2zM476.9 209.6l53.2 24.6c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 277.8C37.4 273.8 32 265.3 32 256s5.4-17.9 13.9-21.8l53.2-24.6 152 70.2c23.4 10.8 50.4 10.8 73.8 0l152-70.2zm-152 198.2l152-70.2 53.2 24.6c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 405.8C37.4 401.8 32 393.3 32 384s5.4-17.9 13.9-21.8l53.2-24.6 152 70.2c23.4 10.8 50.4 10.8 73.8 0z"/></svg>
-                        icon on the top right corner. The following variables are available in the drop-down menu:
-                    </p>
-                    <table class="user-guide-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 25%;">Visualization type</th>
-                                <th style="width: 25%;">Variable</th>
-                                <th style="width: 50%;">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Map</td>
-                                <td>Sentiment score</td>
-                                <td>
-                                    Map displays the average sentiment score for the selected domain, for the selected data streams, 
-                                    for the latest week’s data, by country. If filtering for data stream, the map displays 
-                                    the average sentiment score only for countries where the domain was detected in that data 
-                                    stream within the period. <br> <br>
-                                
-                                    Scale: -1 to 1
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Map</td>
-                                <td>Attention</td>
-                                <td>Based on the custom taxonomy developed for topics of interest to FEWS NET, 
-                                    the map displays the aggregated Attention of selected domains, for the selected data streams, 
-                                    for the latest week’s data, by country. 
-                                    The attention metric for each domain is calculated from the aggregated presence of 
-                                    erms associated to particular topics in a data stream, normalized on the value of the total 
-                                    word count and scaled on a range from 0 to 1. <br>
-                                    
-                                    Default displays the sum of averages for both data streams for the latest week’s data. 
-                                    If filtering for data stream, the map displays the average attention score only for 
-                                    countries where the domain was detected in that data stream within the period. 
-
-                                    <br><br>
-                                    Scale: 0 to 1
-                                
-                                </td>
-                            </tr>
-                            <tr></tr>
-                                <td>Map</td>
-                                <td>Topic Anomalies</td>
-                                <td>
-                                    <p>
-                                        This metric identifies any anomalies in the topic
-                                        attention rate, i.e. topics that are presenting a
-                                        different attention than usual, per country.
-                                        They are presented as the count of anomalous
-                                        topics for the selected domain and data stream
-                                        during the last week. When both data streams
-                                        are selected, the count is an average between
-                                        telegram and Media Cloud.
-                                    </p>
-                                    
-                                    <p>
-                                        For every topic, the average and standard
-                                        deviation of the daily attention rates are
-                                        calculated considering the whole dataset; a topic
-                                        is then tagged as anomalous on a specific date
-                                        when its daily attention rate is larger
-                                        than the average + standard deviation.
-                                    </p>
-                                
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                
-                    <h4 id="country-tooltips" class="bold mb-4">Country tooltips</h4>
-                    <p>When the user hovers over a country, a tooltip will appear with key metrics from the analysis for that country.</p>
-                    <p>Below the country name, the average value of the selected variable (Attention or Sentiment) is displayed.</p>
-                    <p>The <u>Trending Topics</u> displays the most prevalent topics in the latest week’s data.</p>
-                    <p>The <u>Last Sentiment</u> displays the sentiment score for the latest week, and the change in score compared to the previous week.</p>
-                    <p>The <u>Anomalous Topics</u> displays the topics that presented different attention than usual
-                        in the latest week’s data</p>
-                    <h4 id="country-level" class="bold mb-4">Country-level analysis on dedicated pages</h4>
-
-                    <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/country_page.png') }}" alt="" >
-
-
-                    <p>To access the country level analysis, the user must click on the desired country on the landing page map.</p>
-                    <p>The country level analysis is divided into four tabs: Overall, Social Listening, Media Monitoring, and Search Interest. They are described below.</p>
-                    <p>At the top of the country page, a query filter bar and a period selector are available. </p>
-                    <p>Clicking on the field <u>Build a query...</u> will open a window with several filtering options:</p>
-
-                    <ul class="ul-dashed">
-                        <li><strong>Field:</strong> user can select to filter the analysis by Topic, Sentiment, or Emotion.</li>
-                        <li><strong>Operator:</strong> currently, only the operator “IS” has been implemented, which indicates that both field on either side of the operator must be true to produce a result.</li>
-                        <li><strong>Value:</strong> user can select desired topics for analysis. Selecting the Domain will auto select all topics within the domain.</li>
-                    </ul>
-
-                    <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/filter-bar.png') }}" alt="" >
-
                     <p>
-                        Clicking the 
-                        
-                        <img class="user-guide-filter-icon" src="/static/img/plus-sign.svg"  alt="">
-                        
-                        icon next to the filters adds another filtering row. Clicking on the 
-                        <img class="user-guide-filter-icon" src="/static/img/trash-bin.svg"  alt="">
-                        trash can icon deletes the respective filter row.</p>
-                    <p>Once the filters have been selected, the user can click <u>Apply</u> to update the visualizations on the selected tab. To clear all filters, click <u>Reset</u>.</p>
-                    <p>By default, the period selected is the last week of data available. The user can custom select a period of analysis by clicking on the date filter, which will open a calendar.</p>
-            
-            <h2 id="overall" class="bold mb-4">Overall</h2>
-            <p>
-                This tab displays comparative a summary of the key metrics for the selected country. By default, the period presented is one year. The following visualizations are available:
-            </p>
-            
-            <table class="user-guide-table">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">Visualization type</th>
-                        <th style="width: 25%;">Title</th>
-                        <th style="width: 50%;">Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Bar chart</td>
-                        <td>Topic Anomalies</td>
-                        <td>
-                            <p>
-                                Comparative overview of topic anomalies, by data source (news and social media). 
-                                The metric identifies any anomalies in topic attention rate, 
-                                i.e. topics that are presenting a different attention than usual.   
-                            </p> 
-                            <p>
-                                They are presented as the count of anomalous topics for each data stream 
-                                for the selected period. By default, when no topic is filtered, 
-                                the visualization displays a sum of topic anomalies for each data stream, per day. 
-                            </p>
-                            <p>
-                                For every topic, the average and standard deviation of the daily 
-                                attention rates are calculated considering the whole dataset; 
-                                a topic is then tagged as anomalous on a specific date when its 
-                                daily attention rate is larger than the average + standard deviation.
-
-                            </p>
-                            
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Attention Trends</td>
-                        <td>
-                            <p>
-                                Comparative overview of topic attention, by data source (news and social media).
-                                Based on the custom taxonomy developed for 117 topics of interest to FEWS NET, the default timeline displays the aggregated Attention metric over time for each data stream.
-                            </p>
-                            <p>
-                                By default, when no topic is filtered, the visualization displays an average record-level attention rate for all topics, for each data stream, per day. 
-                            </p>
-                            <p>
-                                Attention is based on record presence: the share of Telegram posts or news stories in the selected period where a topic is detected at least once. 
-
-                            </p>
-                            <p>
-                                Scale: 0 to 1
-                            </p>
-                              </td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Sentiment</td>
-                        <td>
-                            <p>
-                                Comparative overview of topic sentiment, by data source (news and social media).
-The daily sentiment score for each data stream is shown for the selected period. 
-                            </p>
-                             <p>
-                                By default, when no topic is filtered, the visualization displays an average score for each data stream, per day.
-                             </p>
-                             <p>Scale: -1 to 1</p>
-                             </td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Synthetic Search Interest Index (SSI)</td>
-                        <td>
-                            <p>
-                                Analysis from Google Trends data, based on the Synthetic Search Interest Indices (SSI) for Food Insecurity and Conflict, for the selected period.
-                            <p>
-                            
-                        </td>
-                    </tr>
-                    
-                </tbody>
-            </table>
-                    <h2 id="social" class="bold mb-4">Social Listening</h2>
-                    <p>This tab displays the analysis from Telegram data, based on the curated lists of public groups and channels per country. The following visualizations are available:</p>
-                    
-                    <table class="user-guide-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 25%;">Visualization type</th>
-                                <th style="width: 25%;">Title</th>
-                                <th style="width: 50%;">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Bar chart</td>
-                                <td>Hot Topics</td>
-                                <td>
-                                    <p>
-                                        Based on the custom taxonomy developed for topics of interest to FEWS NET, 
-                                        the bar chart displays the aggregated Attention for each domain, as represented in 
-                                        public Telegram groups and channels. 
-                                        The attention metric for each domain is calculated from the 
-                                        aggregated presence of terms associated to particular topics, 
-                                        normalized on the value of the total word count and scaled on a range from 0 to 1.
-                                    </p> 
-                                    <p>
-                                        The visualization interacts with the filter bar. 
-                                    </p>
-                                    <p>Scale: 0 to 1</p>
-                                    
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Table</td>
-                                <td>Talking Points</td>
-                                <td>
-                                    <p>
-                                        This table presents the fluctuation of Attention and Sentiment per Domain. 
-                                    The first figure per metric is the aggregated domain Attention and Sentiment. 
-                                    To their right, the percentage change in relation to the same period prior 
-                                    to the selected timespan is presented. For the Attention metric, figures in 
-                                    green indicate a rise in the variable, whereas figures in red indicate a drop 
-                                    in attention. For Sentiment, green figures indicate sentiment change was positive, 
-                                    whereas red figures indicate the sentiment change was negative.
-                                    </p>
-                                    <p>
-                                        The visualization 
-                                    interacts with the filter bar.
-                                    </p>
-                                    <p>
-                                        Scale: 0 to 1 for the metric values, 0-100% 
-                                        for period fluctuations
-                                    </p>
-                                      </td>
-                            </tr>
-                            <tr>
-                                <td>Word cloud</td>
-                                <td>Significant Terms</td>
-                                <td>
-                                    <p>
-                                        The word cloud displays the 50 words with the highest average TF-IDF scores,
-                                     for the selected period. The "term frequency-inverse document frequency" (TF-IDF) 
-                                     is a common unsupervised text mining metric that identifies how important a word is 
-                                     to a document in a collection or corpus. 
-                                    </p>
-                                     <p>
-                                        In this analysis, the TF-IDF is calculated based on the collection of Telegram posts for each country, by period, in order to identify emerging topics in the conversations.
-                                     </p>
-                                     </td>
-                            </tr>
-                            <tr>
-                                <td>Widget</td>
-                                <td>Conversations</td>
-                                <td>
-                                    <p>The widget presents the posts ingested from Telegram groups and channels that is 
-                                        driving the analysis. The user can “follow the story” and access the original content.</p> 
-                                    
-                                    <p>
-                                        By hovering over each post, a tooltip opens the topic identified in the post and the 
-                                    full text. 
-                                    By clicking the external link icon, the user will be taken to a new tab, which will 
-                                    open the content in Telegram. 
-                                    </p>
-                                    <p>
-                                        The visualization does not interact with the filter bar, but does interact 
-                                        with the period filtering.
-                                    </p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Timeline</td>
-                                <td>Attention</td>
-                                <td>
-                                    <p>
-                                        Based on the custom taxonomy developed for topics of interest to FEWS NET, 
-                                    the default timeline displays the aggregated Attention metric over time for 
-                                    the for each Domain.
-                                    </p>
-                                    <p>
-                                        Attention is based on record presence: the share of Telegram posts in the
-                                    selected period where a topic in the selected domain is detected at least once.
-                                    </p> 
-                                    <p>
-                                        The visualization interacts with the filter bar
-                                    </p>
-                                    <p>
-                                        Scale: 0 to 1
-                                    </p>
-                                     </td>
-                            </tr>
-                            <tr>
-                                <td>Timeline</td>
-                                <td>Emotion trend</td>
-                                <td>
-                                    <p>
-        
-                                        The default timeline displays the overall value over time for the for each 
-                                    emotion: Anger, Anticipation, Disgust, Fear, Joy, Sadness, Surprise, and Trust. 
-                                    </p>
-                                    <p>
-                                        The visualization interacts with the filter bar.
-                                    </p>
-                                    <p>
-                                        Scale: 0 to 1
-                                    </p>    
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-            
-            <h2 id="media" class="bold mb-4">Media Monitoring</h2>
-            <p>This tab displays the analysis from News Media data, based on the national lists of news sources curated by Media Cloud, per country. The following visualizations are available:</p>
-            
-            <table class="user-guide-table">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">Visualization type</th>
-                        <th style="width: 25%;">Title</th>
-                        <th style="width: 50%;">Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Bar chart</td>
-                        <td>Hot Topics</td>
-                        <td>
-                            <p>
-                                Based on the custom taxonomy developed for topics of interest to FEWS NET, the bar chart displays the aggregated Attention for each domain, as represented in the headlines of news stories. The attention metric for each domain is calculated from the aggregated presence of terms associated to particular topics, normalized on the value of the total word count and scaled on a range from 0 to 1
-                            </p> 
-                            <p>
-                                The visualization interacts with the filter bar. 
-                            </p>
-                            <p>Scale: 0 to 1</p>
-                            
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Table</td>
-                        <td>Talking Points</td>
-                        <td>
-                            <p>
-                                This table presents the fluctuation of Attention and Sentiment per Domain. 
-                                The first figure per metric is the aggregated domain Attention and Sentiment. 
-                                To their right, the percentage change in relation to the same period prior to the selected timespan 
-                                is presented. For the Attention metric, figures in green indicate a rise in the variable, whereas 
-                                figures in red indicate a drop in attention. For Sentiment, green figures indicate sentiment 
-                                change was positive, whereas red figures indicate the sentiment change was negative.
-                            </p>
-                            <p>
-                                The visualization 
-                            interacts with the filter bar.
-                            </p>
-                            <p>
-                                Scale: 0 to 1 for the metric values, 0-100% 
-                                for period fluctuations
-                            </p>
-                              </td>
-                    </tr>
-                    <tr>
-                        <td>Widget</td>
-                        <td>News Stories</td>
-                        <td>
-                            <p>
-                                The widget presents the metadata for the news stories driving the analysis. 
-                                The user can “follow the story” and access the original content.
-                            <p>
-                                By hovering over each news item, a tooltip displays the topic identified in the post and the full headline.
-                                 By clicking the headline,
-                                 the user will be taken to a new tab, which will open the content in its original source.
-                            </p>
-                            <p>
-                                The visualization does not interact with the filter bar, but does interact 
-                                with the period filtering.
-                            </p>
-                        </td>
-                        
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Attention</td>
-                        <td>
-                            <p>
-                                Based on the custom taxonomy developed for topics of interest to FEWS NET, 
-                            the default timeline displays the aggregated Attention metric over time for 
-                            the for each Domain.
-                            </p>
-                            <p>
-                                Attention is based on record presence: the share of news items in the
-                                selected period where a topic in the selected domain is detected at least once. 
-                            </p> 
-                            <p>
-                                The visualization interacts with the filter bar
-                            </p>
-                            <p>
-                                Scale: 0 to 1
-                            </p>
-                             </td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Emotion trend</td>
-                        <td>
-                            <p>
-
-                                The default timeline displays the overall value over time for the for each 
-                            emotion: Anger, Anticipation, Disgust, Fear, Joy, Sadness, Surprise, and Trust. 
-                            </p>
-                            <p>
-                                The visualization interacts with the filter bar.
-                            </p>
-                            <p>
-                                Scale: 0 to 1
-                            </p>    
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <h2 id="search-interest" class="bold mb-4">Search Interest</h2>
-            <p>This tab displays the analysis from Google Trends data, based on the Synthetic Search Interest Indices (SSI) for Food Insecurity and Conflict, per country. In this tab, only the period selector is available. The following visualizations are presented:</p>
-            
-            <table class="user-guide-table">
-                <thead>
-                    <tr>
-                        <th style="width: 25%;">Visualization type</th>
-                        <th style="width: 25%;">Title</th>
-                        <th style="width: 50%;">Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Food Insecurity SSI</td>
-                        <td>
-                            The default timeline displays the Synthetic Search Interest Index for Food 
-                            Insecurity for the last year. 
-                            <br><br>
-                            Scale: 0 to 100.</td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Food Insecurity SSI by topic</td>
-                        <td>
-                            This visualization displays the time trend for each topic that comprises 
-                            the Synthetic Search Interest Index for Food Insecurity for the last year. 
-                            <br><br>
-                            Scale: 0 to 100.</td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Conflict SSI</td>
-                        <td>
-                            The default timeline displays the Synthetic Search Interest Index for Conflict 
-                            for the last year. 
-                            <br><br>
-                            Scale: 0 to 100.</td>
-                    </tr>
-                    <tr>
-                        <td>Timeline</td>
-                        <td>Conflict SSI by topic</td>
-                        <td>
-                            This visualization displays the time trend for each topic that comprises the 
-                            Synthetic Search Interest Index for Conflict for the last year. 
-                            
-                            <br><br>
-                            Scale: 0 to 100.</td>
-                    </tr>
-                </tbody>
-            </table>
-        <h2 id="chart-studio" class="bold mb-4">Creating Visualizations with Chart Studio</h2>
-            
-            <img class="user-guide-img" src="{{ url_for('static', path='img/user_guide/chart_studio.png') }}" alt="" >
-
-            <p>
-                To leverage on all potential combinations of metrics and analytics, users can create
-                their own visualizations by clicking <u>Chart Studio</u> in the top navigation bar.
-            </p>
-            <p>
-                As with the country pages, at the top of the page, the same query filter bar and a
-                period selector are available.
-            </p>
-            <p>Clicking on the field <u>Build a query...</u> will open a window with several filtering options:</p>
-
-                    <ul class="ul-dashed">
-                        <li><strong>Field:</strong> user can select to filter the analysis by Topic, Sentiment, or Emotion.</li>
-                        <li><strong>Operator:</strong> currently, only the operator “IS” has been implemented, which indicates that both field on either side of the operator must be true to produce a result.</li>
-                        <li><strong>Value:</strong> user can select desired topics for analysis. Selecting the Domain will auto select all topics within the domain.</li>
-                    </ul>
-
-
-                    <p>
-                        Clicking the 
-                        
-                        <img class="user-guide-filter-icon" src="/static/img/plus-sign.svg"  alt="">
-                        
-                        icon next to the filters adds another filtering row. Clicking on the 
-                        <img class="user-guide-filter-icon" src="/static/img/trash-bin.svg"  alt="">
-                        trash can icon deletes the respective filter row.
+                        <strong>FlowSight: Human Mobility Multimodal Dashboard</strong> is a tool
+                        focused on displacement and migration, designed to ingest, process,
+                        analyze, and visualize large-scale, near real-time data streams from
+                        diverse digital sources such as social media, news outlets, and search
+                        engines.
                     </p>
-                    p>Once the filters have been selected, the user can click <u>Apply</u> to update the visualizations on the selected tab. To clear all filters, click <u>Reset</u>.</p>
-            <p>The user can also custom select a period of analysis by clicking on the date filter,
-                which will open a calendar.
-            </p>
-            <p>
-                Once the query has been built in the filter bar, the following functionalities are
-                available in the Chart Studio:
-            </p>
-            <ul class="ul-dashed">
-                <li><strong>Chart Type:</strong> users must select between a line chart to visualize time trends, or
-                    bar charts to visualize aggregated metrics.</li>
-                <li><strong>Countries:</strong> users must select at least one country. Multi-country selection is
-                    available.</li>
-                <li><strong>Available Fields:</strong> users can select Attention, Sentiment and Topic Anomalies metrics for the data
-                    streams, as well as the topics covered by the Synthetic Search Index (SSI). To
-                    select a variable, click on the “+” icon for each metric.</li>
-                <li><strong>Selected Fields:</strong> displays the variables selected for the visualization. These can
-                    be removed by clicking the trash can icon.</li>
+                </header>
 
-            </ul>
-            <p>
-                After all desired fields are selected, the chart can be generated by clicking the <u>Create</u>
-                button in the center of the page.
-            </p>
-            <p>
-                The social listening and media monitoring content supporting the analysis will appear
-                in the two widgets below the visualization.
-            </p>
-            <p>
-                Lastly, the right column enables customizing some of the features of the visualization:
-                <u>main title and axes titles; background color; and text color.</u>
-            </p>
-        <h2 id="export" class="bold mb-4"></h2>
-            <p>
-                The visualizations present several options for exporting the image and its background data.
-            </p>
-            <p>
-                On the top right corner of the graph, click the icon. 
-            </p>
-                <p>
-                    Graphs can be expanded to full screen, or downloaded in PNG, JPEG, PDF and SVG formats.
-                </p> 
-            <p>
-                A data table can be downloaded in CSV and XLS formats with the processed data driving the plot.
-            </p>
+                <nav class="fsv2-about-jumpnav" aria-label="Jump links">
+                    <a href="#about">About</a>
+                    <a href="#how-it-works">How it works</a>
+                    <a href="#additional-pages">Reference pages</a>
+                </nav>
 
-        <h2 id="acknowledgements" class="bold mb-4">Acknowledgements</h2>
-        <p>The dashboard <em>FOOD INSECURITY TRENDS IN DIGITAL PLATFORMS</em> and this user guide are outputs of the research project “Supporting Food Insecurity Early Warning Through Digital Media”, funded by USAID and carried out by a team of researchers and consultants led by Bia Carneiro, Research Team Leader, CGIAR FOCUS Climate Security, Alliance of Bioversity International and CIAT.</p>
-        <p>We would like to thank the FEWS NET team for their support, namely Kevin Coffey, Kiersten Johnson, Gary Eilerts, Roger Hunwicks and the Data Hub team for the constructive feedback and support throughout the development and execution of this project.</p>
-        <p>Many of the initial ideas and concepts have been developed within the CGIAR Initiative on Climate Resilience, ClimBeR, and the CGIAR Initiative on Fragility, Conflict, and Migration. We would like to thank all funders who supported this research through their contributions to the CGIAR Trust Fund: <a href="https://www.cgiar.org/funders/">https://www.cgiar.org/funders/</a></p>
+                <section class="fsv2-about-section fsv2-about-blockless" id="about">
+                    <h2>About FlowSight</h2>
+                    <p>
+                        The tool harnesses diverse, high-frequency digital data streams to create
+                        structured, AI-ready datasets that capture global and local patterns of
+                        human mobility. This enables detection of mobility-related developments and
+                        supports advanced, data-driven insight for humanitarian action and policy
+                        planning.
+                    </p>
+                    <p>
+                        Our approach builds on Digital Methods, specifically online issue mapping,
+                        to identify, analyze, and visualize emerging topics and concerns within
+                        digital environments.
+                    </p>
+                    <p>
+                        Unlike traditional human mobility data reliant on slower reporting cycles,
+                        digital platforms provide real-time issue traces such as text, images,
+                        hyperlinks, and metadata that can be systematically collected and analyzed
+                        to deliver timely situational awareness for humanitarian and mobility
+                        decision-making.
+                    </p>
+                    <p>
+                        This dashboard aims to serve humanitarian actors, researchers, and policy
+                        makers by providing ethically sourced insights that support crisis
+                        anticipation, hotspot detection, needs forecasting, and disinformation
+                        monitoring. The pilot version is focused on Sudan, with additional
+                        countries envisioned in future iterations.
+                    </p>
+                </section>
 
+                <section class="fsv2-about-section fsv2-about-blockless" id="how-it-works">
+                    <h2>How FlowSight works</h2>
+                    <p>
+                        FlowSight draws on three core dimensions. First, Social Listening on public
+                        Telegram groups and channels extracts high-frequency public discourse,
+                        capturing community narratives, grassroots coordination, and sentiment
+                        trends. Additional context is provided through ingestion of local online
+                        news media stories. Aggregation of search behavior data through Google
+                        Trends supports identification of shifts in public concern, interest, or
+                        awareness related to displacement and migration crises.
+                    </p>
+                    <p>
+                        Together, these streams form a multimodal framework that delivers
+                        innovative pathways for understanding human mobility.
+                    </p>
+                    <figure class="fsv2-about-diagram-figure">
+                        <img
+                            class="fsv2-about-diagram-image"
+                            src="{{ url_for('static', path='/img/flowsight-workflow.svg').include_query_params(version=version) }}"
+                            alt="FlowSight workflow diagram showing Telegram, online news, and Google Trends feeding a processing layer that produces mobility insight for humanitarian action and policy planning."
+                        >
+                    </figure>
+                </section>
+
+                <section class="fsv2-about-section fsv2-about-blockless" id="additional-pages">
+                    <h2>Reference pages</h2>
+                    <div class="fsv2-about-page-links">
+                        <a class="fsv2-about-page-link" href="/about/news-sources">
+                            <strong>News Sources</strong>
+                            <span>Configured Media Cloud sources for Sudan</span>
+                        </a>
+                        <a class="fsv2-about-page-link" href="/about/telegram-sources">
+                            <strong>Telegram Sources</strong>
+                            <span>Resolved tracked Telegram channels used by social listening</span>
+                        </a>
+                        <a class="fsv2-about-page-link" href="/about/taxonomy">
+                            <strong>Taxonomy</strong>
+                            <span>Pillars, domains, indicators, and indicator components</span>
+                        </a>
+                    </div>
+                </section>
+            </article>
+        </main>
+
+        <footer class="fsv2-footer">
+            <div class="fsv2-footer-logos">
+                <img src="/static/img/cgiar_logo.svg" alt="CGIAR Food Frontiers and Security">
+                <img src="/static/img/alliance_logo.png" alt="Alliance Bioversity &amp; CIAT">
+            </div>
+            <div class="fsv2-footer-sep" aria-hidden="true"></div>
+            <div class="fsv2-footer-copy">
+                <span>
+                    This work is part of the CGIAR Science Program on Food Frontiers and Security (FFS). We would like to thank all funders who supported this research through their contributions to the CGIAR Trust Fund:
+                    <a href="https://www.cgiar.org/funders/" target="_blank" rel="noreferrer">https://www.cgiar.org/funders/</a>
+                </span>
+            </div>
+            <div class="fsv2-footer-links" aria-label="Footer links">
+                <a href="/about">About</a>
+                <a href="/studio">Chart studio</a>
+            </div>
+        </footer>
     </div>
-
-    </div>
-            
-
-</div>
-
-    <!-- FOOTER -->
-    {% include "base/footer.html" %}
-
 </body>
-
-<script>
-    var countries = JSON.parse('{{countries|tojson}}');
-    var fews_countries = JSON.parse('{{fews_countries|tojson}}');
-
-    const offset = 100;
-     // Funzione per gestire il clic sull'icona di espansione
-     document.querySelectorAll('.expand-icon').forEach(icon => {
-            icon.addEventListener('click', function() {
-                const submenu = this.parentElement.nextElementSibling;
-                if (submenu && submenu.classList.contains('submenu')) {
-                    submenu.style.display = submenu.style.display === 'block' ? 'none' : 'block';
-                    this.classList.toggle('open');
-                }
-            });
-        });
-
-        // Funzione per gestire il clic sui link dei capitoli
-        document.querySelectorAll('.user-guide-sidebar a').forEach(link => {
-            link.addEventListener('click', function(event) {
-                event.preventDefault();
-                const targetId = this.getAttribute('href').substring(1);
-                const targetElement = document.getElementById(targetId);
-
-                // const elementPosition = targetElement.getBoundingClientRect().top + window.scrollY;
-                // window.scrollTo({
-                //     top: elementPosition - offset,
-                //     behavior: 'smooth' // Effetto di scorrimento fluido
-                // });
-                targetElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                    inline: 'nearest'
-                });
-            });
-        });
-
-</script>
-
 </html>

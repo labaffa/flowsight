@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% include "base/head.html" %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css" />
+<link href="{{ url_for('static', path='/css/flowsight-v2.css').include_query_params(version=version) }}" rel="stylesheet">
+</head>
+<body class="flowsight-v2-body">
+    <div class="fsv2-wrap">
+        <header class="fsv2-header">
+            <div class="fsv2-header-left">
+                <a class="fsv2-back-link" href="/">
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                    <span>Back to {{ branding.home_label }}</span>
+                </a>
+                <div class="fsv2-brand">
+                    <span class="fsv2-wordmark">{{ branding.nav_title }}</span>
+                    <span class="fsv2-divider"></span>
+                    <span class="fsv2-tagline">{{ branding.nav_subtitle }}</span>
+                </div>
+            </div>
+            <nav class="fsv2-nav" aria-label="Header links">
+                <a class="fsv2-nav-link" href="/about">About</a>
+                <a class="fsv2-nav-link" href="/studio">Chart studio</a>
+            </nav>
+            <div class="fsv2-country-pill">
+                <i class="ti ti-map-pin" aria-hidden="true"></i>
+                <span>Country focus: Sudan</span>
+            </div>
+        </header>
+
+        <nav class="fsv2-tabs" aria-label="About sections">
+            <a class="fsv2-tab fsv2-tab-link" href="/about">About</a>
+            <button type="button" class="fsv2-tab fsv2-tab-active" disabled>News Sources</button>
+        </nav>
+
+        <main class="fsv2-main fsv2-about-main">
+            <article class="fsv2-about-article fsv2-about-article-plain">
+                <header class="fsv2-about-intro fsv2-about-blockless">
+                    <div class="fsv2-kpi-source">
+                        <span class="fsv2-dot fsv2-dot-mc"></span>
+                        Media monitoring source set
+                    </div>
+                    <h1>News Sources</h1>
+                    <p class="fsv2-about-meta">{{ news_sources|length }} configured sources.</p>
+                </header>
+
+                <section class="fsv2-about-section fsv2-about-blockless">
+                    <div class="fsv2-about-source-table-wrap">
+                        <table class="fsv2-about-source-table">
+                            <thead>
+                                <tr>
+                                    <th>Source</th>
+                                    <th>Homepage</th>
+                                    <th>Language</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for source in news_sources %}
+                                <tr>
+                                    <td>{{ source.label }}</td>
+                                    <td>
+                                        {% if source.homepage %}
+                                        <a href="{{ source.homepage }}" target="_blank" rel="noreferrer">{{ source.homepage }}</a>
+                                        {% else %}
+                                        <span>n/a</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ source.language }}</td>
+                                    <td>{{ source.media_type }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </article>
+        </main>
+
+        <footer class="fsv2-footer">
+            <div class="fsv2-footer-logos">
+                <img src="/static/img/cgiar_logo.svg" alt="CGIAR Food Frontiers and Security">
+                <img src="/static/img/alliance_logo.png" alt="Alliance Bioversity &amp; CIAT">
+            </div>
+            <div class="fsv2-footer-sep" aria-hidden="true"></div>
+            <div class="fsv2-footer-copy">
+                <span>
+                    This work is part of the CGIAR Science Program on Food Frontiers and Security (FFS). We would like to thank all funders who supported this research through their contributions to the CGIAR Trust Fund:
+                    <a href="https://www.cgiar.org/funders/" target="_blank" rel="noreferrer">https://www.cgiar.org/funders/</a>
+                </span>
+            </div>
+            <div class="fsv2-footer-links" aria-label="Footer links">
+                <a href="/about">About</a>
+                <a href="/studio">Chart studio</a>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

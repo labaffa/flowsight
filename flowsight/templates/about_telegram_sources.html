@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% include "base/head.html" %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css" />
+<link href="{{ url_for('static', path='/css/flowsight-v2.css').include_query_params(version=version) }}" rel="stylesheet">
+</head>
+<body class="flowsight-v2-body">
+    <div class="fsv2-wrap">
+        <header class="fsv2-header">
+            <div class="fsv2-header-left">
+                <a class="fsv2-back-link" href="/">
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                    <span>Back to {{ branding.home_label }}</span>
+                </a>
+                <div class="fsv2-brand">
+                    <span class="fsv2-wordmark">{{ branding.nav_title }}</span>
+                    <span class="fsv2-divider"></span>
+                    <span class="fsv2-tagline">{{ branding.nav_subtitle }}</span>
+                </div>
+            </div>
+            <nav class="fsv2-nav" aria-label="Header links">
+                <a class="fsv2-nav-link" href="/about">About</a>
+                <a class="fsv2-nav-link" href="/studio">Chart studio</a>
+            </nav>
+            <div class="fsv2-country-pill">
+                <i class="ti ti-map-pin" aria-hidden="true"></i>
+                <span>Country focus: Sudan</span>
+            </div>
+        </header>
+
+        <nav class="fsv2-tabs" aria-label="About sections">
+            <a class="fsv2-tab fsv2-tab-link" href="/about">About</a>
+            <button type="button" class="fsv2-tab fsv2-tab-active" disabled>Telegram Sources</button>
+        </nav>
+
+        <main class="fsv2-main fsv2-about-main">
+            <article class="fsv2-about-article fsv2-about-article-plain">
+                <header class="fsv2-about-intro fsv2-about-blockless">
+                    <div class="fsv2-kpi-source">
+                        <span class="fsv2-dot fsv2-dot-tg"></span>
+                        Social listening source set
+                    </div>
+                    <h1>Telegram Sources</h1>
+                    <p class="fsv2-about-meta">
+                        {{ telegram_sources|length }} resolved tracked Telegram channels across
+                        {% for category, count in telegram_category_counts.items() %}
+                        <span class="fsv2-about-inline-stat">{{ category }}: {{ count }}</span>
+                        {% endfor %}
+                    </p>
+                </header>
+
+                <section class="fsv2-about-section fsv2-about-blockless">
+                    <div class="fsv2-about-source-table-wrap">
+                        <table class="fsv2-about-source-table">
+                            <thead>
+                                <tr>
+                                    <th>Channel</th>
+                                    <th>Username</th>
+                                    <th>Category</th>
+                                    <th>Language</th>
+                                    <th>Total Messages</th>
+                                    <th>HM Messages</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for source in telegram_sources %}
+                                <tr>
+                                    <td>
+                                        {% if source.url %}
+                                        <a href="{{ source.url }}" target="_blank" rel="noreferrer">{{ source.title }}</a>
+                                        {% else %}
+                                        {{ source.title }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ source.username or "n/a" }}</td>
+                                    <td>{{ source.category }}</td>
+                                    <td>{{ source.language }}</td>
+                                    <td>{{ source.total_messages if source.total_messages is not none else "n/a" }}</td>
+                                    <td>{{ source.hm_messages if source.hm_messages is not none else "n/a" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </article>
+        </main>
+
+        <footer class="fsv2-footer">
+            <div class="fsv2-footer-logos">
+                <img src="/static/img/cgiar_logo.svg" alt="CGIAR Food Frontiers and Security">
+                <img src="/static/img/alliance_logo.png" alt="Alliance Bioversity &amp; CIAT">
+            </div>
+            <div class="fsv2-footer-sep" aria-hidden="true"></div>
+            <div class="fsv2-footer-copy">
+                <span>
+                    This work is part of the CGIAR Science Program on Food Frontiers and Security (FFS). We would like to thank all funders who supported this research through their contributions to the CGIAR Trust Fund:
+                    <a href="https://www.cgiar.org/funders/" target="_blank" rel="noreferrer">https://www.cgiar.org/funders/</a>
+                </span>
+            </div>
+            <div class="fsv2-footer-links" aria-label="Footer links">
+                <a href="/about">About</a>
+                <a href="/studio">Chart studio</a>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

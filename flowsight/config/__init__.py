@@ -78,7 +78,6 @@ BRANDING = {
     ),
     "footer_links": [
         {"label": "Sudan Dashboard", "href": "/"},
-        {"label": "Chart Studio", "href": "/studio"},
     ],
     "colors": COLOR_SCHEMES[ACTIVE_COLOR_SCHEME],
     "color_scheme": ACTIVE_COLOR_SCHEME,

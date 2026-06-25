@@ -10,7 +10,11 @@
             <div class="col-md-4">
                 <div class="footer-links">
                     {% for link in branding.footer_links %}
+                        {% if link.href %}
                         <a href="{{ link.href }}">{{ link.label }}</a>
+                        {% else %}
+                        <span>{{ link.label }}</span>
+                        {% endif %}
                     {% endfor %}
                 </div>
             </div>

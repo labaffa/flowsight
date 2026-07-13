@@ -1418,8 +1418,14 @@ async def hm_indicator_talking_points(
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
     topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
-    output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
     has_topic_filter = bool(topic_clause.strip())
+    relate_indicators_to_filter = has_topic_filter
+    indicator_output_topic_clause = "" if relate_indicators_to_filter else topic_output_clause(
+        conditions, topic_filter_mode, "all_ttip"
+    )
+    match_terms_topic_clause = "" if relate_indicators_to_filter else topic_output_clause(
+        conditions, topic_filter_mode, "mt"
+    )
     prev_start_date, prev_end_date = _previous_period(start_date, end_date)
     indicator_table = f"{models.Topic.__table__.schema}.indicator"
     domain_table = tablename(models.Domain)
@@ -1496,7 +1502,7 @@ async def hm_indicator_talking_points(
               ON dom.id = i.domain_id
             WHERE lower(dom.name) = 'human mobility'
               AND t.indicator_id IS NOT NULL
-              {output_topic_clause}
+              {indicator_output_topic_clause}
             GROUP BY
                 qr.{record_id_col},
                 qr.country_id,
@@ -1567,8 +1573,15 @@ async def hm_indicator_talking_points(
                 i.name
         """
 
-    q = f"""
-        WITH counts AS MATERIALIZED (
+    if relate_indicators_to_filter:
+        counts_sql = """
+            SELECT
+                count(*) FILTER (WHERE _type = 'latest') AS latest_value,
+                count(*) FILTER (WHERE _type = 'prev') AS prev_value
+            FROM qualified_records
+        """
+    else:
+        counts_sql = f"""
             SELECT
                 (
                     SELECT count(*)
@@ -1582,8 +1595,10 @@ async def hm_indicator_talking_points(
                     WHERE hm.country_id = {country_id}
                       AND hm.date_id BETWEEN {prev_start_date} AND {prev_end_date}
                 ) AS prev_value
-        ),
-        filt_prev_records AS (
+        """
+
+    q = f"""
+        WITH filt_prev_records AS (
             {matched_prev_sql}
         ),
         filt_latest_records AS (
@@ -1593,6 +1608,9 @@ async def hm_indicator_talking_points(
             SELECT * FROM filt_prev_records
             UNION
             SELECT * FROM filt_latest_records
+        ),
+        counts AS MATERIALIZED (
+            {counts_sql}
         ),
         record_indicator_metrics AS (
             {record_indicator_metrics_sql}
@@ -1616,7 +1634,7 @@ async def hm_indicator_talking_points(
               ON dom.id = i.domain_id
             WHERE lower(dom.name) = 'human mobility'
               AND t.indicator_id IS NOT NULL
-              {topic_output_clause(conditions, topic_filter_mode, "mt")}
+              {match_terms_topic_clause}
             GROUP BY qr._type, i.id, mt.matched_taxonomy_term
         ),
         indicator_match_terms AS (
@@ -1938,7 +1956,6 @@ async def hm_indicator_anomaly_trends(
     date_table = tablename(models.Date)
     topic_meta_table = tablename(models.Topic)
     indicator_table = f"{models.Topic.__table__.schema}.indicator"
-    domain_table = tablename(models.Domain)
     topic_clause = _topic_filter_clause(conditions, table_alias="agg")
     resolved_interval = _resolve_coverage_interval(start_date, end_date, interval)
 
@@ -1948,9 +1965,6 @@ async def hm_indicator_anomaly_trends(
                 i.id AS indicator_id,
                 i.name AS indicator_name
             FROM {indicator_table} i
-            JOIN {domain_table} dom
-              ON dom.id = i.domain_id
-            WHERE lower(dom.name) = 'human mobility'
         ),
         buckets AS (
             SELECT generate_series(
@@ -1974,11 +1988,8 @@ async def hm_indicator_anomaly_trends(
               ON t.id = agg.topic_id
             JOIN {indicator_table} i
               ON i.id = t.indicator_id
-            JOIN {domain_table} dom
-              ON dom.id = i.domain_id
             WHERE agg.country_id = {country_id}
               AND agg.date_id BETWEEN {start_date} AND {end_date}
-              AND lower(dom.name) = 'human mobility'
               {topic_clause}
             GROUP BY 1, i.id, i.name
         )

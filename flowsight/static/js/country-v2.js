@@ -221,6 +221,7 @@ function deriveV2State() {
         mediaStoriesLimit: 12,
         mediaStoriesOffset: 0,
         mediaStoriesHasMore: true,
+        visualizations: {},
     };
 }
 
@@ -244,6 +245,248 @@ function toDateInputValue(dateInt) {
 function fromDateInputValue(value) {
     if (!value) return null;
     return Number(value.replaceAll("-", ""));
+}
+
+function formatIsoDate(value) {
+    if (value == null || value === "") return "";
+    let date = new Date(Number(value));
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toISOString().slice(0, 10);
+}
+
+function csvCell(value) {
+    if (value == null) return "";
+    let serialized = Array.isArray(value)
+        ? value.join("; ")
+        : typeof value === "object"
+            ? JSON.stringify(value)
+            : String(value);
+    if (/[",\n]/.test(serialized)) {
+        return `"${serialized.replaceAll('"', '""')}"`;
+    }
+    return serialized;
+}
+
+function rowsToCsv(rows, columns = null) {
+    let items = Array.isArray(rows) ? rows.filter((row) => row && typeof row === "object" && !Array.isArray(row)) : [];
+    if (items.length === 0) return "";
+    let resolvedColumns = Array.isArray(columns) && columns.length > 0
+        ? columns
+        : Array.from(items.reduce((acc, row) => {
+            Object.keys(row).forEach((key) => acc.add(key));
+            return acc;
+        }, new Set()));
+    let header = resolvedColumns.map(csvCell).join(",");
+    let body = items.map((row) => resolvedColumns.map((column) => csvCell(row[column])).join(",")).join("\n");
+    return `${header}\n${body}`;
+}
+
+function downloadCsv(filename, rows, columns = null) {
+    let csv = rowsToCsv(rows, columns);
+    if (!csv) return;
+    let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    let url = URL.createObjectURL(blob);
+    let link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function sanitizeFilenameSegment(value) {
+    return String(value || "chart")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "chart";
+}
+
+function visualizationStore() {
+    if (!window.fsV2State.visualizations) {
+        window.fsV2State.visualizations = {};
+    }
+    return window.fsV2State.visualizations;
+}
+
+function visualizationCard(viz) {
+    let container = document.getElementById(viz.containerId);
+    return container?.closest(".fsv2-card, .fsv2-kpi-card") || null;
+}
+
+function visualizationTitle(viz) {
+    let card = visualizationCard(viz);
+    return viz.title
+        || card?.querySelector(".fsv2-card-head h2")?.textContent?.trim()
+        || card?.querySelector(".fsv2-kpi-source")?.textContent?.trim()
+        || "Chart";
+}
+
+function visualizationRows(viz) {
+    let rows = typeof viz.csvRows === "function" ? viz.csvRows() : viz.csvRows;
+    return Array.isArray(rows) ? rows : [];
+}
+
+function visualizationFilename(viz) {
+    let range = viz.rangeKind === "search" ? window.fsV2State?.searchRange : window.fsV2State?.overallRange;
+    let suffix = range?.start && range?.end
+        ? `${range.start}-${range.end}`
+        : "current";
+    return `${sanitizeFilenameSegment(viz.fileStem || visualizationTitle(viz))}-${suffix}.csv`;
+}
+
+let fullscreenChartSnapshot = null;
+
+function captureFullscreenChartSnapshot(card) {
+    if (!card || !window.Highcharts) return null;
+    let charts = (Highcharts.charts || [])
+        .filter((chart) => chart?.renderTo && card.contains(chart.renderTo))
+        .map((chart) => ({
+            chart,
+            width: chart.chartWidth,
+            height: chart.chartHeight,
+        }));
+    return { card, charts };
+}
+
+function restoreFullscreenChartSnapshot(snapshot) {
+    if (!snapshot?.card?.isConnected) return;
+
+    // Restore the old pixels first. Otherwise the fullscreen-sized child keeps
+    // the grid track expanded and reflow measures that distorted layout again.
+    for (let item of snapshot.charts) {
+        if (!item.chart?.renderTo?.isConnected) continue;
+        item.chart.setSize(item.width, item.height, false);
+    }
+
+    syncWorkspaceRailHeights();
+    requestAnimationFrame(() => {
+        for (let item of snapshot.charts) {
+            if (!item.chart?.renderTo?.isConnected) continue;
+            item.chart.reflow();
+        }
+        syncWorkspaceRailHeights();
+    });
+}
+
+function reflowChartsWithin(element) {
+    if (!element || !window.Highcharts) return;
+    for (let chart of Highcharts.charts || []) {
+        if (chart?.renderTo && element.contains(chart.renderTo)) {
+            chart.setSize(null, null, false);
+            chart.reflow();
+        }
+    }
+}
+
+function scheduleChartResizePasses(targetElement) {
+    let runPass = () => {
+        syncWorkspaceRailHeights();
+        reflowChartsWithin(targetElement);
+    };
+    requestAnimationFrame(runPass);
+    setTimeout(runPass, 60);
+    setTimeout(runPass, 180);
+}
+
+function updateVisualizationButtons(key) {
+    let viz = visualizationStore()[key];
+    if (!viz) return;
+    let card = visualizationCard(viz);
+    if (!card) return;
+    let rows = visualizationRows(viz);
+    let csvButton = card.querySelector(`.fsv2-viz-btn[data-viz-key="${key}"][data-viz-action="csv"]`);
+    if (csvButton) {
+        csvButton.disabled = rows.length === 0;
+        csvButton.title = rows.length === 0
+            ? "No data available for CSV export"
+            : `Download CSV for ${visualizationTitle(viz)}`;
+        csvButton.setAttribute("aria-label", csvButton.title);
+    }
+    let fullscreenButton = card.querySelector(`.fsv2-viz-btn[data-viz-key="${key}"][data-viz-action="fullscreen"]`);
+    if (fullscreenButton) {
+        let isActive = document.fullscreenElement === card;
+        fullscreenButton.classList.toggle("fsv2-viz-btn-active", isActive);
+        fullscreenButton.title = isActive
+            ? `Exit fullscreen for ${visualizationTitle(viz)}`
+            : `Open ${visualizationTitle(viz)} in fullscreen`;
+        fullscreenButton.setAttribute("aria-label", fullscreenButton.title);
+    }
+}
+
+function ensureVisualizationControls(key) {
+    let viz = visualizationStore()[key];
+    if (!viz) return;
+    let card = visualizationCard(viz);
+    if (!card) return;
+    let toolbar = card.querySelector(".fsv2-card-tools, .fsv2-kpi-tools");
+    let head = card.querySelector(".fsv2-card-head");
+    if (!toolbar) {
+        toolbar = document.createElement("div");
+        toolbar.className = head ? "fsv2-card-tools" : "fsv2-kpi-tools";
+        if (head) {
+            let infoButton = head.querySelector(".fsv2-info-btn");
+            head.appendChild(toolbar);
+            if (infoButton) {
+                toolbar.appendChild(infoButton);
+            }
+        } else {
+            card.appendChild(toolbar);
+        }
+    }
+    let ensureButton = (action, iconClass) => {
+        let button = toolbar.querySelector(`.fsv2-viz-btn[data-viz-key="${key}"][data-viz-action="${action}"]`);
+        if (button) return button;
+        button = document.createElement("button");
+        button.type = "button";
+        button.className = "fsv2-viz-btn";
+        button.dataset.vizKey = key;
+        button.dataset.vizAction = action;
+        button.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i>`;
+        button.addEventListener("click", async () => {
+            let currentViz = visualizationStore()[key];
+            if (!currentViz) return;
+            if (action === "csv") {
+                let rows = visualizationRows(currentViz);
+                if (rows.length === 0) return;
+                downloadCsv(visualizationFilename(currentViz), rows, currentViz.csvColumns);
+                return;
+            }
+            let targetCard = visualizationCard(currentViz);
+            if (!targetCard?.requestFullscreen) return;
+            if (document.fullscreenElement === targetCard) {
+                await document.exitFullscreen();
+            } else {
+                fullscreenChartSnapshot = captureFullscreenChartSnapshot(targetCard);
+                try {
+                    await targetCard.requestFullscreen();
+                } catch (error) {
+                    fullscreenChartSnapshot = null;
+                    throw error;
+                }
+            }
+        });
+        let infoButton = toolbar.querySelector(".fsv2-info-btn");
+        if (infoButton) {
+            toolbar.insertBefore(button, infoButton);
+        } else {
+            toolbar.appendChild(button);
+        }
+        return button;
+    };
+    ensureButton("fullscreen", "ti ti-maximize");
+    ensureButton("csv", "ti ti-download");
+    updateVisualizationButtons(key);
+}
+
+function registerVisualization(key, options) {
+    visualizationStore()[key] = {
+        ...(visualizationStore()[key] || {}),
+        ...options,
+        key,
+    };
+    ensureVisualizationControls(key);
 }
 
 async function fetchJson(path, params) {
@@ -310,12 +553,15 @@ function hmIndicatorColorMap() {
     };
 }
 
-function indicatorColor(name, fallbackIndex = 0) {
+function indicatorColor(name) {
     let map = hmIndicatorColorMap();
     let key = normalizeIndicatorName(name);
     if (map[key]) return map[key];
-    let fallback = ["#1D9E75", "#378ADD", "#EF9F27", "#D85A30", "#7F77DD", "#8B6F47", "#4C8B8C", "#C46A4A"];
-    return fallback[fallbackIndex % fallback.length];
+    return "#A8A69F";
+}
+
+function isHumanMobilityIndicator(name) {
+    return Boolean(hmIndicatorColorMap()[normalizeIndicatorName(name)]);
 }
 
 function domainColor(name, fallbackIndex = 0) {
@@ -358,6 +604,14 @@ function sortDomainEntries(domains) {
     });
 }
 
+function flattenNamedSeries(series, labelResolver = (name) => name) {
+    return (series || []).flatMap((entry) => (entry.data || []).map((point) => ({
+        series: labelResolver(entry.name),
+        date: formatIsoDate(point.date),
+        value: point.value,
+    })));
+}
+
 function slugifyKey(value) {
     return String(value || "")
         .trim()
@@ -397,7 +651,7 @@ function topicHierarchy() {
 }
 
 function streamRecordLabel(stream) {
-    return stream === "tg" ? "messages" : "stories";
+    return stream === "tg" ? "messages" : "news stories";
 }
 
 function updateTopicChip() {
@@ -1048,6 +1302,16 @@ function renderCoverageChart(containerId, payload, streamKey) {
     let container = document.getElementById(containerId);
     if (!container) return;
     let data = payload?.data || [];
+    registerVisualization(containerId, {
+        containerId,
+        fileStem: `${streamKey}-corpus-coverage`,
+        csvRows: data.map((point) => ({
+            date: formatIsoDate(point.date),
+            collected_records: Number(point.all_records || 0),
+            human_mobility_records: Number(point.hm_records || 0),
+            human_mobility_coverage_pct: point.hm_coverage == null ? null : Number((point.hm_coverage * 100).toFixed(2)),
+        })),
+    });
     let meaningful = data.filter((point) => Number(point.all_records || 0) > 0 || Number(point.hm_records || 0) > 0);
     if (meaningful.length === 0) {
         container.innerHTML = '<div class="fsv2-coverage-empty">No data in selected period</div>';
@@ -1107,7 +1371,7 @@ function renderCoverageChart(containerId, payload, streamKey) {
             max: 100,
             opposite: true,
             title: {
-                text: "HM coverage",
+                text: "human mobility coverage",
                 reserveSpace: true,
                 margin: 14,
                 style: { color: colors.text, fontSize: "10px" },
@@ -1150,7 +1414,7 @@ function renderCoverageChart(containerId, payload, streamKey) {
         }, {
             type: "column",
             className: streamKey === "tg" ? "fsv2-coverage-filtered-tg" : "fsv2-coverage-filtered-mc",
-            name: `HM ${recordLabel}`,
+            name: `human mobility ${recordLabel}`,
             color: streamKey === "tg" ? colors.tg : colors.mc,
             data: data.map((point) => [point.date, Number(point.hm_records || 0)]),
             pointPadding: 0.2,
@@ -1158,7 +1422,7 @@ function renderCoverageChart(containerId, payload, streamKey) {
         }, {
             type: "line",
             className: "fsv2-coverage-ratio",
-            name: "HM coverage",
+            name: "human mobility coverage",
             color: colors.amber,
             yAxis: 1,
             data: data.map((point) => [point.date, point.hm_coverage == null ? null : point.hm_coverage * 100]),
@@ -1317,26 +1581,27 @@ function updateAttentionCardCopy(containerId, payload) {
     let container = document.getElementById(containerId);
     let subtitle = container?.closest(".fsv2-card")?.querySelector(".fsv2-card-head p");
     if (!subtitle) return;
-    let isTopicMode = (payload?.data || []).some((row) => row.topic_name);
     let isTelegram = !(containerId.includes("-mc-") || containerId.includes("media"));
+    let isTopicMode = (window.fsV2State.selectedTopicIds || []).length > 0;
+    if (isTelegram) {
+        subtitle.textContent = isTopicMode
+            ? "Selected topic share within human mobility messages · scale 0–1"
+            : "Human mobility indicator share within messages · scale 0–1";
+        return;
+    }
     subtitle.textContent = isTopicMode
-        ? `Selected topic share within ${isTelegram ? "Telegram HM messages" : "MediaCloud HM stories"} · scale 0–1`
-        : `HM indicator share within ${isTelegram ? "Telegram HM messages" : "MediaCloud HM stories"} · scale 0–1`;
+        ? "Selected topic share within human mobility news stories · scale 0–1"
+        : "Human mobility indicator share within news stories · scale 0–1";
 }
 
 function updateSentimentCardCopy() {
     let tgSubtitle = document.querySelector("#fsv2-sentiment-tg-chart")?.closest(".fsv2-card")?.querySelector(".fsv2-card-head p");
     let mcSubtitle = document.querySelector("#fsv2-sentiment-mc-chart")?.closest(".fsv2-card")?.querySelector(".fsv2-card-head p");
-    let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
     if (tgSubtitle) {
-        tgSubtitle.textContent = hasTopicFilter
-            ? "Filtered sentiment score · Telegram · scale -1 to 1"
-            : "Sentiment score · Telegram · scale -1 to 1";
+        tgSubtitle.textContent = "Sentiment score · scale -1 to 1";
     }
     if (mcSubtitle) {
-        mcSubtitle.textContent = hasTopicFilter
-            ? "Filtered sentiment score · News media · scale -1 to 1"
-            : "Sentiment score · News media · scale -1 to 1";
+        mcSubtitle.textContent = "Sentiment score · scale -1 to 1";
     }
 }
 
@@ -1346,12 +1611,12 @@ function updateAnomalyCardCopy() {
     let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
     if (tgSubtitle) {
         tgSubtitle.textContent = hasTopicFilter
-            ? "Count of anomalous filtered topics · Telegram"
+            ? "Count of anomalous filtered topics within human mobility messages"
             : "Count of anomalous topics · Telegram";
     }
     if (mcSubtitle) {
         mcSubtitle.textContent = hasTopicFilter
-            ? "Count of anomalous filtered topics · News media"
+            ? "Count of anomalous filtered topics within human mobility news stories"
             : "Count of anomalous topics · News media";
     }
 }
@@ -1386,13 +1651,23 @@ function renderIndicatorAttentionChart(containerId, payload) {
     if (!container) return;
     let colors = chartColors();
     let series = reshapeAttentionSeries(payload);
+    registerVisualization(containerId, {
+        containerId,
+        fileStem: `${containerId}-attention`,
+        csvRows: (payload?.data || []).map((row) => ({
+            date: formatIsoDate(row.date),
+            topic_name: row.topic_name || "",
+            indicator_name: row.indicator_name || "",
+            value: row.value == null ? null : Number(row.value),
+        })),
+    });
     updateAttentionCardCopy(containerId, payload);
     let filteredSeries = series.filter((entry) => entry.data.some((point) => point.value != null));
     if (filteredSeries.length === 0) {
         container.innerHTML = `
             <div class="fsv2-attention-empty">
                 <strong>No data available</strong>
-                <span>No matching HM attention series were available for this stream in the selected period.</span>
+                <span>No matching human mobility attention series were available for this stream in the selected period.</span>
             </div>
         `;
         return;
@@ -1427,7 +1702,7 @@ function renderIndicatorAttentionChart(containerId, payload) {
             tickPositions: [0, 0.25, 0.5, 0.75, 1.0, 1.25],
             gridLineColor: colors.grid,
             title: {
-                text: "HM attention share",
+                text: "human mobility attention share",
                 reserveSpace: true,
                 margin: 18,
                 rotation: 270,
@@ -1486,6 +1761,13 @@ function renderSentimentTrendChart(containerId, series) {
     updateSentimentCardCopy();
     let colors = chartColors();
     let filteredSeries = (series || []).filter((entry) => Array.isArray(entry.data) && entry.data.length > 0);
+    registerVisualization(containerId, {
+        containerId,
+        fileStem: `${containerId}-sentiment`,
+        csvRows: flattenNamedSeries(filteredSeries, (name) => (
+            name === "Social" ? "Telegram" : name === "Media" ? "News media" : name
+        )),
+    });
     if (filteredSeries.length === 0) {
         container.innerHTML = `
             <div class="fsv2-trend-empty">
@@ -1590,12 +1872,26 @@ function renderAnomalyTrendChart(containerId, series) {
     updateAnomalyCardCopy();
     let colors = chartColors();
     let filteredSeries = reshapeIndicatorAnomalySeries(series)
-        .filter((entry) => Array.isArray(entry.data) && entry.data.some((point) => Number(point.value || 0) > 0));
+        .filter((entry) => Array.isArray(entry.data) && entry.data.some((point) => Number(point.value || 0) > 0))
+        .sort((a, b) => Number(isHumanMobilityIndicator(a.name)) - Number(isHumanMobilityIndicator(b.name)));
+    registerVisualization(containerId, {
+        containerId,
+        fileStem: `${containerId}-anomalies`,
+        csvRows: filteredSeries.flatMap((entry) => (entry.data || []).map((point) => ({
+            indicator: entry.name,
+            date: formatIsoDate(point.date),
+            anomalous_topics: Number(point.value || 0),
+            topic_names: Array.isArray(point.topic_names) ? point.topic_names.join("; ") : "",
+        }))),
+    });
     if (filteredSeries.length === 0) {
+        let isTelegram = containerId.includes("-tg-");
         container.innerHTML = `
             <div class="fsv2-trend-empty">
                 <strong>No data available</strong>
-                <span>No anomalous HM topics were available in the selected period.</span>
+                <span>${isTelegram
+                    ? "No anomalous topics within human mobility messages were available in the selected period."
+                    : "No anomalous topics within human mobility stories were available in the selected period."}</span>
             </div>
         `;
         return;
@@ -1654,6 +1950,7 @@ function renderAnomalyTrendChart(containerId, series) {
             useHTML: true,
             xDateFormat: resolvedInterval === "month" ? "%b %Y" : resolvedInterval === "week" ? "Week of %e %b %Y" : "%e %b %Y",
             pointFormatter: function () {
+                if (Number(this.y) === 0) return "";
                 let topics = Array.isArray(this.topic_names) ? this.topic_names : [];
                 let topicsHtml = topics.length
                     ? `<br/><span style="color:#888780">Topics:</span> ${topics.join(", ")}`
@@ -1703,6 +2000,12 @@ function renderSearchInterestChart(containerId, series) {
     };
     let filteredSeries = aggregateSeriesByInterval(series || [], resolvedInterval)
         .filter((entry) => Array.isArray(entry.data) && entry.data.length > 0);
+    registerVisualization(containerId, {
+        containerId,
+        fileStem: `${containerId}-search-interest`,
+        rangeKind: "search",
+        csvRows: flattenNamedSeries(filteredSeries),
+    });
     if (filteredSeries.length === 0) {
         container.innerHTML = `
             <div class="fsv2-trend-empty">
@@ -1806,7 +2109,7 @@ function renderSocialSummaryKpis(payload) {
     setText("fsv2-social-kpi-messages-value", formatCount(summary.hm_messages));
     setHTML(
         "fsv2-social-kpi-messages-label",
-        hasTopicFilter ? "Filtered HM messages in selected period" : "HM messages in selected period"
+        hasTopicFilter ? "Filtered human mobility messages in selected period" : "human mobility messages in selected period"
     );
     setHTML(
         "fsv2-social-kpi-messages-meta",
@@ -1828,7 +2131,7 @@ function renderSocialSummaryKpis(payload) {
         "fsv2-social-kpi-sentiment-value",
         summary.average_sentiment == null ? "N/A" : Number(summary.average_sentiment).toFixed(2)
     );
-    setHTML("fsv2-social-kpi-sentiment-label", "Mean sentiment in matched HM messages");
+    setHTML("fsv2-social-kpi-sentiment-label", "Mean sentiment in matched human mobility messages");
     setHTML(
         "fsv2-social-kpi-sentiment-meta",
         summary.average_sentiment == null
@@ -1844,11 +2147,11 @@ function renderSocialSummaryKpis(payload) {
         "fsv2-social-kpi-indicators-label",
         hasTopicFilter
             ? "Indicators active in filtered messages"
-            : "HM indicators active in matched messages"
+            : "Human mobility indicators active in matched messages"
     );
     setHTML(
         "fsv2-social-kpi-indicators-meta",
-        `Distinct HM indicator components present: <strong>${formatCount(summary.active_topics)}</strong>`
+        `Distinct human mobility indicator components present: <strong>${formatCount(summary.active_topics)}</strong>`
     );
 }
 
@@ -1861,7 +2164,7 @@ function renderMediaSummaryKpis(payload) {
     setText("fsv2-media-kpi-stories-value", formatCount(summary.hm_stories));
     setHTML(
         "fsv2-media-kpi-stories-label",
-        hasTopicFilter ? "Filtered HM stories in selected period" : "HM stories in selected period"
+        hasTopicFilter ? "Filtered human mobility stories in selected period" : "human mobility stories in selected period"
     );
     setHTML(
         "fsv2-media-kpi-stories-meta",
@@ -1883,7 +2186,7 @@ function renderMediaSummaryKpis(payload) {
         "fsv2-media-kpi-sentiment-value",
         summary.average_sentiment == null ? "N/A" : Number(summary.average_sentiment).toFixed(2)
     );
-    setHTML("fsv2-media-kpi-sentiment-label", "Mean sentiment in matched HM stories");
+    setHTML("fsv2-media-kpi-sentiment-label", "Mean sentiment in matched human mobility stories");
     setHTML(
         "fsv2-media-kpi-sentiment-meta",
         summary.average_sentiment == null
@@ -1899,11 +2202,11 @@ function renderMediaSummaryKpis(payload) {
         "fsv2-media-kpi-indicators-label",
         hasTopicFilter
             ? "Indicators active in filtered stories"
-            : "HM indicators active in matched stories"
+            : "Human mobility indicators active in matched stories"
     );
     setHTML(
         "fsv2-media-kpi-indicators-meta",
-        `Distinct HM indicator components present: <strong>${formatCount(summary.active_topics)}</strong>`
+        `Distinct human mobility indicator components present: <strong>${formatCount(summary.active_topics)}</strong>`
     );
 }
 
@@ -1935,6 +2238,22 @@ function renderCurrentTfidf() {
     let rows = currentTfidfRows();
     let pills = document.getElementById("fsv2-social-tfidf-pills");
     let chart = document.getElementById("fsv2-social-tfidf-chart");
+    let subtitle = pills?.closest(".fsv2-card")?.querySelector(".fsv2-card-head p");
+    if (subtitle) {
+        subtitle.textContent = window.fsV2State.tfidfMetric === "daily_peak"
+            ? "Top 50 distinctive term peaks in human mobility messages for the selected period"
+            : "Top 50 distinctive terms in human mobility messages for the selected period";
+    }
+    registerVisualization("fsv2-social-tfidf", {
+        containerId: "fsv2-social-tfidf-pills",
+        fileStem: `social-significant-terms-${window.fsV2State.tfidfMetric}`,
+        csvRows: rows.map((row) => ({
+            lemma: row.lemma || "",
+            mean_value: row.mean_value == null ? null : Number(row.mean_value),
+            overall_rank: row.overall_rank == null ? null : Number(row.overall_rank),
+            date_id: row.date_id || "",
+        })),
+    });
     if (window.fsV2State.tfidfMetric === "daily_peak") {
         if (pills) pills.hidden = true;
         if (chart) chart.hidden = false;
@@ -1988,6 +2307,28 @@ function componentPillsHtml(components) {
     }).join("");
 }
 
+function componentTextListHtml(components, visibleCount = 4) {
+    return components.slice(0, visibleCount).map((component) => {
+        let matchedTerms = Array.isArray(component.matched_terms) ? component.matched_terms : [];
+        let payload = matchedTerms.length ? escapeHtml(JSON.stringify({
+            title: component.component_name || "Matched terms",
+            subtitle: component.indicator_name || component.domain_name || "",
+            body: matchedTerms.join("\n"),
+        })) : "";
+        let isHumanMobility = normalizeIndicatorName(component.domain_name) === "human mobility";
+        let textClass = `fsv2-message-topic-text ${isHumanMobility ? "fsv2-message-topic-text-hm" : ""}`;
+        let textStyle = isHumanMobility ? ` style="color:${indicatorColor(component.indicator_name)}"` : "";
+        let topicText = matchedTerms.length
+            ? `<button type="button" class="${textClass} fsv2-topic-pill-button"${textStyle} data-message-dialog="${payload}">${escapeHtml(component.component_name || "")}</button>`
+            : `<span class="${textClass}"${textStyle}>${escapeHtml(component.component_name || "")}</span>`;
+        return `
+            <span class="fsv2-message-topic-text-item">
+                ${topicText}
+            </span>
+        `;
+    }).join("");
+}
+
 function ensureMessageDialog() {
     let dialog = document.getElementById("fsv2-message-dialog");
     if (dialog) return dialog;
@@ -2014,13 +2355,7 @@ function ensureMessageDialog() {
     });
     wrapper.querySelector("#fsv2-message-dialog-close")?.addEventListener("click", () => wrapper.close());
     wrapper.addEventListener("close", () => {
-        let body = document.body;
-        let scrollY = Number(body.dataset.dialogScrollY || 0);
-        body.classList.remove("fsv2-dialog-open");
-        body.style.top = "";
-        body.style.width = "";
-        delete body.dataset.dialogScrollY;
-        window.scrollTo(0, scrollY);
+        document.body.classList.remove("fsv2-dialog-open");
     });
     return wrapper;
 }
@@ -2031,12 +2366,90 @@ function openMessageDialog(payload) {
     dialog.querySelector("#fsv2-message-dialog-title").textContent = payload.title || "Message";
     dialog.querySelector("#fsv2-message-dialog-sub").textContent = payload.subtitle || "";
     dialog.querySelector("#fsv2-message-dialog-body").textContent = payload.body || "";
-    let body = document.body;
-    body.dataset.dialogScrollY = String(window.scrollY || window.pageYOffset || 0);
-    body.classList.add("fsv2-dialog-open");
-    body.style.top = `-${body.dataset.dialogScrollY}px`;
-    body.style.width = "100%";
+    document.body.classList.add("fsv2-dialog-open");
     dialog.showModal();
+}
+
+function ensureMessageTopicsPopover() {
+    let popover = document.getElementById("fsv2-message-topics-popover");
+    if (popover) return popover;
+    popover = document.createElement("div");
+    popover.id = "fsv2-message-topics-popover";
+    popover.className = "fsv2-matched-terms-popover fsv2-message-topics-popover";
+    popover.hidden = true;
+    document.body.appendChild(popover);
+    return popover;
+}
+
+function closeMessageTopicsPopover() {
+    let popover = document.getElementById("fsv2-message-topics-popover");
+    if (!popover) return;
+    popover.hidden = true;
+    popover.innerHTML = "";
+    delete popover.dataset.anchorId;
+    delete popover.dataset.components;
+}
+
+function renderMessageTopicsPopover(popover, components, detail = null) {
+    if (detail) {
+        let terms = Array.isArray(detail.matched_terms) ? detail.matched_terms : [];
+        popover.innerHTML = `
+            <div class="fsv2-matched-terms-popover-arrow" aria-hidden="true"></div>
+            <button type="button" class="fsv2-message-topics-back">
+                <i class="ti ti-arrow-left" aria-hidden="true"></i> All topics
+            </button>
+            <div class="fsv2-matched-terms-popover-head">
+                <strong>${escapeHtml(detail.component_name || "Matched terms")}</strong>
+                <span>${escapeHtml(detail.indicator_name || detail.domain_name || "")}</span>
+            </div>
+            <div class="fsv2-matched-terms-popover-list">
+                ${terms.length
+                    ? terms.map((term) => `<span class="fsv2-matched-terms-token">${escapeHtml(term)}</span>`).join("")
+                    : '<span class="fsv2-message-topic-no-terms">No matched terms available</span>'}
+            </div>
+        `;
+        return;
+    }
+
+    popover.innerHTML = `
+        <div class="fsv2-matched-terms-popover-arrow" aria-hidden="true"></div>
+        <div class="fsv2-matched-terms-popover-head">
+            <strong>Topics in this message</strong>
+            <span>${components.length} detected topics · Select one to view matched terms</span>
+        </div>
+        <div class="fsv2-message-topics-popover-list">
+            ${components.map((component) => {
+                let isHumanMobility = normalizeIndicatorName(component.domain_name) === "human mobility";
+                let color = isHumanMobility ? indicatorColor(component.indicator_name) : "#888780";
+                return `
+                    <button
+                        type="button"
+                        class="fsv2-message-topic-popover-item"
+                        style="--fsv2-topic-color:${color}"
+                        data-topic-detail="${escapeHtml(JSON.stringify(component))}"
+                    >
+                        <span>${escapeHtml(component.component_name || "")}</span>
+                        <small>${escapeHtml(component.indicator_name || component.domain_name || "")}</small>
+                    </button>
+                `;
+            }).join("")}
+        </div>
+    `;
+}
+
+function openMessageTopicsPopover(anchor, components) {
+    let popover = ensureMessageTopicsPopover();
+    if (!anchor.id) anchor.id = `fsv2-topics-${Math.random().toString(36).slice(2, 10)}`;
+    if (!popover.hidden && popover.dataset.anchorId === anchor.id) {
+        closeMessageTopicsPopover();
+        return;
+    }
+    closeMatchedTermsPopover();
+    popover.dataset.anchorId = anchor.id;
+    popover.dataset.components = JSON.stringify(components);
+    renderMessageTopicsPopover(popover, components);
+    popover.hidden = false;
+    positionMatchedTermsPopover(anchor, popover);
 }
 
 function ensureMatchedTermsPopover() {
@@ -2116,10 +2529,34 @@ function positionMatchedTermsPopover(anchor, popover = null) {
     target.style.setProperty("--fsv2-popover-arrow-left", `${Math.max(18, Math.min(width - 18, arrowLeft))}px`);
 }
 
-function renderTalkingPoints(containerId, rows) {
+function renderTalkingPoints(containerId, rows, ensureHumanMobilityIndicators = false) {
     let container = document.getElementById(containerId);
     if (!container) return;
-    if (!Array.isArray(rows) || rows.length === 0) {
+    let normalizedRows = Array.isArray(rows) ? [...rows] : [];
+    if (ensureHumanMobilityIndicators) {
+        let humanMobilityDomain = topicHierarchy().find(
+            (domain) => normalizeIndicatorName(domain.name) === "human mobility"
+        );
+        let existing = new Set(normalizedRows.map((row) => normalizeIndicatorName(row.domain)));
+        for (let indicator of humanMobilityDomain?.indicators || []) {
+            if (existing.has(normalizeIndicatorName(indicator.name))) continue;
+            normalizedRows.push(
+                { domain: indicator.name, layer: "attention", latest_value: 0, prev_value: 0 },
+                { domain: indicator.name, layer: "sentiment", latest_value: null, prev_value: null },
+            );
+        }
+    }
+    registerVisualization(containerId, {
+        containerId,
+        fileStem: `${containerId}-talking-points`,
+        csvRows: normalizedRows.map((row) => ({
+            domain: row.domain || "",
+            layer: row.layer || "",
+            latest_value: row.latest_value == null ? null : Number(row.latest_value),
+            prev_value: row.prev_value == null ? null : Number(row.prev_value),
+        })),
+    });
+    if (normalizedRows.length === 0) {
         container.innerHTML = `
             <div class="fsv2-trend-empty">
                 <strong>No data available</strong>
@@ -2130,7 +2567,7 @@ function renderTalkingPoints(containerId, rows) {
     }
 
     let mapped = new Map();
-    for (let row of rows) {
+    for (let row of normalizedRows) {
         if (!mapped.has(row.domain)) {
             mapped.set(row.domain, { domain: row.domain });
         }
@@ -2147,8 +2584,16 @@ function renderTalkingPoints(containerId, rows) {
             ${ordered.map((entry) => {
                 let attention = entry.attention || {};
                 let sentiment = entry.sentiment || {};
-                let attentionDelta = formatSignedPercentChange(attention.latest_value, attention.prev_value);
-                let sentimentDelta = formatSignedValueChange(sentiment.latest_value, sentiment.prev_value, 2);
+                let attentionDelta = attention.latest_value === 0 && attention.prev_value === 0
+                    ? ""
+                    : formatSignedPercentChange(attention.latest_value, attention.prev_value);
+                let hasSentiment = sentiment.latest_value != null;
+                let sentimentValue = attention.latest_value === 0
+                    ? "N/A"
+                    : hasSentiment ? Number(sentiment.latest_value).toFixed(2) : "";
+                let sentimentDelta = hasSentiment && attention.latest_value !== 0
+                    ? formatSignedValueChange(sentiment.latest_value, sentiment.prev_value, 2)
+                    : "";
                 return `
                     <div class="fsv2-tp-row">
                         <div class="fsv2-tp-indicator">
@@ -2168,7 +2613,7 @@ function renderTalkingPoints(containerId, rows) {
                         <div class="fsv2-tp-metric">
                             <span class="fsv2-tp-metric-label">Sentiment</span>
                             <div class="fsv2-tp-metric-value">
-                                <span class="fsv2-tp-current">${sentiment.latest_value == null ? "N/A" : Number(sentiment.latest_value).toFixed(2)}</span>
+                                <span class="fsv2-tp-current">${sentimentValue}</span>
                                 <span class="fsv2-tp-delta ${(sentiment.latest_value || 0) >= (sentiment.prev_value || 0) ? "fsv2-up" : "fsv2-down"}">${sentimentDelta}</span>
                             </div>
                         </div>
@@ -2191,6 +2636,7 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             value: row.frequency == null ? null : Number(row.frequency),
         }))
         .filter((row) => row.label && row.value != null)
+        .filter((row) => normalizeIndicatorName(row.label) !== "human mobility")
         .sort((a, b) => {
             let aHm = normalizeIndicatorName(a.label) === "human mobility";
             let bHm = normalizeIndicatorName(b.label) === "human mobility";
@@ -2203,10 +2649,25 @@ function renderDomainComparisonChart(containerId, payload, stream) {
 
     let subtitle = container.closest(".fsv2-card")?.querySelector(".fsv2-card-head p");
     if (subtitle) {
-        subtitle.textContent = isDomainMode
-            ? `Share of ${stream === "tg" ? "Telegram HM messages" : "news media HM stories"} tagged in each domain during the selected period`
-            : `Filtered indicator-component prevalence within ${stream === "tg" ? "Telegram HM messages" : "news media HM stories"} during the selected period`;
+        let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
+        if (stream === "tg") {
+            subtitle.textContent = hasTopicFilter
+                ? "Share of human mobility messages tagged to the selected topics during the selected period"
+                : "Share of human mobility messages tagged to each domain during the selected period";
+        } else {
+            subtitle.textContent = hasTopicFilter
+                ? "Share of human mobility news stories tagged to the selected topics during the selected period"
+                : "Share of human mobility news stories tagged to each domain during the selected period";
+        }
     }
+    registerVisualization(containerId, {
+        containerId,
+        fileStem: `${containerId}-domain-comparison`,
+        csvRows: displayRows.map((row) => ({
+            label: row.label,
+            share: row.value,
+        })),
+    });
 
     if (displayRows.length === 0) {
         container.innerHTML = `
@@ -2224,8 +2685,7 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             return domainColor(row.label, index);
         }
         let topic = topicIndex.get(String(row.label || "").toLowerCase());
-        if (topic?.domain) return Highcharts.color(domainColor(topic.domain, index)).setOpacity(0.82).get();
-        return Highcharts.color(domainColor(row.label, index)).setOpacity(0.82).get();
+        return domainColor(topic?.domain || row.label, index);
     };
     let base = baseChartOptions(null);
     let surfaceHeight = container.clientHeight || container.parentElement?.clientHeight || 0;
@@ -2245,7 +2705,7 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             events: {
                 render: function () {
                     let chart = this;
-                    let labelText = "Share of HM records (%)";
+                    let labelText = "Share of human mobility records (%)";
                     let y = chart.chartHeight - 8;
                     let x = chart.plotLeft + (chart.plotWidth / 2);
                     if (!chart.customBottomAxisTitle) {
@@ -2346,12 +2806,11 @@ function renderDomainComparisonChart(containerId, payload, stream) {
 function renderTfidfPills(containerId, rows) {
     let container = document.getElementById(containerId);
     if (!container) return;
-    container.classList.remove("fsv2-term-cloud-compact", "fsv2-term-cloud-tight");
     if (!Array.isArray(rows) || rows.length === 0) {
         container.innerHTML = `
             <div class="fsv2-trend-empty">
                 <strong>No data available</strong>
-                <span>No significant Telegram HM terms were available in the selected period.</span>
+                <span>No significant Telegram human mobility terms were available in the selected period.</span>
             </div>
         `;
         return;
@@ -2359,22 +2818,19 @@ function renderTfidfPills(containerId, rows) {
     let maxValue = Math.max(...rows.map((row) => Number(row.mean_value || 0)), 0);
     container.innerHTML = rows.map((row, index) => {
         let ratio = maxValue > 0 ? Number(row.mean_value || 0) / maxValue : 0;
-        let levelClass = ratio >= 0.66 ? "fsv2-term-pill-strong" : ratio >= 0.33 ? "fsv2-term-pill-medium" : "fsv2-term-pill-soft";
         let score = Math.round(ratio * 100);
-        let metricLabel = window.fsV2State.tfidfMetric === "daily_peak" ? "relative prominence from the term's strongest day" : "relative prominence across the selected period";
+        let opacity = (0.22 + ratio * 0.78).toFixed(2);
         return `
-            <div class="fsv2-term-pill ${levelClass}" title="${escapeHtml(`${row.lemma}: ${metricLabel}. Exact TF-IDF: ${Number(row.mean_value || 0).toFixed(2)}. Rank #${index + 1}.`)}">
-                <span class="fsv2-term-pill-label">${escapeHtml(row.lemma)}</span>
-                <span class="fsv2-term-pill-score">${escapeHtml(String(score))}</span>
+            <div class="fsv2-term-rank-row" title="${escapeHtml(`${row.lemma}: relative prominence across the selected period. Exact TF-IDF: ${Number(row.mean_value || 0).toFixed(2)}. Rank #${index + 1}.`)}">
+                <span class="fsv2-term-rank">${index + 1}</span>
+                <span class="fsv2-term-rank-label">${escapeHtml(row.lemma)}</span>
+                <span class="fsv2-term-rank-track" aria-hidden="true">
+                    <span class="fsv2-term-rank-fill" style="width:${score}%;background:rgba(29, 158, 117, ${opacity})"></span>
+                </span>
+                <span class="fsv2-term-rank-score">${score}</span>
             </div>
         `;
     }).join("");
-    if (container.scrollHeight > container.clientHeight) {
-        container.classList.add("fsv2-term-cloud-compact");
-    }
-    if (container.scrollHeight > container.clientHeight) {
-        container.classList.add("fsv2-term-cloud-tight");
-    }
 }
 
 function renderTfidfNote() {
@@ -2382,16 +2838,14 @@ function renderTfidfNote() {
     if (!note) return;
     if (window.fsV2State.tfidfMetric === "daily_peak") {
         note.innerHTML = `
-            <span><span class="fsv2-dot fsv2-dot-tg"></span>Each point marks one of the top 50 daily TF-IDF peaks in the selected HM period.</span>
+            <span><span class="fsv2-dot fsv2-dot-tg"></span>Each point marks one of the top 50 daily TF-IDF peaks in the selected human mobility period.</span>
             <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>Higher peaks indicate stronger day-level distinctiveness.</span>
         `;
         return;
     }
     note.innerHTML = `
-        <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected HM messages.</span>
-        <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>High distinctiveness</span>
-        <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-medium"></span>Medium distinctiveness</span>
-        <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-soft"></span>Emerging distinctiveness</span>
+        <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected human mobility messages.</span>
+        <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>Longer, darker bars indicate higher distinctiveness.</span>
     `;
 }
 
@@ -2464,7 +2918,7 @@ function renderTfidfDailyPeakChart(containerId, rows) {
         container.innerHTML = `
             <div class="fsv2-trend-empty">
                 <strong>No data available</strong>
-                <span>No significant Telegram HM terms were available in the selected period.</span>
+                <span>No significant Telegram human mobility terms were available in the selected period.</span>
             </div>
         `;
         return;
@@ -2706,7 +3160,7 @@ function renderSocialMessages(containerId, rows, append = false) {
             container.innerHTML = `
                 <div class="fsv2-trend-empty">
                     <strong>No data available</strong>
-                    <span>No Telegram HM messages matched the selected filters.</span>
+                    <span>No Telegram human mobility messages matched the selected filters.</span>
                 </div>
             `;
             return;
@@ -2727,8 +3181,33 @@ function renderSocialMessages(containerId, rows, append = false) {
         let channelHandle = channelUsername ? `@${channelUsername}` : "";
         let permalink = channelUsername && row.message_id ? `https://t.me/${channelUsername}/${row.message_id}` : null;
         let components = Array.isArray(row.detected_components) ? row.detected_components : [];
+        let translationPayload = escapeHtml(JSON.stringify({
+            title: `Translated message from ${channel}`,
+            subtitle: [when, channelHandle].filter(Boolean).join(" · "),
+            body: row.body || "",
+        }));
+        let topicsPayload = escapeHtml(JSON.stringify(components));
         return `
             <article class="fsv2-message-item">
+                <div class="fsv2-message-corner-actions">
+                    ${permalink ? `
+                        <a
+                            class="fsv2-message-corner-action"
+                            href="${escapeHtml(permalink)}"
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Open original message"
+                            aria-label="Open original message"
+                        ><i class="ti ti-external-link" aria-hidden="true"></i></a>
+                    ` : ""}
+                    <button
+                        type="button"
+                        class="fsv2-message-expand fsv2-message-corner-action"
+                        data-message-dialog="${translationPayload}"
+                        title="View full translation"
+                        aria-label="View full translation"
+                    ><i class="ti ti-language" aria-hidden="true"></i></button>
+                </div>
                 <div class="fsv2-message-title">
                     <span class="fsv2-dot fsv2-dot-tg"></span>
                     <strong>${escapeHtml(channel)}</strong>
@@ -2736,23 +3215,21 @@ function renderSocialMessages(containerId, rows, append = false) {
                 <div class="fsv2-message-meta">
                     <span>${escapeHtml(when)}</span>
                     ${channelHandle ? `<span>${escapeHtml(channelHandle)}</span>` : ""}
-                    ${permalink ? `<a href="${escapeHtml(permalink)}" target="_blank" rel="noreferrer">Open message</a>` : ""}
                 </div>
                 <div class="fsv2-message-body">${escapeHtml(row.body || "")}</div>
-                <div class="fsv2-message-actions">
-                    <button
-                        type="button"
-                        class="fsv2-message-expand"
-                        data-message-dialog="${escapeHtml(JSON.stringify({
-                            title: channel,
-                            subtitle: [when, channelHandle].filter(Boolean).join(" · "),
-                            body: row.body || "",
-                        }))}"
-                    >
-                        Show full translation
-                    </button>
-                </div>
-                ${components.length ? `<div class="fsv2-message-topics">${componentPillsHtml(components)}</div>` : ""}
+                ${components.length ? `
+                    <div class="fsv2-message-topics-compact">
+                        <span class="fsv2-message-topics-label">Topics (${components.length}):</span>
+                        <span class="fsv2-message-topics-text">${componentTextListHtml(components)}</span>
+                        ${components.length > 4 ? `
+                            <button
+                                type="button"
+                                class="fsv2-message-topics-toggle"
+                                data-topics-popover="${topicsPayload}"
+                            >View all ${components.length}</button>
+                        ` : ""}
+                    </div>
+                ` : ""}
             </article>
         `;
     }).join("");
@@ -2777,7 +3254,7 @@ function renderMediaStories(containerId, rows, append = false) {
             container.innerHTML = `
                 <div class="fsv2-trend-empty">
                     <strong>No data available</strong>
-                    <span>No MediaCloud HM stories matched the selected filters.</span>
+                    <span>No MediaCloud human mobility stories matched the selected filters.</span>
                 </div>
             `;
             return;
@@ -2796,24 +3273,62 @@ function renderMediaStories(containerId, rows, append = false) {
         let source = storySourceLabel(row);
         let detectedComponents = Array.isArray(row.detected_components) ? row.detected_components : [];
         let detectedTopics = Array.isArray(row.detected_topics) ? row.detected_topics : [];
+        let components = detectedComponents.length
+            ? detectedComponents
+            : detectedTopics.map((topic) => ({
+                component_name: topic,
+                indicator_name: "",
+                domain_name: "",
+                matched_terms: [],
+            }));
+        let translationPayload = escapeHtml(JSON.stringify({
+            title: `Translated story from ${source}`,
+            subtitle: when,
+            body: row.body || "",
+        }));
+        let topicsPayload = escapeHtml(JSON.stringify(components));
         return `
             <article class="fsv2-message-item">
+                <div class="fsv2-message-corner-actions">
+                    ${row.url ? `
+                        <a
+                            class="fsv2-message-corner-action"
+                            href="${escapeHtml(row.url)}"
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Open original story"
+                            aria-label="Open original story"
+                        ><i class="ti ti-external-link" aria-hidden="true"></i></a>
+                    ` : ""}
+                    <button
+                        type="button"
+                        class="fsv2-message-expand fsv2-message-corner-action"
+                        data-message-dialog="${translationPayload}"
+                        title="View full translation"
+                        aria-label="View full translation"
+                    ><i class="ti ti-language" aria-hidden="true"></i></button>
+                </div>
                 <div class="fsv2-message-title">
                     <span class="fsv2-dot fsv2-dot-mc"></span>
                     <strong>${escapeHtml(source)}</strong>
                 </div>
                 <div class="fsv2-message-meta">
                     <span>${escapeHtml(when)}</span>
-                    ${row.url ? `<a href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">Open story</a>` : ""}
                 </div>
                 <div class="fsv2-message-body">${escapeHtml(row.body || "")}</div>
-                ${detectedComponents.length
-                    ? `<div class="fsv2-message-topics">${componentPillsHtml(detectedComponents)}</div>`
-                    : detectedTopics.length
-                        ? `<div class="fsv2-message-topics">${detectedTopics.map((topic) => `
-                            <span class="fsv2-topic-pill fsv2-topic-pill-nonhm">${escapeHtml(topic)}</span>
-                        `).join("")}</div>`
-                        : ""}
+                ${components.length ? `
+                    <div class="fsv2-message-topics-compact">
+                        <span class="fsv2-message-topics-label">Topics (${components.length}):</span>
+                        <span class="fsv2-message-topics-text">${componentTextListHtml(components)}</span>
+                        ${components.length > 4 ? `
+                            <button
+                                type="button"
+                                class="fsv2-message-topics-toggle"
+                                data-topics-popover="${topicsPayload}"
+                            >View all ${components.length}</button>
+                        ` : ""}
+                    </div>
+                ` : ""}
             </article>
         `;
     }).join("");
@@ -2980,13 +3495,13 @@ async function loadSummary(intervalOnly = false) {
     renderCoverageKpi(
         "fsv2-tg",
         tgCoverage,
-        hasTopicFilter ? "Filtered HM messages" : "Human mobility messages",
+        hasTopicFilter ? "Filtered human mobility messages" : "Human mobility messages",
         "tg"
     );
     renderCoverageKpi(
         "fsv2-mc",
         mcCoverage,
-        hasTopicFilter ? "Filtered HM news stories" : "Human mobility news stories",
+        hasTopicFilter ? "Filtered human mobility news stories" : "Human mobility news stories",
         "mc"
     );
 
@@ -3057,7 +3572,7 @@ async function loadSocialListening(intervalOnly = false) {
         window.fsV2State.socialStaticData = { socialSummary, domainRanking, talkingPoints };
         renderSocialSummaryKpis(socialSummary);
         renderDomainComparisonChart("fsv2-social-domain-chart", domainRanking, "tg");
-        renderTalkingPoints("fsv2-social-talking-points", talkingPoints);
+        renderTalkingPoints("fsv2-social-talking-points", talkingPoints, true);
     }
 
     if (needTfidf) {
@@ -3170,7 +3685,7 @@ async function loadMediaMonitoring(intervalOnly = false) {
         window.fsV2State.mediaStaticData = { mediaSummary, domainRanking, talkingPoints };
         renderMediaSummaryKpis(mediaSummary);
         renderDomainComparisonChart("fsv2-media-domain-chart", domainRanking, "mc");
-        renderTalkingPoints("fsv2-media-talking-points", talkingPoints);
+        renderTalkingPoints("fsv2-media-talking-points", talkingPoints, true);
         syncMediaTopRow();
     }
 
@@ -3239,6 +3754,17 @@ async function initV2() {
     setupTabs();
     setupTfidfToggle();
     switchTab(window.fsV2State.activeTab);
+    document.addEventListener("fullscreenchange", () => {
+        Object.keys(visualizationStore()).forEach(updateVisualizationButtons);
+        let fullscreenElement = document.fullscreenElement;
+        if (fullscreenElement instanceof Element) {
+            scheduleChartResizePasses(fullscreenElement);
+            return;
+        }
+        let snapshot = fullscreenChartSnapshot;
+        fullscreenChartSnapshot = null;
+        restoreFullscreenChartSnapshot(snapshot);
+    });
     window.addEventListener("resize", () => {
         syncWorkspaceRailHeights();
         let popover = document.getElementById("fsv2-matched-terms-popover");
@@ -3246,8 +3772,20 @@ async function initV2() {
             let anchor = document.getElementById(popover.dataset.anchorId || "");
             if (anchor) positionMatchedTermsPopover(anchor, popover);
         }
+        let topicsPopover = document.getElementById("fsv2-message-topics-popover");
+        if (topicsPopover && !topicsPopover.hidden) {
+            let anchor = document.getElementById(topicsPopover.dataset.anchorId || "");
+            if (anchor) positionMatchedTermsPopover(anchor, topicsPopover);
+        }
     });
-    window.addEventListener("scroll", () => closeMatchedTermsPopover(), true);
+    window.addEventListener("scroll", (event) => {
+        let scrollTarget = event.target instanceof Element ? event.target : null;
+        if (scrollTarget?.closest("#fsv2-matched-terms-popover, #fsv2-message-topics-popover")) {
+            return;
+        }
+        closeMatchedTermsPopover();
+        closeMessageTopicsPopover();
+    }, true);
     document.getElementById("fsv2-social-load-more")?.addEventListener("click", () => {
         loadMoreSocialMessages().catch(console.error);
     });
@@ -3255,6 +3793,37 @@ async function initV2() {
         loadMoreMediaStories().catch(console.error);
     });
     document.addEventListener("click", (event) => {
+        let topicDetail = event.target.closest(".fsv2-message-topic-popover-item[data-topic-detail]");
+        if (topicDetail) {
+            let popover = topicDetail.closest("#fsv2-message-topics-popover");
+            let detail = {};
+            try {
+                detail = JSON.parse(topicDetail.dataset.topicDetail || "{}");
+            } catch (_) {
+                detail = {};
+            }
+            let components = JSON.parse(popover?.dataset.components || "[]");
+            renderMessageTopicsPopover(popover, components, detail);
+            return;
+        }
+        let topicsBack = event.target.closest(".fsv2-message-topics-back");
+        if (topicsBack) {
+            let popover = topicsBack.closest("#fsv2-message-topics-popover");
+            let components = JSON.parse(popover?.dataset.components || "[]");
+            renderMessageTopicsPopover(popover, components);
+            return;
+        }
+        let topicsButton = event.target.closest(".fsv2-message-topics-toggle[data-topics-popover]");
+        if (topicsButton) {
+            let components = [];
+            try {
+                components = JSON.parse(topicsButton.dataset.topicsPopover || "[]");
+            } catch (_) {
+                components = [];
+            }
+            openMessageTopicsPopover(topicsButton, components);
+            return;
+        }
         let pill = event.target.closest(".fsv2-topic-pill-button[data-message-dialog]");
         if (pill) {
             let payload = {};
@@ -3268,6 +3837,9 @@ async function initV2() {
         }
         if (!event.target.closest("#fsv2-matched-terms-popover")) {
             closeMatchedTermsPopover();
+        }
+        if (!event.target.closest("#fsv2-message-topics-popover")) {
+            closeMessageTopicsPopover();
         }
         let button = event.target.closest(".fsv2-message-expand");
         if (!button) return;

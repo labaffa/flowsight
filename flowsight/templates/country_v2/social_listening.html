@@ -1,7 +1,7 @@
 <main class="fsv2-main">
     <section class="fsv2-kpi-row fsv2-kpi-row-four">
         <article class="fsv2-kpi-card fsv2-kpi-card-compact">
-            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-tg"></span>Telegram HM messages</div>
+            <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-tg"></span>Telegram human mobility messages</div>
             <div class="fsv2-kpi-value" id="fsv2-social-kpi-messages-value">Loading...</div>
             <div class="fsv2-kpi-label" id="fsv2-social-kpi-messages-label">Selected period</div>
             <div class="fsv2-kpi-meta" id="fsv2-social-kpi-messages-meta">Loading Telegram summary</div>
@@ -17,14 +17,14 @@
         <article class="fsv2-kpi-card fsv2-kpi-card-compact">
             <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-alert"></span>Average sentiment</div>
             <div class="fsv2-kpi-value" id="fsv2-social-kpi-sentiment-value">Loading...</div>
-            <div class="fsv2-kpi-label" id="fsv2-social-kpi-sentiment-label">Mean sentiment in matched HM messages</div>
+            <div class="fsv2-kpi-label" id="fsv2-social-kpi-sentiment-label">Mean sentiment in matched human mobility messages</div>
             <div class="fsv2-kpi-meta" id="fsv2-social-kpi-sentiment-meta">Loading Telegram summary</div>
         </article>
 
         <article class="fsv2-kpi-card fsv2-kpi-card-compact">
             <div class="fsv2-kpi-source"><span class="fsv2-dot fsv2-dot-violet"></span>Indicators detected</div>
             <div class="fsv2-kpi-value" id="fsv2-social-kpi-indicators-value">Loading...</div>
-            <div class="fsv2-kpi-label" id="fsv2-social-kpi-indicators-label">HM indicators active in matched messages</div>
+            <div class="fsv2-kpi-label" id="fsv2-social-kpi-indicators-label">Human mobility indicators active in matched messages</div>
             <div class="fsv2-kpi-meta" id="fsv2-social-kpi-indicators-meta">Loading Telegram summary</div>
         </article>
     </section>
@@ -33,8 +33,8 @@
         <article class="fsv2-card fsv2-social-card fsv2-domain-card">
             <div class="fsv2-card-head">
                 <div>
-                    <h2>Domain comparison</h2>
-                    <p>Share of Telegram HM messages tagged in each domain during the selected period</p>
+                    <h2>Distribution of analytical domains</h2>
+                    <p>Share of human mobility messages tagged to each domain during the selected period</p>
                 </div>
                 <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
             </div>
@@ -44,8 +44,8 @@
         <article class="fsv2-card fsv2-social-card fsv2-trend-card">
             <div class="fsv2-card-head">
                 <div>
-                    <h2>Talking points</h2>
-                    <p>HM indicators ranked by attention and sentiment change versus previous period</p>
+                    <h2>Fluctuation of human mobility indicators</h2>
+                    <p>Human mobility indicators ranked by attention and sentiment change versus previous period</p>
                 </div>
                 <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
             </div>
@@ -56,7 +56,7 @@
             <div class="fsv2-card-head">
                 <div>
                     <h2>Significant terms</h2>
-                    <p>Top 50 terms overrepresented in Telegram HM messages for the selected period</p>
+                    <p>Top 50 distinctive terms in human mobility messages for the selected period</p>
                 </div>
                 <div class="fsv2-pill-toggle" aria-label="Significant terms ranking">
                     <button type="button" class="fsv2-pill-toggle-btn fsv2-pill-toggle-btn-active" data-tfidf-metric="period_average">Period average</button>
@@ -67,10 +67,8 @@
                 <div class="fsv2-term-cloud" id="fsv2-social-tfidf-pills"></div>
                 <div class="fsv2-chart-surface fsv2-trend-surface fsv2-term-chart-surface" id="fsv2-social-tfidf-chart" hidden></div>
                 <div class="fsv2-tfidf-note" id="fsv2-social-tfidf-note">
-                    <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected HM messages.</span>
-                    <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>High distinctiveness</span>
-                    <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-medium"></span>Medium distinctiveness</span>
-                    <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-soft"></span>Emerging distinctiveness</span>
+                    <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected human mobility messages.</span>
+                    <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>Longer, darker bars indicate higher distinctiveness</span>
                 </div>
             </div>
         </article>
@@ -83,7 +81,7 @@
                     <div class="fsv2-card-head">
                         <div>
                             <h2>Telegram attention trends</h2>
-                            <p>HM indicator share within Telegram HM messages · scale 0–1</p>
+                            <p>Human mobility indicator share within messages · scale 0–1</p>
                         </div>
                         <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
                     </div>
@@ -94,7 +92,7 @@
                     <div class="fsv2-card-head">
                         <div>
                             <h2>Telegram sentiment</h2>
-                            <p>Sentiment score · Telegram · scale -1 to 1</p>
+                            <p>Sentiment score · scale -1 to 1</p>
                         </div>
                         <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
                     </div>
@@ -107,8 +105,8 @@
             <article class="fsv2-card fsv2-feed-card">
                 <div class="fsv2-card-head">
                     <div>
-                        <h2>Actual messages</h2>
-                        <p>Telegram HM messages matching the current global filters</p>
+                        <h2>Human mobility messages</h2>
+                        <p>Human mobility messages matching the current global filters</p>
                     </div>
                     <button type="button" class="fsv2-info-btn"><i class="ti ti-info-circle" aria-hidden="true"></i></button>
                 </div>

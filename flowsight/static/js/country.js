@@ -133,14 +133,14 @@ async function CorpusSummary(stream){
         container.html(`
             <span class="corpus-summary-metric">Period <strong>${period}</strong></span>
             <span class="corpus-summary-metric">Collected ${recordLabel} <strong>${formatCorpusCount(data.all_records_in_period)}</strong></span>
-            <span class="corpus-summary-metric">HM ${recordLabel} <strong>${formatCorpusCount(data.hm_records_in_period)}</strong></span>
+            <span class="corpus-summary-metric">human mobility ${recordLabel} <strong>${formatCorpusCount(data.hm_records_in_period)}</strong></span>
             <span class="corpus-summary-metric">Matching ${recordLabel} <strong>${formatCorpusCount(data.filtered_hm_records_in_period)}</strong></span>
-            <span class="corpus-summary-metric">HM coverage <strong>${coverage}</strong></span>
+            <span class="corpus-summary-metric">human mobility coverage <strong>${coverage}</strong></span>
             <details class="corpus-summary-details">
                 <summary>Corpus details</summary>
                 <div class="corpus-summary-details-content">
                     <span class="corpus-summary-metric">Collected ${recordLabel}, all dates <strong>${formatCorpusCount(data.all_records_total)}</strong></span>
-                    <span class="corpus-summary-metric">HM ${recordLabel}, all dates <strong>${formatCorpusCount(data.hm_records_total)}</strong></span>
+                    <span class="corpus-summary-metric">human mobility ${recordLabel}, all dates <strong>${formatCorpusCount(data.hm_records_total)}</strong></span>
                 </div>
             </details>
         `);
@@ -162,8 +162,8 @@ function renderCorpusCoverageSummary(stream, data){
     let changeLabel = change == null ? 'N/A' : `${change > 0 ? '+' : ''}${change.toFixed(1)} pp`;
     $(`#${stream}-corpus-coverage-summary`).html(`
         <span class="coverage-summary-metric">Collected ${recordLabel} <strong>${formatCorpusCount(summary.all_records)}</strong></span>
-        <span class="coverage-summary-metric">HM ${recordLabel} <strong>${formatCorpusCount(summary.hm_records)}</strong></span>
-        <span class="coverage-summary-metric">HM coverage <strong>${formatCoveragePercent(summary.hm_coverage)}</strong></span>
+        <span class="coverage-summary-metric">human mobility ${recordLabel} <strong>${formatCorpusCount(summary.hm_records)}</strong></span>
+        <span class="coverage-summary-metric">human mobility coverage <strong>${formatCoveragePercent(summary.hm_coverage)}</strong></span>
         <span class="coverage-summary-metric">vs previous period <strong class="coverage-summary-change ${changeClass}">${changeLabel}</strong></span>
         <span class="coverage-summary-metric">Buckets <strong>${data.interval}</strong></span>
     `);
@@ -198,7 +198,7 @@ function renderCorpusCoverageChart(stream, data){
             max: 100,
             opposite: true,
             title: {
-                text: 'HM coverage'
+                text: 'human mobility coverage'
             },
             labels: {
                 format: '{value}%'
@@ -226,7 +226,7 @@ function renderCorpusCoverageChart(stream, data){
         }, {
             type: 'column',
             className: 'coverage-hm-series',
-            name: `HM ${recordLabel}`,
+            name: `human mobility ${recordLabel}`,
             data: chartData.map(point => [point.date, point.hm_records]),
             pointPadding: 0.2,
             tooltip: {
@@ -235,7 +235,7 @@ function renderCorpusCoverageChart(stream, data){
         }, {
             type: 'line',
             className: 'coverage-ratio-series',
-            name: 'HM coverage',
+            name: 'human mobility coverage',
             data: chartData.map(point => [point.date, point.hm_coverage == null ? null : point.hm_coverage * 100]),
             yAxis: 1,
             tooltip: {

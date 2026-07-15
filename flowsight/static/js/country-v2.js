@@ -202,9 +202,14 @@ function deriveV2State() {
         selectedDatePreset: null,
         interval: "auto",
         conditions: [],
+        topicGroups: [],
+        topicGroupJoin: "AND",
+        activeTopicGroupId: null,
+        nextTopicGroupNumber: 1,
         selectedTopicIds: [],
         selectedTopicNames: [],
-        appliedTopicIdsKey: "[]",
+        topicColorMaps: { tg: {}, mc: {} },
+        appliedTopicFilterKey: "[]",
         activeTab: "summary",
         loadedTabs: { summary: false, social: false, media: false, search: false },
         tfidfMetric: "period_average",
@@ -665,83 +670,158 @@ function updateTopicChip() {
         return;
     }
     label.textContent = selectedIds.length === 1
-        ? `Indicator component: ${selectedNames[0] || "Selected"}`
-        : `Indicator components: ${selectedIds.length} selected`;
+        ? `Topic: ${selectedNames[0] || "Selected"}`
+        : `Topics: ${selectedIds.length} selected`;
+    if ((window.fsV2State.topicGroups || []).length > 1) {
+        label.textContent += window.fsV2State.topicGroupJoin === "AND"
+            ? " · Match all groups"
+            : " · Match any group";
+    }
     chip.hidden = false;
-}
-
-function selectedTopicEntries() {
-    let topicsById = new Map((window.fsV2Bootstrap?.topics || []).map((item) => [Number(item.topic_id), item]));
-    return (window.fsV2State.selectedTopicIds || [])
-        .map((id) => topicsById.get(Number(id)))
-        .filter(Boolean);
 }
 
 function renderSelectedTopicSummary() {
     let container = document.getElementById("fsv2-topic-selection-summary");
     if (!container) return;
-    let selected = selectedTopicEntries();
-    if (window.fsV2State.activeTab === "search" || selected.length === 0) {
-        container.hidden = true;
-        container.innerHTML = "";
-        return;
-    }
-
-    let domains = new Map();
-    for (let item of selected) {
-        let domainName = item.domain || "Other";
-        let indicatorName = item.indicator || "Other";
-        if (!domains.has(domainName)) {
-            domains.set(domainName, { name: domainName, indicators: new Map() });
+    let groups = window.fsV2State.topicGroups || [];
+    let topicsById = new Map((window.fsV2Bootstrap?.topics || []).map((topic) => [
+        Number(topic.topic_id),
+        topic,
+    ]));
+    let groupJoin = window.fsV2State.topicGroupJoin || "AND";
+    let hierarchy = topicHierarchy();
+    let summarizeGroup = (group) => {
+        let selectedIds = new Set((group.topicIds || []).map(Number));
+        let labels = [];
+        let pillars = new Map();
+        for (let topic of window.fsV2Bootstrap?.topics || []) {
+            if (!topic.pillar) continue;
+            if (!pillars.has(topic.pillar)) pillars.set(topic.pillar, []);
+            pillars.get(topic.pillar).push(Number(topic.topic_id));
         }
-        let domain = domains.get(domainName);
-        if (!domain.indicators.has(indicatorName)) {
-            domain.indicators.set(indicatorName, { name: indicatorName, topics: [] });
+        for (let [pillarName, pillarTopicIds] of pillars) {
+            if (pillarTopicIds.length && pillarTopicIds.every((topicId) => selectedIds.has(topicId))) {
+                labels.push(pillarName);
+                pillarTopicIds.forEach((topicId) => selectedIds.delete(topicId));
+            }
         }
-        domain.indicators.get(indicatorName).topics.push(item);
+        for (let domain of hierarchy) {
+            let domainTopicIds = domain.indicators.flatMap((indicator) => indicator.topics).map((topic) => Number(topic.id));
+            if (domainTopicIds.length && domainTopicIds.every((topicId) => selectedIds.has(topicId))) {
+                labels.push(domain.name);
+                domainTopicIds.forEach((topicId) => selectedIds.delete(topicId));
+                continue;
+            }
+            for (let indicator of domain.indicators) {
+                let indicatorTopicIds = indicator.topics.map((topic) => Number(topic.id));
+                if (indicatorTopicIds.length && indicatorTopicIds.every((topicId) => selectedIds.has(topicId))) {
+                    labels.push(indicator.name);
+                    indicatorTopicIds.forEach((topicId) => selectedIds.delete(topicId));
+                }
+            }
+        }
+        for (let topicId of selectedIds) {
+            let topicName = topicsById.get(topicId)?.topic;
+            if (topicName) labels.push(topicName);
+        }
+        return labels;
+    };
+    let expression = groups.map((group) => {
+        let topicNames = summarizeGroup(group);
+        let joiner = group.topicJoin === "AND" ? " AND " : " OR ";
+        return topicNames.length ? `(${topicNames.join(joiner)})` : "(empty group)";
+    }).join(` ${groupJoin} `);
+    let logicContainer = document.getElementById("fsv2-topic-logic-summary");
+    if (logicContainer) {
+        logicContainer.hidden = groups.length === 0;
+        logicContainer.innerHTML = groups.length ? `
+            <strong>Current logic</strong>
+            <span>${escapeHtml(expression)}</span>
+        ` : "";
     }
-
-    let grouped = sortDomainEntries(Array.from(domains.values())).map((domain) => ({
-        ...domain,
-        indicators: Array.from(domain.indicators.values())
-            .map((indicator) => ({
-                ...indicator,
-                topics: indicator.topics.sort((a, b) => String(a.topic || "").localeCompare(String(b.topic || ""))),
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name)),
-    }));
-
-    container.hidden = false;
-    container.innerHTML = `
-        <div class="fsv2-topic-selection-summary-head">
-            <strong>Active indicator components</strong>
-            <span>${selected.length} selected</span>
+    let renderGroupNode = (group) => `
+        <div
+            class="fsv2-topic-builder-bubble ${group.id === window.fsV2State.activeTopicGroupId ? "fsv2-topic-builder-bubble-active" : ""}"
+            data-activate-topic-group="${escapeHtml(group.id)}"
+        >
+            <div class="fsv2-topic-builder-bubble-head">
+                <div>
+                    <strong>${escapeHtml(group.label)}</strong>
+                    <span>${(group.topicIds || []).length} ${(group.topicIds || []).length === 1 ? "topic" : "topics"}</span>
+                </div>
+                <button type="button" class="fsv2-topic-builder-remove" data-remove-topic-group="${escapeHtml(group.id)}" aria-label="Remove ${escapeHtml(group.label)}">
+                    <i class="ti ti-x" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="fsv2-topic-builder-bubble-logic">
+                <span>Match</span>
+                <button type="button" data-topic-join="OR" data-topic-group-id="${escapeHtml(group.id)}" class="${group.topicJoin === "OR" ? "active" : ""}">ANY</button>
+                <button type="button" data-topic-join="AND" data-topic-group-id="${escapeHtml(group.id)}" class="${group.topicJoin === "AND" ? "active" : ""}">ALL</button>
+                <span>topics</span>
+            </div>
+            <div class="fsv2-topic-selection-pills">
+                ${(group.topicIds || []).map((topicId) => topicsById.get(Number(topicId))).filter(Boolean).map((topic) => `
+                <span class="fsv2-topic-selection-pill">
+                    <span>${escapeHtml(topic.topic || "")}</span>
+                    <button type="button" data-remove-topic-id="${Number(topic.topic_id)}" data-topic-group-id="${escapeHtml(group.id)}" aria-label="Remove ${escapeHtml(topic.topic || "")}">
+                        <i class="ti ti-x" aria-hidden="true"></i>
+                    </button>
+                </span>
+                `).join("") || '<span class="fsv2-topic-builder-bubble-empty">Select topics from the taxonomy</span>'}
+            </div>
         </div>
-        ${grouped.map((domain) => `
-            <div class="fsv2-topic-selection-group">
-                <div class="fsv2-topic-selection-domain">${escapeHtml(domain.name)}</div>
-                <div class="fsv2-topic-selection-indicators">
-                    ${domain.indicators.map((indicator, index) => `
-                        <div class="fsv2-topic-selection-indicator">
-                            <div class="fsv2-topic-selection-indicator-label">
-                                <span class="fsv2-dot" style="background:${indicatorColor(indicator.name, index)}"></span>
-                                ${escapeHtml(indicator.name)}
-                            </div>
-                            <div class="fsv2-topic-selection-pills">
-                                ${indicator.topics.map((topic) => `
-                                    <span class="fsv2-topic-selection-pill">
-                                        <span>${escapeHtml(topic.topic || "")}</span>
-                                        <button type="button" data-remove-topic-id="${Number(topic.topic_id)}" aria-label="Remove ${escapeHtml(topic.topic || "")}">
-                                            <i class="ti ti-x" aria-hidden="true"></i>
-                                        </button>
-                                    </span>
-                                `).join("")}
-                            </div>
-                        </div>
-                    `).join("")}
+    `;
+    let groupRows = [];
+    for (let index = 0; index < groups.length; index += 2) {
+        groupRows.push(groups.slice(index, index + 2));
+    }
+    let graphHtml = groupRows.map((row, rowIndex) => {
+        let reverseRow = rowIndex % 2 === 1;
+        let visualRow = reverseRow ? [...row].reverse() : row;
+        return `
+        <div class="fsv2-topic-builder-row ${reverseRow ? "fsv2-topic-builder-row-reverse" : ""} ${row.length === 1 ? "fsv2-topic-builder-row-single" : ""}">
+            ${renderGroupNode(visualRow[0])}
+            ${visualRow[1] ? `
+                <div class="fsv2-topic-builder-connector" aria-label="${groupJoin}">
+                    <span></span><strong>${groupJoin}</strong><span></span>
+                </div>
+                ${renderGroupNode(visualRow[1])}
+            ` : ""}
+        </div>
+        ${rowIndex < groupRows.length - 1 ? `
+            <div class="fsv2-topic-builder-row-connector ${rowIndex % 2 === 0 ? "fsv2-topic-builder-row-connector-end" : "fsv2-topic-builder-row-connector-start"}" aria-label="${groupJoin}">
+                <div>
+                    <span></span><strong>${groupJoin}</strong><span></span>
                 </div>
             </div>
-        `).join("")}
+        ` : ""}
+    `;
+    }).join("");
+
+    container.innerHTML = `
+        <div class="fsv2-topic-builder-head">
+            <div>
+                <strong>Filter builder</strong>
+                <span>Select a group, then add topics from the taxonomy.</span>
+            </div>
+            ${groups.length > 1 ? `
+                <div class="fsv2-topic-match-options" role="group" aria-label="Connect groups with">
+                    <button type="button" data-topic-group-join="AND" class="fsv2-topic-match-option ${groupJoin === "AND" ? "fsv2-topic-match-option-active" : ""}">All groups</button>
+                    <button type="button" data-topic-group-join="OR" class="fsv2-topic-match-option ${groupJoin === "OR" ? "fsv2-topic-match-option-active" : ""}">Any group</button>
+                </div>
+            ` : ""}
+        </div>
+        <div class="fsv2-topic-builder-flow">
+            ${groups.length === 0 ? `
+                <div class="fsv2-topic-builder-empty">
+                    <strong>No groups yet</strong>
+                    <span>Create a group, then select topics on the left.</span>
+                </div>
+            ` : graphHtml}
+        </div>
+        <button type="button" class="fsv2-topic-builder-add" data-add-topic-group>
+            <i class="ti ti-plus" aria-hidden="true"></i> Add group
+        </button>
     `;
 }
 
@@ -760,7 +840,7 @@ function renderTopicTree() {
     let container = document.getElementById("fsv2-topic-tree");
     if (!container) return;
     let searchValue = String(document.getElementById("fsv2-topic-search")?.value || "").trim().toLowerCase();
-    let selectedIds = new Set(window.fsV2State.selectedTopicIds || []);
+    let selectedIds = new Set(activeTopicGroup()?.topicIds || []);
     let openDomains = new Set(Array.from(container.querySelectorAll(".fsv2-topic-group[open]")).map((node) => node.dataset.domainKey));
     let openIndicators = new Set(Array.from(container.querySelectorAll(".fsv2-topic-subgroup[open]")).map((node) => node.dataset.indicatorKey));
     let hierarchy = topicHierarchy()
@@ -783,7 +863,7 @@ function renderTopicTree() {
         .filter(Boolean);
 
     if (hierarchy.length === 0) {
-        container.innerHTML = '<div class="fsv2-topic-tree-empty">No indicator components found.</div>';
+        container.innerHTML = '<div class="fsv2-topic-tree-empty">No topics found.</div>';
         return;
     }
 
@@ -951,45 +1031,101 @@ function updateFilterControlsForTab() {
 }
 
 function buildConditionsFromState() {
-    let selectedIds = window.fsV2State.selectedTopicIds || [];
-    if (selectedIds.length === 0) {
+    let groups = window.fsV2State.topicGroups || [];
+    if (groups.length === 0) {
         window.fsV2State.conditions = [];
         return;
     }
-    window.fsV2State.conditions = selectedIds.map((topicId) => ({
-        field: "Topic",
-        operator: "IS",
-        value: Number(topicId),
-    }));
+    window.fsV2State.conditions = groups.flatMap((group) =>
+        (group.topicIds || []).map((topicId) => ({
+            field: "Topic",
+            operator: "IS",
+            value: Number(topicId),
+            topic_group: group.id,
+            topic_group_label: group.label,
+            topic_join: group.topicJoin || "OR",
+            topic_group_join: window.fsV2State.topicGroupJoin || "AND",
+        }))
+    );
+}
+
+function syncSelectedTopicsFromGroups() {
+    let topicsById = new Map((window.fsV2Bootstrap?.topics || []).map((topic) => [
+        Number(topic.topic_id),
+        String(topic.topic || ""),
+    ]));
+    let selectedIds = Array.from(new Set(
+        (window.fsV2State.topicGroups || []).flatMap((group) => group.topicIds || []).map(Number)
+    ));
+    window.fsV2State.selectedTopicIds = selectedIds;
+    window.fsV2State.selectedTopicNames = selectedIds.map((topicId) => topicsById.get(topicId) || "");
+    buildConditionsFromState();
+}
+
+function topicFilterStateKey() {
+    let populatedGroups = (window.fsV2State.topicGroups || []).filter(
+        (group) => (group.topicIds || []).length > 0
+    );
+    if (populatedGroups.length === 0) return "[]";
+    return JSON.stringify({
+        join: window.fsV2State.topicGroupJoin || "OR",
+        groups: populatedGroups.map((group) => ({
+            id: group.id,
+            topicJoin: group.topicJoin || "OR",
+            topicIds: [...(group.topicIds || [])].map(Number).sort((a, b) => a - b),
+        })),
+    });
+}
+
+function addTopicGroup() {
+    let groupNumber = window.fsV2State.nextTopicGroupNumber || 1;
+    let group = {
+        id: `group:${groupNumber}`,
+        label: `Group ${groupNumber}`,
+        topicJoin: "OR",
+        topicIds: [],
+    };
+    window.fsV2State.nextTopicGroupNumber = groupNumber + 1;
+    window.fsV2State.topicGroups = [...(window.fsV2State.topicGroups || []), group];
+    window.fsV2State.activeTopicGroupId = group.id;
+    syncSelectedTopicsFromGroups();
+    renderTopicTree();
+    renderSelectedTopicSummary();
+    updateTopicChip();
+    return group;
+}
+
+function activeTopicGroup() {
+    return (window.fsV2State.topicGroups || []).find(
+        (group) => group.id === window.fsV2State.activeTopicGroupId
+    ) || null;
+}
+
+function ensureActiveTopicGroup() {
+    return activeTopicGroup() || addTopicGroup();
 }
 
 function mergeSelectedTopics(topicEntries) {
-    let selectedById = new Map(
-        (window.fsV2State.selectedTopicIds || []).map((id, index) => [
-            Number(id),
-            String(window.fsV2State.selectedTopicNames?.[index] || ""),
-        ])
+    let activeGroup = ensureActiveTopicGroup();
+    let incomingIds = topicEntries.map((topic) => Number(topic.id));
+    window.fsV2State.topicGroups = (window.fsV2State.topicGroups || []).map((group) =>
+        group.id === activeGroup.id
+            ? { ...group, topicIds: Array.from(new Set([...(group.topicIds || []), ...incomingIds])) }
+            : group
     );
-    for (let topic of topicEntries) {
-        selectedById.set(Number(topic.id), String(topic.name || ""));
-    }
-    window.fsV2State.selectedTopicIds = Array.from(selectedById.keys());
-    window.fsV2State.selectedTopicNames = Array.from(selectedById.values());
-    buildConditionsFromState();
+    syncSelectedTopicsFromGroups();
 }
 
-function removeSelectedTopicsByIds(topicIds) {
+function removeSelectedTopicsByIds(topicIds, groupId = window.fsV2State.activeTopicGroupId) {
     let remove = new Set(topicIds.map((id) => Number(id)));
-    let nextIds = [];
-    let nextNames = [];
-    (window.fsV2State.selectedTopicIds || []).forEach((id, index) => {
-        if (remove.has(Number(id))) return;
-        nextIds.push(Number(id));
-        nextNames.push(String(window.fsV2State.selectedTopicNames?.[index] || ""));
-    });
-    window.fsV2State.selectedTopicIds = nextIds;
-    window.fsV2State.selectedTopicNames = nextNames;
-    buildConditionsFromState();
+    window.fsV2State.topicGroups = (window.fsV2State.topicGroups || [])
+        .map((group) => ({
+            ...group,
+            topicIds: group.id === groupId
+                ? (group.topicIds || []).filter((topicId) => !remove.has(Number(topicId)))
+                : group.topicIds,
+        }));
+    syncSelectedTopicsFromGroups();
 }
 
 function markTabsStale() {
@@ -1031,25 +1167,29 @@ function applyFilterState() {
         return;
     }
     let previousRange = { ...window.fsV2State.appliedOverallRange };
-    let previousTopicIds = window.fsV2State.appliedTopicIdsKey || "[]";
+    let previousTopicFilter = window.fsV2State.appliedTopicFilterKey || "[]";
     window.fsV2State.overallRange = { start: nextStart, end: nextEnd };
     window.fsV2State.searchRange = { start: nextStart, end: nextEnd };
     buildConditionsFromState();
     let rangeChanged = previousRange.start !== nextStart || previousRange.end !== nextEnd;
-    let topicsChanged = previousTopicIds !== JSON.stringify(window.fsV2State.selectedTopicIds || []);
+    let topicsChanged = previousTopicFilter !== topicFilterStateKey();
     if (rangeChanged) {
         markTabsStale();
     } else if (topicsChanged) {
         markTopicFilterStale();
     }
     window.fsV2State.appliedOverallRange = { start: nextStart, end: nextEnd };
-    window.fsV2State.appliedTopicIdsKey = JSON.stringify(window.fsV2State.selectedTopicIds || []);
+    window.fsV2State.appliedTopicFilterKey = topicFilterStateKey();
     syncControlsFromState();
     closeFilterPanels();
     refreshActiveTab().catch(console.error);
 }
 
 function resetFilterState() {
+    window.fsV2State.topicGroups = [];
+    window.fsV2State.topicGroupJoin = "AND";
+    window.fsV2State.activeTopicGroupId = null;
+    window.fsV2State.nextTopicGroupNumber = 1;
     window.fsV2State.selectedTopicIds = [];
     window.fsV2State.selectedTopicNames = [];
     window.fsV2State.overallRange = { ...window.fsV2State.defaultOverallRange };
@@ -1059,7 +1199,7 @@ function resetFilterState() {
     buildConditionsFromState();
     markTabsStale();
     window.fsV2State.appliedOverallRange = { ...window.fsV2State.defaultOverallRange };
-    window.fsV2State.appliedTopicIdsKey = "[]";
+    window.fsV2State.appliedTopicFilterKey = "[]";
     syncControlsFromState();
     closeFilterPanels();
     refreshActiveTab().catch(console.error);
@@ -1105,7 +1245,8 @@ function setupFilterBar() {
                 let domain = hierarchy.find((item) => slugifyKey(item.name) === domainKey);
                 if (!domain) return;
                 let domainTopics = domain.indicators.flatMap((indicator) => indicator.topics);
-                let allSelected = domainTopics.every((topic) => (window.fsV2State.selectedTopicIds || []).includes(Number(topic.id)));
+                let activeIds = new Set(activeTopicGroup()?.topicIds || []);
+                let allSelected = domainTopics.every((topic) => activeIds.has(Number(topic.id)));
                 if (allSelected) {
                     removeSelectedTopicsByIds(domainTopics.map((topic) => topic.id));
                 } else {
@@ -1130,7 +1271,8 @@ function setupFilterBar() {
                     if (match) break;
                 }
                 if (!match) return;
-                let allSelected = match.topics.every((topic) => (window.fsV2State.selectedTopicIds || []).includes(Number(topic.id)));
+                let activeIds = new Set(activeTopicGroup()?.topicIds || []);
+                let allSelected = match.topics.every((topic) => activeIds.has(Number(topic.id)));
                 if (allSelected) {
                     removeSelectedTopicsByIds(match.topics.map((topic) => topic.id));
                 } else {
@@ -1146,9 +1288,8 @@ function setupFilterBar() {
         if (!button) return;
         let topicId = Number(button.dataset.topicId);
         let topicName = button.dataset.topicName || button.textContent.trim();
-        let selectedIds = [...(window.fsV2State.selectedTopicIds || [])];
-        let existingIndex = selectedIds.indexOf(topicId);
-        if (existingIndex >= 0) {
+        let activeIds = new Set(activeTopicGroup()?.topicIds || []);
+        if (activeIds.has(topicId)) {
             removeSelectedTopicsByIds([topicId]);
         } else {
             mergeSelectedTopics([{ id: topicId, name: topicName }]);
@@ -1160,11 +1301,15 @@ function setupFilterBar() {
     document.getElementById("fsv2-topic-chip")?.addEventListener("click", (event) => {
         if (event.target && event.target.id === "fsv2-topic-chip-clear") {
             event.stopPropagation();
+            window.fsV2State.topicGroups = [];
+            window.fsV2State.topicGroupJoin = "AND";
+            window.fsV2State.activeTopicGroupId = null;
+            window.fsV2State.nextTopicGroupNumber = 1;
             window.fsV2State.selectedTopicIds = [];
             window.fsV2State.selectedTopicNames = [];
             buildConditionsFromState();
             markTopicFilterStale();
-            window.fsV2State.appliedTopicIdsKey = "[]";
+            window.fsV2State.appliedTopicFilterKey = "[]";
             syncControlsFromState();
             refreshActiveTab().catch(console.error);
             return;
@@ -1172,20 +1317,66 @@ function setupFilterBar() {
         setFilterPanel("fsv2-topic-filter-panel", true);
     });
     document.getElementById("fsv2-topic-selection-summary")?.addEventListener("click", (event) => {
-        let button = event.target.closest("[data-remove-topic-id]");
-        if (!button) return;
-        let topicId = Number(button.dataset.removeTopicId);
-        let selectedIds = [...(window.fsV2State.selectedTopicIds || [])];
-        let selectedNames = [...(window.fsV2State.selectedTopicNames || [])];
-        let index = selectedIds.indexOf(topicId);
-        if (index < 0) return;
-        selectedIds.splice(index, 1);
-        selectedNames.splice(index, 1);
-        window.fsV2State.selectedTopicIds = selectedIds;
-        window.fsV2State.selectedTopicNames = selectedNames;
-        buildConditionsFromState();
+        let addButton = event.target.closest("[data-add-topic-group]");
+        if (addButton) {
+            addTopicGroup();
+            return;
+        }
+
+        let removeGroupButton = event.target.closest("[data-remove-topic-group]");
+        if (removeGroupButton) {
+            let groupId = removeGroupButton.dataset.removeTopicGroup;
+            window.fsV2State.topicGroups = (window.fsV2State.topicGroups || []).filter(
+                (group) => group.id !== groupId
+            );
+            if (window.fsV2State.activeTopicGroupId === groupId) {
+                window.fsV2State.activeTopicGroupId = window.fsV2State.topicGroups[0]?.id || null;
+            }
+            syncSelectedTopicsFromGroups();
+            renderTopicTree();
+            renderSelectedTopicSummary();
+            updateTopicChip();
+            return;
+        }
+
+        let removeTopicButton = event.target.closest("[data-remove-topic-id][data-topic-group-id]");
+        if (removeTopicButton) {
+            removeSelectedTopicsByIds(
+                [Number(removeTopicButton.dataset.removeTopicId)],
+                removeTopicButton.dataset.topicGroupId
+            );
+            renderTopicTree();
+            renderSelectedTopicSummary();
+            updateTopicChip();
+            return;
+        }
+
+        let topicJoinButton = event.target.closest("[data-topic-join][data-topic-group-id]");
+        if (topicJoinButton) {
+            let groupId = topicJoinButton.dataset.topicGroupId;
+            let topicJoin = topicJoinButton.dataset.topicJoin === "AND" ? "AND" : "OR";
+            window.fsV2State.topicGroups = (window.fsV2State.topicGroups || []).map((group) =>
+                group.id === groupId ? { ...group, topicJoin } : group
+            );
+            buildConditionsFromState();
+            renderSelectedTopicSummary();
+            updateTopicChip();
+            return;
+        }
+
+        let groupJoinButton = event.target.closest("[data-topic-group-join]");
+        if (groupJoinButton) {
+            window.fsV2State.topicGroupJoin = groupJoinButton.dataset.topicGroupJoin === "OR" ? "OR" : "AND";
+            buildConditionsFromState();
+            renderSelectedTopicSummary();
+            updateTopicChip();
+            return;
+        }
+
+        let groupBubble = event.target.closest("[data-activate-topic-group]");
+        if (!groupBubble) return;
+        window.fsV2State.activeTopicGroupId = groupBubble.dataset.activateTopicGroup;
         renderTopicTree();
-        updateTopicChip();
         renderSelectedTopicSummary();
     });
     document.querySelectorAll(".fsv2-interval").forEach((button) => {
@@ -2151,7 +2342,7 @@ function renderSocialSummaryKpis(payload) {
     );
     setHTML(
         "fsv2-social-kpi-indicators-meta",
-        `Distinct human mobility indicator components present: <strong>${formatCount(summary.active_topics)}</strong>`
+        `Distinct human mobility topics present: <strong>${formatCount(summary.active_topics)}</strong>`
     );
 }
 
@@ -2206,7 +2397,7 @@ function renderMediaSummaryKpis(payload) {
     );
     setHTML(
         "fsv2-media-kpi-indicators-meta",
-        `Distinct human mobility indicator components present: <strong>${formatCount(summary.active_topics)}</strong>`
+        `Distinct human mobility topics present: <strong>${formatCount(summary.active_topics)}</strong>`
     );
 }
 

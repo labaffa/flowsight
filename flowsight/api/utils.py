@@ -26,12 +26,14 @@ SQL_GEN_MAPPING = {
 async def get_framework(pool):
     q = (f'''
         SELECT 
-            t.id as topic_id, t.topic, t.theme as theme, t.sub_theme as sub_theme, d.id as domain_id
+            t.id as topic_id, t.topic, t.theme as theme, t.sub_theme as sub_theme
+            , p.id as pillar_id, p.name as pillar, d.id as domain_id
             , d.name as domain
             , i.id as indicator_id
             , i.name as indicator
         FROM {tablename(models.Topic)} t 
         JOIN {tablename(models.Domain)} d ON t.domain_id = d.id
+        JOIN {models.Topic.__table__.schema}.pillar p ON d.pillar_id = p.id
         LEFT JOIN {models.Topic.__table__.schema}.indicator i ON t.indicator_id = i.id
         ;''')
     async with pool.connection() as conn:

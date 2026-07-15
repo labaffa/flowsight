@@ -20,7 +20,7 @@
         <span class="fsv2-filter-label">Apply filter</span>
         <button type="button" class="fsv2-chip fsv2-chip-active" id="fsv2-topic-chip" hidden>
             <i class="ti ti-tag" aria-hidden="true"></i>
-            <span id="fsv2-topic-chip-label">Indicator component</span>
+            <span id="fsv2-topic-chip-label">Topic</span>
             <i class="ti ti-x" id="fsv2-topic-chip-clear" aria-hidden="true"></i>
         </button>
         <button type="button" class="fsv2-chip" id="fsv2-add-filter-btn">
@@ -46,13 +46,14 @@
     </section>
     <section class="fsv2-filter-panel" id="fsv2-topic-filter-panel" hidden>
         <div class="fsv2-filter-field" id="fsv2-topic-filter-field">
-            <label for="fsv2-topic-search">Indicator component</label>
-            <input type="search" id="fsv2-topic-search" placeholder="Search indicator components">
+            <label for="fsv2-topic-search">Topic</label>
+            <input type="search" id="fsv2-topic-search" placeholder="Search topics">
             <div class="fsv2-topic-filter-body">
-                <div class="fsv2-topic-tree" id="fsv2-topic-tree" role="tree" aria-label="Indicator component filter"></div>
-                <div class="fsv2-topic-selection-summary" id="fsv2-topic-selection-summary" hidden></div>
+                <div class="fsv2-topic-tree" id="fsv2-topic-tree" role="tree" aria-label="Topic filter"></div>
+                <div class="fsv2-topic-selection-summary fsv2-topic-builder" id="fsv2-topic-selection-summary"></div>
             </div>
         </div>
+        <aside class="fsv2-topic-logic-summary" id="fsv2-topic-logic-summary" hidden></aside>
     </section>
 
     <section class="fsv2-filter-panel fsv2-filter-panel-date" id="fsv2-date-filter-panel" hidden>

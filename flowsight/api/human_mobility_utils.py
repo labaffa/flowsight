@@ -65,6 +65,86 @@ def _topic_filter_clause(conditions, table_alias: str = "agg", topic_col: str = 
     return f" AND {table_alias}.{topic_col} IN ({', '.join(str(v) for v in topic_values)})"
 
 
+def _record_filter_clauses(
+    conditions,
+    topic_table: str,
+    record_id_col: str,
+    record_alias: str = "hm",
+):
+    """Build record-level topic matching plus row-level sentiment/emotion filters."""
+    topic_conditions = [
+        condition
+        for condition in conditions or []
+        if condition.get("field") == "Topic" and condition.get("operator") == "IS"
+    ]
+    non_topic_conditions = [
+        condition for condition in conditions or [] if condition.get("field") != "Topic"
+    ]
+    _, sentiment_clause, emotion_clause = generate_filter_clauses(non_topic_conditions)
+    if not topic_conditions:
+        return "", sentiment_clause, emotion_clause
+
+    normalized_conditions = []
+    for condition in topic_conditions:
+        try:
+            normalized_conditions.append({**condition, "value": int(condition["value"])})
+        except (KeyError, TypeError, ValueError):
+            return " AND FALSE", sentiment_clause, emotion_clause
+
+    topic_values = ", ".join(
+        str(topic_id) for topic_id in sorted({condition["value"] for condition in normalized_conditions})
+    )
+    row_topic_clause = f" AND ttip.topic_unique_id IN ({topic_values})"
+
+    if not any(condition.get("topic_group") for condition in normalized_conditions):
+        return row_topic_clause, sentiment_clause, emotion_clause
+
+    groups = {}
+    for index, condition in enumerate(normalized_conditions):
+        topic_id = condition["value"]
+        group_id = str(condition.get("topic_group") or f"topic:{index}")
+        group = groups.setdefault(group_id, {
+            "topic_ids": set(),
+            "topic_join": str(condition.get("topic_join", "OR")).strip().upper(),
+        })
+        group["topic_ids"].add(topic_id)
+
+    exists_clauses = []
+    for index, group in enumerate(groups.values()):
+        topic_ids = group["topic_ids"]
+        if not topic_ids:
+            continue
+        topic_values = ", ".join(str(topic_id) for topic_id in sorted(topic_ids))
+        alias = f"topic_group_{index}"
+        require_all = group["topic_join"] == "AND"
+        group_by_clause = ""
+        if require_all:
+            group_by_clause = f"""
+                GROUP BY {alias}.{record_id_col}, {alias}.country_id, {alias}.date_id
+                HAVING count(DISTINCT {alias}.topic_unique_id) = {len(topic_ids)}
+            """
+        exists_clauses.append(
+            f"""
+            EXISTS (
+                SELECT 1
+                FROM {topic_table} {alias}
+                WHERE {alias}.{record_id_col} = {record_alias}.{record_id_col}
+                  AND {alias}.country_id = {record_alias}.country_id
+                  AND {alias}.date_id = {record_alias}.date_id
+                  AND {alias}.topic_unique_id IN ({topic_values})
+                  {group_by_clause}
+            )
+            """
+        )
+
+    if not exists_clauses:
+        return row_topic_clause, sentiment_clause, emotion_clause
+    group_join = str(normalized_conditions[0].get("topic_group_join", "AND")).strip().upper()
+    joiner = " OR " if group_join == "OR" else " AND "
+    grouped_clause = f" AND ({joiner.join(exists_clauses)})"
+    return f"{row_topic_clause}{grouped_clause}", sentiment_clause, emotion_clause
+
+
 def _normalize_source_domain(value: str | None) -> str | None:
     raw = (value or "").strip().lower()
     if not raw:
@@ -114,7 +194,9 @@ async def corpus_summary(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
 
     if stream == "tg":
         raw_table = tablename(models.TgMessageCountry[alpha_2])
@@ -206,7 +288,9 @@ async def social_listening_summary(
     channel_config_table = f"{schema_name}.tg_channel_config"
     channel_alias_table = f"{schema_name}.tg_channel_username_alias"
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     prev_start_date, prev_end_date = _previous_period(start_date, end_date)
 
     def matched_records_sql(range_start: int, range_end: int) -> str:
@@ -345,7 +429,9 @@ async def media_monitoring_summary(
     indicator_table = f"{schema_name}.indicator"
     domain_table = tablename(models.Domain)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     prev_start_date, prev_end_date = _previous_period(start_date, end_date)
     domain_expr = (
         "lower(regexp_replace("
@@ -520,7 +606,9 @@ async def corpus_coverage_series(
     hm_record_id_col = stream_ctx.record_id_col
     resolved_interval = _resolve_coverage_interval(start_date, end_date, interval)
     previous_start_date, previous_end_date = _previous_period(start_date, end_date)
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, hm_record_id_col
+    )
 
     if stream == "tg":
         raw_table = tablename(models.TgMessageCountry[alpha_2])
@@ -767,7 +855,9 @@ async def hm_indicator_attention_trends(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     output_topic_clause = topic_output_clause(conditions, "strict", "src")
     resolved_interval = _resolve_coverage_interval(start_date, end_date, interval)
     indicator_table = f"{models.Topic.__table__.schema}.indicator"
@@ -941,7 +1031,9 @@ async def hm_topic_attention_trends(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "src")
     resolved_interval = _resolve_coverage_interval(start_date, end_date, interval)
     date_table = tablename(models.Date)
@@ -1090,7 +1182,9 @@ async def domain_prevalences(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
 
     q = f"""
         WITH hm_daily_count AS (
@@ -1165,7 +1259,9 @@ async def topic_time_series(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
 
     q = f"""
@@ -1285,7 +1381,9 @@ async def talking_points(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
     prev_start_date, prev_end_date = _previous_period(start_date, end_date)
 
@@ -1417,7 +1515,9 @@ async def hm_indicator_talking_points(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     has_topic_filter = bool(topic_clause.strip())
     relate_indicators_to_filter = has_topic_filter
     indicator_output_topic_clause = "" if relate_indicators_to_filter else topic_output_clause(
@@ -1698,7 +1798,9 @@ async def emotion_trends(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
 
     q = f"""
         WITH qualified_records AS (
@@ -1767,7 +1869,9 @@ async def overall_time_series(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     field_name = "Social" if stream == "tg" else "Media"
     resolved_interval = _resolve_coverage_interval(start_date, end_date, interval)
 
@@ -2126,7 +2230,9 @@ async def chart_studio_time_series_from_stream(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     suffix = "(Social)" if stream == "tg" else "(Media)"
 
     if field_type == "anomaly":
@@ -2282,7 +2388,9 @@ async def chart_studio_bar_chart_from_stream(
     sentiment_table = tablename(stream_ctx.sentiment_model)
     anomaly_table = tablename(stream_ctx.anomaly_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     anomaly_topic_clause = _topic_filter_clause(conditions, table_alias="agg")
     suffix = "(Social)" if stream == "tg" else "(Media)"
 
@@ -2429,7 +2537,9 @@ async def hot_topics_with_topic_condition(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
     output_topic_clause = topic_output_clause(conditions, topic_filter_mode, "all_ttip")
 
     q = f"""
@@ -2495,7 +2605,9 @@ async def hot_topics_without_topic_condition(
     topic_table = tablename(stream_ctx.topic_model)
     sentiment_table = tablename(stream_ctx.sentiment_model)
     record_id_col = stream_ctx.record_id_col
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, record_id_col
+    )
 
     q = f"""
         WITH hm_total_count AS (
@@ -2564,7 +2676,10 @@ async def tg_messages(
     indicator_table = f"{models.Topic.__table__.schema}.indicator"
     domain_table = tablename(models.Domain)
     match_table = f"{models.Topic.__table__.schema}.tg_topic_id_match"
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_table = tablename(models.TgTopicIdPositive)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, "message_unique_id"
+    )
     sorted_by = sorted_by.strip().lower()
     order_col = "ms.timestamp" if sorted_by != "sentiment" else "ts.sentiment"
 
@@ -2572,7 +2687,7 @@ async def tg_messages(
         WITH matched_records AS (
             SELECT DISTINCT hm.message_unique_id, hm.country_id
             FROM {hm_table} hm
-            JOIN {tablename(models.TgTopicIdPositive)} ttip
+            JOIN {topic_table} ttip
               ON ttip.message_unique_id = hm.message_unique_id
              AND ttip.country_id = hm.country_id
              AND ttip.date_id = hm.date_id
@@ -2671,7 +2786,10 @@ async def mc_stories(
     indicator_table = f"{models.Topic.__table__.schema}.indicator"
     domain_table = tablename(models.Domain)
     match_table = f"{models.Topic.__table__.schema}.mc_topic_id_match"
-    topic_clause, sentiment_clause, emotion_clause = generate_filter_clauses(conditions)
+    topic_table = tablename(models.MCTopicIdPositive)
+    topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+        conditions, topic_table, "story_id"
+    )
     sorted_by = sorted_by.strip().lower()
     order_col = "ms.publish_date" if sorted_by != "sentiment" else "ts.sentiment"
 
@@ -2679,7 +2797,7 @@ async def mc_stories(
         WITH matched_records AS (
             SELECT DISTINCT hm.story_id, hm.country_id
             FROM {hm_table} hm
-            JOIN {tablename(models.MCTopicIdPositive)} ttip
+            JOIN {topic_table} ttip
               ON ttip.story_id = hm.story_id
              AND ttip.country_id = hm.country_id
              AND ttip.date_id = hm.date_id

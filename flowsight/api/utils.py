@@ -1522,7 +1522,15 @@ def generate_filter_clauses(conditions, topic_table_alias="ttip", sent_table_ali
         else:
             b[cond["field"]][cond["operator"]].append(cond["value"])
     if b["Topic"].get("IS"):
-        topic_clause = f' AND ({" OR ".join(f"{topic_table_alias}.{topic_col} = {f} " for f in b["Topic"]["IS"])})'
+        try:
+            topic_values = sorted({int(value) for value in b["Topic"]["IS"]})
+        except (TypeError, ValueError):
+            topic_clause = " AND FALSE"
+        else:
+            topic_clause = (
+                f" AND {topic_table_alias}.{topic_col} "
+                f"IN ({', '.join(str(value) for value in topic_values)})"
+            )
     if b["Sentiment"].get("IS") or b["Sentiment"].get("IS NOT"):
         sentiment_sub_conds = []
         for key, values in b["Sentiment"].items():

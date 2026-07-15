@@ -36,28 +36,20 @@
         <main class="fsv2-main fsv2-about-main">
             <article class="fsv2-about-article fsv2-about-article-plain fsv2-about-article-wide">
                 <header class="fsv2-about-intro fsv2-about-blockless">
-                    <div class="fsv2-kpi-source">
-                        <span class="fsv2-dot fsv2-dot-violet"></span>
-                        Online issue mapping structure
-                    </div>
                     <h1>Taxonomy</h1>
                     <p>
                         This page shows the hierarchy used by the application for online issue
                         mapping of polycrisis, presented across four explicit levels:
-                        <strong>pillars</strong>,
-                        <strong>domains</strong>,
-                        <strong>indicators</strong>, and
-                        <strong>indicator components</strong>.
                     </p>
                 </header>
 
                 <section class="fsv2-about-section fsv2-about-blockless">
-                    <div class="fsv2-taxonomy-legend" aria-label="Taxonomy legend">
-                        <span class="fsv2-taxonomy-legend-item fsv2-taxonomy-legend-pillar">Pillar</span>
-                        <span class="fsv2-taxonomy-legend-item fsv2-taxonomy-legend-domain">Domain</span>
-                        <span class="fsv2-taxonomy-legend-item fsv2-taxonomy-legend-indicator">Indicator</span>
-                        <span class="fsv2-taxonomy-legend-item fsv2-taxonomy-legend-component">Indicator component</span>
-                    </div>
+                    <ul class="fsv2-taxonomy-legend" aria-label="Taxonomy levels">
+                        <li class="fsv2-taxonomy-legend-item fsv2-taxonomy-legend-pillar">Pillar</li>
+                        <li class="fsv2-taxonomy-legend-item fsv2-taxonomy-legend-domain">Domain</li>
+                        <li class="fsv2-taxonomy-legend-item fsv2-taxonomy-legend-indicator">Indicator</li>
+                        <li class="fsv2-taxonomy-legend-item fsv2-taxonomy-legend-component">Topic</li>
+                    </ul>
 
                     <div class="fsv2-taxonomy-tree">
                         {% for pillar in taxonomy %}
@@ -67,10 +59,11 @@
                             </header>
                             <div class="fsv2-taxonomy-domains">
                                 {% for domain in pillar.domains %}
-                                <section class="fsv2-taxonomy-domain">
-                                    <header class="fsv2-taxonomy-domain-head">
+                                <details class="fsv2-taxonomy-domain">
+                                    <summary class="fsv2-taxonomy-domain-head">
                                         <h3>{{ domain.name }}</h3>
-                                    </header>
+                                        <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                                    </summary>
                                     {% if domain.indicators %}
                                     <div class="fsv2-taxonomy-indicators">
                                         {% for indicator in domain.indicators %}
@@ -85,7 +78,7 @@
                                                 {% endfor %}
                                             </div>
                                             {% else %}
-                                            <p class="fsv2-about-components">No indicator components listed.</p>
+                                            <p class="fsv2-about-components">No topics listed.</p>
                                             {% endif %}
                                         </section>
                                         {% endfor %}
@@ -93,7 +86,7 @@
                                     {% else %}
                                     <p class="fsv2-about-components">No indicators listed.</p>
                                     {% endif %}
-                                </section>
+                                </details>
                                 {% endfor %}
                             </div>
                         </section>

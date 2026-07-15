@@ -2814,40 +2814,44 @@ button.fsv2-message-topic-text {
 .fsv2-taxonomy-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 22px;
-  margin-bottom: 22px;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 22px;
+  list-style: none;
 }
 
 .fsv2-taxonomy-legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 0;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 3px;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-.fsv2-taxonomy-legend-item::before {
-  content: "";
-  width: 9px;
-  height: 9px;
-  background: currentColor;
+  font-weight: 600;
 }
 
 .fsv2-taxonomy-legend-pillar {
-  color: #1d5c38;
+  border-color: #a8cdb5;
+  background: #e3f1e8;
+  color: #285f41;
 }
 
 .fsv2-taxonomy-legend-domain {
+  border-color: #a9c9e5;
+  background: #e8f2fa;
   color: #205e95;
 }
 
 .fsv2-taxonomy-legend-indicator {
+  border-color: #e8d19d;
+  background: #fff3d9;
   color: #8c5b07;
 }
 
 .fsv2-taxonomy-legend-component {
+  border-color: #d9d3c7;
+  background: #fff;
   color: #5b4bb0;
 }
 
@@ -2912,13 +2916,48 @@ button.fsv2-message-topic-text {
 
 .fsv2-taxonomy-pillar-head {
   padding: 15px 18px 14px;
-  background: #285f41;
+  background: #e3f1e8;
+  border-bottom: 1px solid #a8cdb5;
 }
 
 .fsv2-taxonomy-domain-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 12px 14px;
   background: #e8f2fa;
+  cursor: pointer;
+  list-style: none;
+  transition: background 120ms ease;
+}
+
+.fsv2-taxonomy-domain-head::-webkit-details-marker {
+  display: none;
+}
+
+.fsv2-taxonomy-domain-head:hover {
+  background: #dcecf8;
+}
+
+.fsv2-taxonomy-domain-head:focus-visible {
+  outline: 2px solid #205e95;
+  outline-offset: -3px;
+}
+
+.fsv2-taxonomy-domain-head i {
+  flex: 0 0 auto;
+  color: #205e95;
+  font-size: 17px;
+  transition: transform 160ms ease;
+}
+
+.fsv2-taxonomy-domain[open] > .fsv2-taxonomy-domain-head {
   border-bottom: 1px solid #a9c9e5;
+}
+
+.fsv2-taxonomy-domain[open] > .fsv2-taxonomy-domain-head i {
+  transform: rotate(180deg);
 }
 
 .fsv2-taxonomy-indicator-head {
@@ -2928,7 +2967,7 @@ button.fsv2-message-topic-text {
 }
 
 .fsv2-taxonomy-pillar-head h2 {
-  color: #fff;
+  color: #285f41;
   font-size: 23px;
   line-height: 1.08;
 }

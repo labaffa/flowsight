@@ -569,6 +569,18 @@ function isHumanMobilityIndicator(name) {
     return Boolean(hmIndicatorColorMap()[normalizeIndicatorName(name)]);
 }
 
+function domainPalette() {
+    return [
+        "#A6BFE2",
+        "#AED581",
+        "#D6A79A",
+        "#8CA252",
+        "#DBBEE0",
+        "#E7CB94",
+        "#FFF59D",
+    ];
+}
+
 function domainColor(name, fallbackIndex = 0) {
     let palette = {
         "human mobility": "#2F7D68",
@@ -584,19 +596,21 @@ function domainColor(name, fallbackIndex = 0) {
     };
     let key = normalizeIndicatorName(name);
     if (palette[key]) return palette[key];
-    let fallback = [
-        "#2F7D68",
-        "#B85C38",
-        "#4C6FA8",
-        "#A07A2F",
-        "#8C5E99",
-        "#4F8A74",
-        "#C06B52",
-        "#6C7A89",
-        "#9C7B5B",
-        "#8F8A80",
-    ];
+    let fallback = domainPalette();
     return fallback[fallbackIndex % fallback.length];
+}
+
+function topicPaletteColor(name, fallbackIndex = 0) {
+    let normalizedName = normalizeIndicatorName(name);
+    let topics = window.fsV2Bootstrap?.topics || [];
+    let topic = topics.find((item) => normalizeIndicatorName(item.topic) === normalizedName);
+    let selectedIndex = (window.fsV2State.selectedTopicIds || []).map(Number).indexOf(Number(topic?.topic_id));
+    let taxonomyIndex = topics.findIndex((item) => normalizeIndicatorName(item.topic) === normalizedName);
+    let paletteIndex = selectedIndex >= 0
+        ? selectedIndex
+        : taxonomyIndex >= 0 ? taxonomyIndex : fallbackIndex;
+    let palette = domainPalette();
+    return palette[paletteIndex % palette.length];
 }
 
 function sortDomainEntries(domains) {
@@ -1842,6 +1856,12 @@ function renderIndicatorAttentionChart(containerId, payload) {
     if (!container) return;
     let colors = chartColors();
     let series = reshapeAttentionSeries(payload);
+    let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
+    let useTopicPalette = hasTopicFilter && (
+        containerId === "fsv2-social-attention-chart" || containerId === "fsv2-media-attention-chart"
+    );
+    let stream = containerId === "fsv2-media-attention-chart" ? "mc" : "tg";
+    let distributionColors = window.fsV2State.topicColorMaps?.[stream] || {};
     registerVisualization(containerId, {
         containerId,
         fileStem: `${containerId}-attention`,
@@ -1940,7 +1960,9 @@ function renderIndicatorAttentionChart(containerId, payload) {
         series: filteredSeries.map((entry, index) => ({
             type: "spline",
             name: entry.name,
-            color: indicatorColor(entry.name, index),
+            color: useTopicPalette
+                ? distributionColors[normalizeIndicatorName(entry.name)] || topicPaletteColor(entry.name, index)
+                : indicatorColor(entry.name, index),
             data: entry.data.map((point) => [point.date, point.value]),
         })),
     });
@@ -2820,7 +2842,6 @@ function renderDomainComparisonChart(containerId, payload, stream) {
     if (!container) return;
     let rows = Array.isArray(payload) ? payload : payload?.data || [];
     let knownDomains = new Set(topicHierarchy().map((domain) => normalizeIndicatorName(domain.name)));
-    let topicIndex = new Map((window.fsV2Bootstrap?.topics || []).map((item) => [String(item.topic || "").toLowerCase(), item]));
     let displayRows = rows
         .map((row) => ({
             label: row.domain || row.topic || "",
@@ -2836,19 +2857,28 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             return b.value - a.value;
         })
         .slice(0, 8);
-    let isDomainMode = displayRows.length > 0 && displayRows.every((row) => knownDomains.has(normalizeIndicatorName(row.label)));
+    let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
+    let isDomainMode = !hasTopicFilter
+        && displayRows.length > 0
+        && displayRows.every((row) => knownDomains.has(normalizeIndicatorName(row.label)));
 
-    let subtitle = container.closest(".fsv2-card")?.querySelector(".fsv2-card-head p");
+    let cardHead = container.closest(".fsv2-card")?.querySelector(".fsv2-card-head");
+    let title = cardHead?.querySelector("h2");
+    let subtitle = cardHead?.querySelector("p");
+    if (title) {
+        title.textContent = hasTopicFilter
+            ? "Distribution of selected topics"
+            : "Distribution of analytical domains";
+    }
     if (subtitle) {
-        let hasTopicFilter = (window.fsV2State.selectedTopicIds || []).length > 0;
         if (stream === "tg") {
             subtitle.textContent = hasTopicFilter
-                ? "Share of human mobility messages tagged to the selected topics during the selected period"
-                : "Share of human mobility messages tagged to each domain during the selected period";
+                ? "Share of human mobility messages tagged to the selected topics during the selected period (up to 8 most frequent topics shown)"
+                : "Share of human mobility messages tagged to each domain during the selected period (up to 8 most frequent domains shown)";
         } else {
             subtitle.textContent = hasTopicFilter
-                ? "Share of human mobility news stories tagged to the selected topics during the selected period"
-                : "Share of human mobility news stories tagged to each domain during the selected period";
+                ? "Share of human mobility news stories tagged to the selected topics during the selected period (up to 8 most frequent topics shown)"
+                : "Share of human mobility news stories tagged to each domain during the selected period (up to 8 most frequent domains shown)";
         }
     }
     registerVisualization(containerId, {
@@ -2861,6 +2891,8 @@ function renderDomainComparisonChart(containerId, payload, stream) {
     });
 
     if (displayRows.length === 0) {
+        window.fsV2State.topicColorMaps = window.fsV2State.topicColorMaps || { tg: {}, mc: {} };
+        window.fsV2State.topicColorMaps[stream] = {};
         container.innerHTML = `
             <div class="fsv2-domain-empty">
                 <strong>No data available</strong>
@@ -2875,9 +2907,17 @@ function renderDomainComparisonChart(containerId, payload, stream) {
         if (isDomainMode) {
             return domainColor(row.label, index);
         }
-        let topic = topicIndex.get(String(row.label || "").toLowerCase());
-        return domainColor(topic?.domain || row.label, index);
+        let palette = domainPalette();
+        return palette[index % palette.length];
     };
+    let rowColors = displayRows.map((row, index) => colorForRow(row, index));
+    window.fsV2State.topicColorMaps = window.fsV2State.topicColorMaps || { tg: {}, mc: {} };
+    window.fsV2State.topicColorMaps[stream] = isDomainMode
+        ? {}
+        : Object.fromEntries(displayRows.map((row, index) => [
+            normalizeIndicatorName(row.label),
+            rowColors[index],
+        ]));
     let base = baseChartOptions(null);
     let surfaceHeight = container.clientHeight || container.parentElement?.clientHeight || 0;
     let targetHeight = Math.max(320, surfaceHeight);
@@ -2888,11 +2928,10 @@ function renderDomainComparisonChart(containerId, payload, stream) {
 
     Highcharts.chart(containerId, {
         ...base,
-        colors: displayRows.map((row, index) => colorForRow(row, index)),
+        colors: rowColors,
         chart: {
             ...base.chart,
             type: "bar",
-            height: targetHeight,
             events: {
                 render: function () {
                     let chart = this;
@@ -2984,11 +3023,11 @@ function renderDomainComparisonChart(containerId, payload, stream) {
         },
         series: [{
             type: "bar",
-            name: isDomainMode ? "Domains" : "Indicator components",
+            name: isDomainMode ? "Domains" : "Topics",
             colorByPoint: true,
             data: displayRows.map((row, index) => ({
                 y: row.value,
-                color: colorForRow(row, index),
+                color: rowColors[index],
             })),
         }],
     });
@@ -3010,13 +3049,12 @@ function renderTfidfPills(containerId, rows) {
     container.innerHTML = rows.map((row, index) => {
         let ratio = maxValue > 0 ? Number(row.mean_value || 0) / maxValue : 0;
         let score = Math.round(ratio * 100);
-        let opacity = (0.22 + ratio * 0.78).toFixed(2);
         return `
             <div class="fsv2-term-rank-row" title="${escapeHtml(`${row.lemma}: relative prominence across the selected period. Exact TF-IDF: ${Number(row.mean_value || 0).toFixed(2)}. Rank #${index + 1}.`)}">
                 <span class="fsv2-term-rank">${index + 1}</span>
                 <span class="fsv2-term-rank-label">${escapeHtml(row.lemma)}</span>
                 <span class="fsv2-term-rank-track" aria-hidden="true">
-                    <span class="fsv2-term-rank-fill" style="width:${score}%;background:rgba(29, 158, 117, ${opacity})"></span>
+                    <span class="fsv2-term-rank-fill" style="width:${score}%"></span>
                 </span>
                 <span class="fsv2-term-rank-score">${score}</span>
             </div>
@@ -3036,7 +3074,6 @@ function renderTfidfNote() {
     }
     note.innerHTML = `
         <span><span class="fsv2-dot fsv2-dot-tg"></span>Higher scores mean the term is more distinctive in the selected human mobility messages.</span>
-        <span><span class="fsv2-tfidf-swatch fsv2-tfidf-swatch-strong"></span>Longer, darker bars indicate higher distinctiveness.</span>
     `;
 }
 

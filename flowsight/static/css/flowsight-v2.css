@@ -572,7 +572,8 @@
 .fsv2-domain-surface {
   display: flex;
   align-items: stretch;
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  height: 0;
   min-height: 336px;
   background: transparent;
   border-top: 1px solid var(--fsv2-border);
@@ -718,10 +719,10 @@
 
 .fsv2-term-cloud {
   display: block;
-  flex: 1 1 auto;
-  min-height: 336px;
-  height: 336px;
-  max-height: 336px;
+  flex: 1 1 0;
+  min-height: 0;
+  height: 0;
+  max-height: none;
   overflow-x: hidden;
   overflow-y: auto;
   padding-right: 6px;
@@ -729,16 +730,17 @@
 }
 
 .fsv2-term-chart-surface {
-  flex: 1 1 auto;
-  min-height: 336px;
-  height: 336px;
-  max-height: 336px;
+  flex: 1 1 0;
+  min-height: 0;
+  height: 0;
+  max-height: none;
 }
 
 .fsv2-tfidf-card {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
 }
 
 .fsv2-tfidf-body {
@@ -800,6 +802,7 @@
   height: 100%;
   min-width: 2px;
   border-radius: inherit;
+  background: var(--fsv2-green);
 }
 
 .fsv2-term-rank-score {

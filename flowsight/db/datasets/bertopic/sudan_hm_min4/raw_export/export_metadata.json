@@ -1,0 +1,10 @@
+{
+  "source_run_dir": "/home/gio/projects/flowsight-workspace/flowsight-etl/outputs/hm_topic_modeling/bertopic_200626_min4",
+  "source_assignments": "/home/gio/projects/flowsight-workspace/flowsight-etl/outputs/hm_topic_modeling/bertopic_200626_min4/chunk_topic_assignments.tsv",
+  "text_col": "chunk_text",
+  "timestamp_col": "timestamp",
+  "class_col": "channel_url",
+  "class_threshold": 0.95,
+  "time_bins": 109,
+  "skipped_hierarchy": false
+}

@@ -1,0 +1,17 @@
+{
+  "model_run": "bertopic_200626_min4",
+  "source": "telegram",
+  "assignment_semantics": "topic presence: a message is linked to every non-outlier topic assigned to one or more of its chunks",
+  "message_count": 19224,
+  "topic_count": 288,
+  "message_topic_presence_count": 37027,
+  "outlier_chunk_count": 42295,
+  "exact_offset_match_count": 72766,
+  "offset_check_count": 86644,
+  "exact_offset_match_rate": 0.839827,
+  "display_offset_match_rate": 1.0,
+  "curation_files": [
+    "topic_label_curation.tsv",
+    "hierarchy_label_curation.tsv"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "manifest": "flowsight-etl/outputs/hm_topic_modeling/hm_semantic_chunks_full_200626.manifest.tsv",
+  "embeddings": "flowsight-etl/outputs/hm_topic_modeling/hm_semantic_chunks_full_200626.embeddings.npy",
+  "embedding_metadata": "flowsight-etl/outputs/hm_topic_modeling/hm_semantic_chunks_full_200626.embeddings.npy.metadata.json",
+  "embedding_model": "jinaai/jina-embeddings-v5-text-small",
+  "n_docs": 86644,
+  "embedding_shape": [
+    86644,
+    1024
+  ],
+  "text_col": "chunk_text",
+  "min_words": 5,
+  "max_words": null,
+  "min_topic_size": 40,
+  "nr_topics": null,
+  "nr_top_words": 12,
+  "umap_n_neighbors": 15,
+  "umap_n_components": 5,
+  "umap_min_dist": 0.0,
+  "hdbscan_min_cluster_size": 40,
+  "hdbscan_min_samples": 10,
+  "vectorizer_stop_words": "english",
+  "vectorizer_min_df": 10,
+  "vectorizer_max_df": 0.7,
+  "n_topics_including_outlier": 289,
+  "n_non_outlier_topics": 288,
+  "outlier_docs": 42295
+}

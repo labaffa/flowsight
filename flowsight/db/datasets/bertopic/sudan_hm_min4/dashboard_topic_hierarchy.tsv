@@ -1,0 +1,289 @@
+topic_id	broad_id	broad_label	subfamily_id	subfamily_label
+0	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+1	governance	Government, public services, economy and education	551	Government, education and public administration
+2	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+3	governance	Government, public services, economy and education	551	Government, education and public administration
+4	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+5	governance	Government, public services, economy and education	551	Government, education and public administration
+6	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+7	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+8	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+9	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+10	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+11	governance	Government, public services, economy and education	543	Economy, currency and prices
+12	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+13	conversation	News, media and community conversation	501	Religious prayers and blessings
+14	governance	Government, public services, economy and education	551	Government, education and public administration
+15	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+16	governance	Government, public services, economy and education	558	Courts, politics and revolution
+17	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+18	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+19	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+20	governance	Government, public services, economy and education	551	Government, education and public administration
+21	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+22	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+23	governance	Government, public services, economy and education	558	Courts, politics and revolution
+24	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+25	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+26	governance	Government, public services, economy and education	551	Government, education and public administration
+27	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+28	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+29	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+30	governance	Government, public services, economy and education	543	Economy, currency and prices
+31	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+32	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+33	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+34	weather	Weather, floods and climate	546	Weather, floods and climate
+35	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+36	governance	Government, public services, economy and education	558	Courts, politics and revolution
+37	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+38	governance	Government, public services, economy and education	558	Courts, politics and revolution
+39	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+40	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+41	conversation	News, media and community conversation	317	News channels and social-media promotion
+42	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+43	governance	Government, public services, economy and education	543	Economy, currency and prices
+44	governance	Government, public services, economy and education	551	Government, education and public administration
+45	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+46	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+47	conversation	News, media and community conversation	533	Personal commentary and diaspora
+48	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+49	conversation	News, media and community conversation	501	Religious prayers and blessings
+50	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+51	governance	Government, public services, economy and education	510	Energy, electricity and water infrastructure
+52	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+53	governance	Government, public services, economy and education	543	Economy, currency and prices
+54	governance	Government, public services, economy and education	551	Government, education and public administration
+55	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+56	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+57	conversation	News, media and community conversation	554	News headlines and media round-ups
+58	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+59	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+60	governance	Government, public services, economy and education	543	Economy, currency and prices
+61	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+62	conversation	News, media and community conversation	554	News headlines and media round-ups
+63	conversation	News, media and community conversation	501	Religious prayers and blessings
+64	conversation	News, media and community conversation	533	Personal commentary and diaspora
+65	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+66	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+67	weather	Weather, floods and climate	546	Weather, floods and climate
+68	governance	Government, public services, economy and education	558	Courts, politics and revolution
+69	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+70	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+71	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+72	governance	Government, public services, economy and education	558	Courts, politics and revolution
+73	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+74	conversation	News, media and community conversation	533	Personal commentary and diaspora
+75	conversation	News, media and community conversation	501	Religious prayers and blessings
+76	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+77	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+78	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+79	governance	Government, public services, economy and education	510	Energy, electricity and water infrastructure
+80	conversation	News, media and community conversation	501	Religious prayers and blessings
+81	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+82	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+83	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+84	governance	Government, public services, economy and education	558	Courts, politics and revolution
+85	conversation	News, media and community conversation	554	News headlines and media round-ups
+86	governance	Government, public services, economy and education	551	Government, education and public administration
+87	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+88	governance	Government, public services, economy and education	543	Economy, currency and prices
+89	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+90	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+91	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+92	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+93	governance	Government, public services, economy and education	543	Economy, currency and prices
+94	governance	Government, public services, economy and education	543	Economy, currency and prices
+95	governance	Government, public services, economy and education	551	Government, education and public administration
+96	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+97	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+98	governance	Government, public services, economy and education	551	Government, education and public administration
+99	conversation	News, media and community conversation	317	News channels and social-media promotion
+100	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+101	governance	Government, public services, economy and education	551	Government, education and public administration
+102	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+103	conversation	News, media and community conversation	533	Personal commentary and diaspora
+104	conversation	News, media and community conversation	501	Religious prayers and blessings
+105	governance	Government, public services, economy and education	558	Courts, politics and revolution
+106	governance	Government, public services, economy and education	551	Government, education and public administration
+107	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+108	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+109	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+110	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+111	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+112	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+113	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+114	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+115	governance	Government, public services, economy and education	543	Economy, currency and prices
+116	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+117	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+118	conversation	News, media and community conversation	533	Personal commentary and diaspora
+119	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+120	governance	Government, public services, economy and education	551	Government, education and public administration
+121	weather	Weather, floods and climate	546	Weather, floods and climate
+122	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+123	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+124	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+125	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+126	governance	Government, public services, economy and education	551	Government, education and public administration
+127	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+128	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+129	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+130	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+131	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+132	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+133	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+134	governance	Government, public services, economy and education	558	Courts, politics and revolution
+135	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+136	conversation	News, media and community conversation	501	Religious prayers and blessings
+137	weather	Weather, floods and climate	546	Weather, floods and climate
+138	governance	Government, public services, economy and education	558	Courts, politics and revolution
+139	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+140	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+141	governance	Government, public services, economy and education	558	Courts, politics and revolution
+142	conversation	News, media and community conversation	554	News headlines and media round-ups
+143	governance	Government, public services, economy and education	558	Courts, politics and revolution
+144	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+145	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+146	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+147	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+148	conversation	News, media and community conversation	317	News channels and social-media promotion
+149	conversation	News, media and community conversation	533	Personal commentary and diaspora
+150	governance	Government, public services, economy and education	543	Economy, currency and prices
+151	governance	Government, public services, economy and education	543	Economy, currency and prices
+152	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+153	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+154	conversation	News, media and community conversation	554	News headlines and media round-ups
+155	governance	Government, public services, economy and education	510	Energy, electricity and water infrastructure
+156	conversation	News, media and community conversation	554	News headlines and media round-ups
+157	conversation	News, media and community conversation	533	Personal commentary and diaspora
+158	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+159	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+160	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+161	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+162	conversation	News, media and community conversation	533	Personal commentary and diaspora
+163	governance	Government, public services, economy and education	551	Government, education and public administration
+164	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+165	conversation	News, media and community conversation	554	News headlines and media round-ups
+166	governance	Government, public services, economy and education	558	Courts, politics and revolution
+167	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+168	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+169	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+170	conversation	News, media and community conversation	501	Religious prayers and blessings
+171	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+172	governance	Government, public services, economy and education	558	Courts, politics and revolution
+173	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+174	conversation	News, media and community conversation	554	News headlines and media round-ups
+175	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+176	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+177	conversation	News, media and community conversation	533	Personal commentary and diaspora
+178	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+179	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+180	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+181	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+182	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+183	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+184	conversation	News, media and community conversation	533	Personal commentary and diaspora
+185	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+186	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+187	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+188	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+189	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+190	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+191	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+192	conversation	News, media and community conversation	533	Personal commentary and diaspora
+193	governance	Government, public services, economy and education	558	Courts, politics and revolution
+194	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+195	conversation	News, media and community conversation	554	News headlines and media round-ups
+196	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+197	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+198	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+199	conversation	News, media and community conversation	554	News headlines and media round-ups
+200	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+201	governance	Government, public services, economy and education	510	Energy, electricity and water infrastructure
+202	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+203	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+204	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+205	conversation	News, media and community conversation	554	News headlines and media round-ups
+206	governance	Government, public services, economy and education	551	Government, education and public administration
+207	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+208	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+209	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+210	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+211	conversation	News, media and community conversation	533	Personal commentary and diaspora
+212	conversation	News, media and community conversation	554	News headlines and media round-ups
+213	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+214	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+215	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+216	weather	Weather, floods and climate	546	Weather, floods and climate
+217	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+218	governance	Government, public services, economy and education	551	Government, education and public administration
+219	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+220	conversation	News, media and community conversation	554	News headlines and media round-ups
+221	governance	Government, public services, economy and education	543	Economy, currency and prices
+222	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+223	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+224	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+225	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+226	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+227	governance	Government, public services, economy and education	510	Energy, electricity and water infrastructure
+228	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+229	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+230	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+231	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+232	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+233	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+234	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+235	weather	Weather, floods and climate	546	Weather, floods and climate
+236	governance	Government, public services, economy and education	558	Courts, politics and revolution
+237	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+238	conversation	News, media and community conversation	533	Personal commentary and diaspora
+239	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+240	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+241	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+242	humanitarian	Humanitarian conditions, refugees and migration	537	Passports, immigration and travel
+243	governance	Government, public services, economy and education	558	Courts, politics and revolution
+244	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+245	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+246	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+247	conversation	News, media and community conversation	533	Personal commentary and diaspora
+248	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+249	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+250	governance	Government, public services, economy and education	551	Government, education and public administration
+251	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+252	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+253	conversation	News, media and community conversation	533	Personal commentary and diaspora
+254	conversation	News, media and community conversation	533	Personal commentary and diaspora
+255	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+256	governance	Government, public services, economy and education	558	Courts, politics and revolution
+257	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+258	conversation	News, media and community conversation	554	News headlines and media round-ups
+259	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+260	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+261	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+262	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+263	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+264	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+265	conversation	News, media and community conversation	533	Personal commentary and diaspora
+266	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+267	conflict	Conflict, security and foreign relations	552	El Fasher, RSF and conflict
+268	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+269	conversation	News, media and community conversation	550	Social-media promotion and personal messages
+270	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+271	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+272	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+273	conversation	News, media and community conversation	533	Personal commentary and diaspora
+274	conversation	News, media and community conversation	554	News headlines and media round-ups
+275	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+276	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+277	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+278	governance	Government, public services, economy and education	558	Courts, politics and revolution
+279	conflict	Conflict, security and foreign relations	541	Armed forces and military leadership
+280	conflict	Conflict, security and foreign relations	549	Foreign relations, Israel, UAE and Burhan
+281	conflict	Conflict, security and foreign relations	547	Security, policing and trafficking
+282	humanitarian	Humanitarian conditions, refugees and migration	560	Refugees, humanitarian aid and Ethiopia
+283	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+284	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+285	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+286	governance	Government, public services, economy and education	569	Jobs, training and recruitment
+287	conversation	News, media and community conversation	550	Social-media promotion and personal messages

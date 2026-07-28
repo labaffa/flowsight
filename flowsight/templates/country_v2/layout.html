@@ -83,6 +83,7 @@
         <button type="button" class="fsv2-tab" data-panel="social">Social listening</button>
         <button type="button" class="fsv2-tab" data-panel="media">Media monitoring</button>
         <button type="button" class="fsv2-tab" data-panel="search">Search interest</button>
+        <button type="button" class="fsv2-tab" data-panel="topics">Topic Explorer <span class="fsv2-experimental">Experimental</span></button>
     </nav>
 
     <section class="fsv2-tab-panel" data-panel="summary">
@@ -95,6 +96,10 @@
 
     <section class="fsv2-tab-panel" data-panel="media" hidden>
         {% include "country_v2/media_monitoring.html" %}
+    </section>
+
+    <section class="fsv2-tab-panel" data-panel="topics" hidden>
+        {% include "country_v2/topic_explorer.html" %}
     </section>
 
     <section class="fsv2-tab-panel" data-panel="search" hidden>

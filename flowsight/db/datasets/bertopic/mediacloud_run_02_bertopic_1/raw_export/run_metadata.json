@@ -1,0 +1,28 @@
+{
+  "manifest": "flowsight-etl/outputs/mediacloud_bertopic/run_02/mc_titles.manifest.tsv",
+  "embeddings": "flowsight-etl/outputs/mediacloud_bertopic/run_02/mc_titles.embeddings.npy",
+  "embedding_metadata": "flowsight-etl/outputs/mediacloud_bertopic/run_02/mc_titles.embeddings.npy.metadata.json",
+  "embedding_model": "jinaai/jina-embeddings-v5-text-small",
+  "n_docs": 2744,
+  "embedding_shape": [
+    2744,
+    1024
+  ],
+  "text_col": "chunk_text",
+  "min_words": null,
+  "max_words": null,
+  "min_topic_size": 10,
+  "nr_topics": null,
+  "nr_top_words": 12,
+  "umap_n_neighbors": 15,
+  "umap_n_components": 5,
+  "umap_min_dist": 0.0,
+  "hdbscan_min_cluster_size": 10,
+  "hdbscan_min_samples": 10,
+  "vectorizer_stop_words": "english",
+  "vectorizer_min_df": 2,
+  "vectorizer_max_df": 0.4,
+  "n_topics_including_outlier": 55,
+  "n_non_outlier_topics": 54,
+  "outlier_docs": 839
+}

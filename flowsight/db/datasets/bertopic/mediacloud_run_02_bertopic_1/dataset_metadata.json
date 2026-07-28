@@ -1,0 +1,12 @@
+{
+  "model_run": "mediacloud_run_02_bertopic_1",
+  "source": "mediacloud",
+  "assignment_semantics": "one topic assignment per story title; -1 denotes an outlier story",
+  "story_count": 2744,
+  "topic_count": 54,
+  "outlier_story_count": 839,
+  "curation_files": [
+    "topic_label_curation.tsv",
+    "hierarchy_label_curation.tsv"
+  ]
+}

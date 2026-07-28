@@ -2919,12 +2919,6 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             rowColors[index],
         ]));
     let base = baseChartOptions(null);
-    let surfaceHeight = container.clientHeight || container.parentElement?.clientHeight || 0;
-    let targetHeight = Math.max(320, surfaceHeight);
-    let pointWidth = Math.max(
-        24,
-        Math.min(56, Math.floor((targetHeight - 72) / Math.max(displayRows.length, 1)) - 2)
-    );
 
     Highcharts.chart(containerId, {
         ...base,
@@ -2996,10 +2990,11 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             bar: {
                 animation: false,
                 borderWidth: 0,
-                pointPadding: 0.04,
-                groupPadding: 0.02,
+                // Let Highcharts size each bar from its category band. A fixed
+                // point width made the eight rows collide in shorter cards.
+                pointPadding: 0.16,
+                groupPadding: 0.12,
                 borderRadius: 3,
-                pointWidth,
                 dataLabels: {
                     enabled: true,
                     inside: false,
@@ -3031,6 +3026,246 @@ function renderDomainComparisonChart(containerId, payload, stream) {
             })),
         }],
     });
+}
+
+function correlationHeatmapColor(value) {
+    let numericValue = Math.max(-1, Math.min(1, Number(value) || 0));
+    let ratio = Math.abs(numericValue);
+    let start = [238, 243, 247];
+    let end = numericValue < 0 ? [55, 138, 221] : [29, 92, 56];
+    let rgb = start.map((channel, index) => Math.round(channel + (end[index] - channel) * ratio));
+    return `rgb(${rgb.join(", ")})`;
+}
+
+function renderDomainCorrelationMatrix(containerId, payload, stream) {
+    let container = document.getElementById(containerId);
+    if (!container) return;
+    let topics = Array.isArray(payload?.domains) ? payload.domains : [];
+    let matrix = Array.isArray(payload?.matrix) ? payload.matrix : [];
+    let matrixByPosition = new Map(matrix.map((cell) => [`${cell.x}:${cell.y}`, cell]));
+    let streamLabel = stream === "tg" ? "messages" : "stories";
+
+    registerVisualization(containerId, {
+        containerId,
+        fileStem: `${containerId}-phi-correlation`,
+        csvRows: matrix.map((cell) => ({
+            node_a: topics[cell.x]?.name || "",
+            node_b: topics[cell.y]?.name || "",
+            phi: cell.value,
+            both_count: cell.both_count,
+            total_records: cell.total_records,
+        })),
+    });
+
+    if (topics.length < 2) {
+        container.innerHTML = `
+            <div class="fsv2-topic-heatmap-empty">
+                <strong>No association data available</strong>
+                <span>Human Mobility indicators and analytical domains were not available in the selected ${streamLabel}.</span>
+            </div>
+        `;
+        return;
+    }
+
+    let columnTemplate = `180px repeat(${topics.length}, minmax(28px, 1fr))`;
+    let cells = ['<div></div>'];
+    for (let topic of topics) {
+        let nodeClass = topic.type === "indicator" ? "indicator" : "domain";
+        cells.push(`<div class="fsv2-topic-heatmap-label fsv2-topic-heatmap-label-top fsv2-topic-heatmap-label-${nodeClass}" title="${escapeHtml(topic.name)}">${escapeHtml(topic.name)}</div>`);
+    }
+    for (let y = 0; y < topics.length; y += 1) {
+        let rowTopic = topics[y];
+        let rowNodeClass = rowTopic.type === "indicator" ? "indicator" : "domain";
+        cells.push(`<div class="fsv2-topic-heatmap-label fsv2-topic-heatmap-label-side fsv2-topic-heatmap-label-${rowNodeClass}" title="${escapeHtml(rowTopic.name)}">${escapeHtml(rowTopic.name)}</div>`);
+        for (let x = 0; x < topics.length; x += 1) {
+            let cell = matrixByPosition.get(`${x}:${y}`) || { value: 0, both_count: 0, union_count: 0 };
+        let coefficient = cell.value == null ? "N/A" : Number(cell.value).toFixed(2);
+        let diagonal = x === y ? " fsv2-topic-heatmap-cell-diagonal" : "";
+            let title = `${rowTopic.name} + ${topics[x].name}: φ = ${coefficient} · ${cell.both_count || 0} of ${cell.total_records || 0} records contain both`;
+            cells.push(`<div class="fsv2-topic-heatmap-cell${diagonal}" style="background:${correlationHeatmapColor(cell.value)}" title="${escapeHtml(title)}">${coefficient}</div>`);
+        }
+    }
+
+    container.innerHTML = `
+        <div class="fsv2-topic-heatmap-grid" style="grid-template-columns:${columnTemplate}">${cells.join("")}</div>
+        <div class="fsv2-topic-heatmap-legend" aria-label="Phi correlation scale">
+            <span>Negative</span>
+            <span class="fsv2-topic-heatmap-legend-scale"></span>
+            <span>Positive</span>
+            <span>· ${formatCount(payload.total_records)} ${streamLabel} in scope</span>
+        </div>
+    `;
+}
+
+function renderTemporalCorrelation(containerId, payload) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!payload || payload.days < 30) {
+        container.innerHTML = `<strong>Daily attention movement unavailable</strong><br>Temporal correlation requires at least 30 days in the selected period.`;
+        return;
+    }
+    container.innerHTML = `<div class="fsv2-temporal-head"><strong>Daily attention movement</strong><span>${payload.days} days</span><button class="fsv2-temporal-info" type="button" aria-expanded="false" title="How this matrix is calculated">i</button><div class="fsv2-temporal-toggle"><button class="is-active" data-mode="levels">Daily prevalence</button><button data-mode="changes">Daily changes</button></div></div><div class="fsv2-temporal-popover" hidden><nav><button class="is-active" data-section="method">What it measures</button><button data-section="prevalence">Prevalence</button><button data-section="changes">Changes</button></nav><div class="fsv2-temporal-popover-body"><section data-section-panel="method"><h3>What this analysis measures</h3><p>Each day is treated as one observation. For every indicator or domain, we count how many in-scope messages or stories mention it. The matrix then compares the resulting daily attention patterns.</p><p>Here, a <b>node</b> means one item being compared: either a Human Mobility indicator or an analytical domain.</p><p>This is different from the phi matrix: phi measures whether two topics occur in the same record, while this analysis measures whether their attention is high or low during the same days.</p></section><section data-section-panel="prevalence" hidden><h3>Daily prevalence matrix</h3><ol><li>For day <i>t</i>, <i>n<sub>t</sub></i> is the number of in-scope records and <i>c<sub>k,t</sub></i> is the number containing item <i>k</i>.</li><li>We calculate the share of records containing the item. A small smoothing correction gives <span class="fsv2-math">p&#771;<sub>k,t</sub> = (c<sub>k,t</sub> + 0.5) / (n<sub>t</sub> + 1)</span>, so empty or fully classified days do not create infinite values.</li><li>We use the logit scale <span class="fsv2-math">z<sub>k,t</sub> = log(p&#771;<sub>k,t</sub> / (1 - p&#771;<sub>k,t</sub>))</span> to make relative changes in rare and common items more comparable.</li><li>Each cell is Pearson's <span class="fsv2-math">r(z<sub>i,t</sub>, z<sub>j,t</sub>)</span> across the selected days. Positive values mean the items tend to be prominent on the same days.</li></ol></section><section data-section-panel="changes" hidden><h3>Daily changes matrix</h3><ol><li>We start from the same logit series used in the prevalence matrix.</li><li>For each item, we calculate its day-to-day movement: <span class="fsv2-math">&#916;z<sub>k,t</sub> = z<sub>k,t</sub> - z<sub>k,t-1</sub></span>.</li><li>Each cell is Pearson's <span class="fsv2-math">r(&#916;z<sub>i,t</sub>, &#916;z<sub>j,t</sub>)</span> across consecutive days. Positive values mean the two items tend to rise and fall together, regardless of their baseline attention.</li></ol></section></div></div><div class="fsv2-temporal-grid"></div>`;
+    const infoButton = container.querySelector(".fsv2-temporal-info");
+    const infoBox = container.querySelector(".fsv2-temporal-popover");
+    infoButton.addEventListener("click", () => {
+        const expanded = infoButton.getAttribute("aria-expanded") === "true";
+        infoButton.setAttribute("aria-expanded", String(!expanded));
+        infoBox.hidden = expanded;
+    });
+    container.querySelectorAll(".fsv2-temporal-popover nav button").forEach(button => button.addEventListener("click", () => {
+        const section = button.dataset.section;
+        container.querySelectorAll(".fsv2-temporal-popover nav button").forEach(item => item.classList.toggle("is-active", item === button));
+        container.querySelectorAll("[data-section-panel]").forEach(panel => { panel.hidden = panel.dataset.sectionPanel !== section; });
+    }));
+    container.querySelectorAll(".fsv2-temporal-toggle button").forEach(button => button.addEventListener("click", () => {
+        container.querySelectorAll("button").forEach(item => item.classList.toggle("is-active", item === button));
+        renderTemporalHeatmap(container.querySelector(".fsv2-temporal-grid"), payload, button.dataset.mode);
+    }));
+    renderTemporalHeatmap(container.querySelector(".fsv2-temporal-grid"), payload, "levels");
+}
+
+function renderTemporalHeatmap(container, payload, mode) {
+    const nodes = payload.nodes || [];
+    const cells = new Map((payload[mode] || []).map(cell => [`${cell.x}:${cell.y}`, cell]));
+    const labels = nodes.map(node => escapeHtml(node.name));
+    const labelStyle = node => {
+        const type = node.label_type || node.type;
+        if (type === "indicator") {
+            const background = indicatorColor(node.name);
+            const hex = background.slice(1);
+            const red = parseInt(hex.slice(0, 2), 16);
+            const green = parseInt(hex.slice(2, 4), 16);
+            const blue = parseInt(hex.slice(4, 6), 16);
+            const text = (red * 299 + green * 587 + blue * 114) / 1000 > 155 ? "#000" : "#fff";
+            return `background:${background};color:${text};border-color:${background};`;
+        }
+        if (type === "human_mobility_domain") {
+            return "background:var(--fsv2-nav);color:#fff;border-color:var(--fsv2-nav);";
+        }
+        return "background:#fff;color:#000;border-color:var(--fsv2-border);";
+    };
+    let html = `<div class="fsv2-temporal-matrix" style="grid-template-columns:120px repeat(${nodes.length}, minmax(34px, 1fr))"><div></div>`;
+    labels.forEach((label, index) => { html += `<div class="fsv2-temporal-label top fsv2-temporal-label-${nodes[index].label_type || nodes[index].type}" style="${labelStyle(nodes[index])}">${label}</div>`; });
+    nodes.forEach((node, y) => {
+        html += `<div class="fsv2-temporal-label side fsv2-temporal-label-${nodes[y].label_type || nodes[y].type}" style="${labelStyle(nodes[y])}">${labels[y]}</div>`;
+        nodes.forEach((_, x) => {
+            const cell = cells.get(`${x}:${y}`) || {};
+            const value = cell.value == null ? "N/A" : Number(cell.value).toFixed(2);
+            html += `<div class="fsv2-topic-heatmap-cell${x === y ? " fsv2-topic-heatmap-cell-diagonal" : ""}${x === y ? "" : " fsv2-correlation-cell-clickable"}" data-correlation-x="${x}" data-correlation-y="${y}" style="background:${correlationHeatmapColor(cell.value)}" title="${escapeHtml(`${nodes[y].name} / ${nodes[x].name}: ${value}`)}">${value}</div>`;
+        });
+    });
+    container.innerHTML = `${html}</div><div class="fsv2-topic-heatmap-legend"><span>Negative</span><span class="fsv2-topic-heatmap-legend-scale"></span><span>Positive</span></div>`;
+    container.querySelectorAll(".fsv2-correlation-cell-clickable").forEach(cell => cell.addEventListener("click", () => showCorrelationScatter(payload, Number(cell.dataset.correlationX), Number(cell.dataset.correlationY), mode)));
+}
+
+function showCorrelationScatter(payload, x, y, mode) {
+    document.querySelector(".fsv2-correlation-popover")?.remove();
+    document.querySelector(".fsv2-correlation-backdrop")?.remove();
+    const seriesMode = mode === "raw_changes" || mode === "changes" ? "changes" : "levels";
+    const xValues = payload.series?.[seriesMode]?.[x] || [];
+    const yValues = payload.series?.[seriesMode]?.[y] || [];
+    const periods = payload.periods || [];
+    const points = xValues.map((value, index) => ({ x: value, y: yValues[index], period: payload.period_labels?.[index] || formatCorrelationPeriod(periods[index]) })).filter(point => Number.isFinite(point.y));
+    const minX = Math.min(...points.map(point => point.x), 0); const maxX = Math.max(...points.map(point => point.x), 0); const minY = Math.min(...points.map(point => point.y), 0); const maxY = Math.max(...points.map(point => point.y), 0);
+    const width = 560, height = 340, left = 64, right = 20, top = 20, bottom = 58;
+    const scaleX = value => left + ((value - minX) / (maxX - minX || 1)) * (width - left - right);
+    const scaleY = value => height - bottom - ((value - minY) / (maxY - minY || 1)) * (height - top - bottom);
+    const circles = points.map((point, index) => { const cx = scaleX(point.x); const cy = scaleY(point.y); return `<circle class="fsv2-scatter-point" data-index="${index}" cx="${cx}" cy="${cy}" r="5" fill="#16866b"></circle>`; }).join("");
+    const ticks = (min, max, axis) => Array.from({length: 5}, (_, index) => {
+        const value = min + (max - min) * index / 4;
+        if (axis === "x") { const px = scaleX(value); return `<line x1="${px}" y1="${height-bottom}" x2="${px}" y2="${height-bottom+4}" /><text x="${px}" y="${height-bottom+17}" text-anchor="middle">${value.toFixed(2)}</text>`; }
+        const py = scaleY(value); return `<line x1="${left-4}" y1="${py}" x2="${left}" y2="${py}" /><text x="${left-8}" y="${py+3}" text-anchor="end">${value.toFixed(2)}</text>`;
+    }).join("");
+    const correlationCell = (payload[mode === "raw_changes" || mode === "changes" ? "raw_changes" : "raw_levels"] || payload[mode] || []).find(cell => cell.x === x && cell.y === y);
+    const correlation = correlationCell?.value == null ? "N/A" : Number(correlationCell.value).toFixed(2);
+    const backdrop = document.createElement("div"); backdrop.className = "fsv2-correlation-backdrop";
+    const popover = document.createElement("div"); popover.className = "fsv2-correlation-popover";
+    popover.innerHTML = `<div class="fsv2-correlation-popover-head"><div><strong>${escapeHtml(payload.nodes[x].name)} vs ${escapeHtml(payload.nodes[y].name)}</strong><span>Correlation: <b>${correlation}</b></span></div><button type="button" aria-label="Close">×</button></div><p>${seriesMode === "changes" ? "Changes between consecutive aggregated periods" : "Raw prevalence in each aggregated period"} · ${payload.aggregation}</p><div class="fsv2-scatter-wrap"><svg viewBox="0 0 ${width} ${height}" role="img"><line x1="${left}" y1="${height-bottom}" x2="${width-right}" y2="${height-bottom}" /><line x1="${left}" y1="${height-bottom}" x2="${left}" y2="${top}" />${ticks(minX,maxX,"x")}${ticks(minY,maxY,"y")}${circles}<text x="${(left + width - right) / 2}" y="${height - 12}" text-anchor="middle">${escapeHtml(payload.nodes[x].name)}</text><text x="16" y="${(top + height-bottom) / 2}" text-anchor="middle" transform="rotate(-90 16 ${(top + height-bottom) / 2})">${escapeHtml(payload.nodes[y].name)}</text></svg><div class="fsv2-scatter-tooltip" hidden></div></div><div class="fsv2-correlation-axis">Each point represents one ${payload.aggregation} period. Hover a point for its date and values.</div>`;
+    const tooltip = popover.querySelector(".fsv2-scatter-tooltip");
+    popover.querySelectorAll(".fsv2-scatter-point").forEach(point => point.addEventListener("mouseenter", () => { const value = points[Number(point.dataset.index)]; tooltip.innerHTML = `<b>${escapeHtml(value.period)}</b><br>X: ${value.x.toFixed(4)}<br>Y: ${value.y.toFixed(4)}`; tooltip.hidden = false; const pointBox = point.getBoundingClientRect(); const wrapBox = popover.querySelector(".fsv2-scatter-wrap").getBoundingClientRect(); tooltip.style.left = `${Math.max(4, pointBox.left - wrapBox.left + 8)}px`; tooltip.style.top = `${Math.max(4, pointBox.top - wrapBox.top - 8)}px`; }));
+    popover.querySelectorAll(".fsv2-scatter-point").forEach(point => point.addEventListener("mouseleave", () => { tooltip.hidden = true; }));
+    const close = () => { popover.remove(); backdrop.remove(); document.removeEventListener("keydown", onKeyDown); };
+    const onKeyDown = event => { if (event.key === "Escape") close(); };
+    popover.querySelector("button").addEventListener("click", close); backdrop.addEventListener("click", close); document.addEventListener("keydown", onKeyDown); document.body.append(backdrop, popover);
+}
+
+function showCorrelationInfo(event) {
+    event.stopPropagation();
+    window.fsV2CloseCorrelationInfo?.();
+    const popover = document.createElement("div"); popover.className = "fsv2-correlation-popover fsv2-temporal-popover fsv2-correlation-info-popover";
+    popover.innerHTML = `<div class="fsv2-correlation-popover-head"><strong>How to read this chart</strong><button type="button" aria-label="Close">×</button></div><div class="fsv2-correlation-info-body fsv2-correlation-guide"><section class="fsv2-correlation-guide-section"><h3><i class="ti ti-database" aria-hidden="true"></i> Choose the corpus</h3><div class="fsv2-correlation-scope-card"><strong>Human Mobility Indicators and Domains</strong><p>Only Human Mobility messages or stories. It compares Human Mobility indicators—such as Migration or Forced displacement—with analytical domains found in those same records.</p></div><div class="fsv2-correlation-scope-card"><strong>Domains <span>Full corpus</span></strong><p>Every monitored message or story, including records outside Human Mobility. It compares analytical domains across the broader conversation.</p></div></section><section class="fsv2-correlation-guide-section"><h3><i class="ti ti-calendar-stats" aria-hidden="true"></i> Calculate prevalence</h3><p>Data can be aggregated by <b>day</b>, <b>week</b>, or <b>month</b>. <b>Auto</b> selects the most appropriate interval for the chosen time range; you can also select any interval manually.</p><ol class="fsv2-correlation-steps"><li>For each period, examine every message or story once.</li><li>A record counts when it contains at least one topic belonging to an indicator or domain. Several matching topics still count as one record.</li><li>Divide matching records by all records in that corpus and period.</li></ol><div class="fsv2-correlation-formula"><span>Prevalence</span><b>=</b><span>matching records</span><b>/</b><span>all records in the period</span></div><p class="fsv2-correlation-note"><i class="ti ti-info-circle" aria-hidden="true"></i> One record may count for more than one item, so item prevalences do not add up to 100%.</p></section><section class="fsv2-correlation-guide-section"><h3><i class="ti ti-chart-dots-3" aria-hidden="true"></i> Read a correlation cell</h3><p>For each indicator/domain or domain/domain pair, the chart calculates Pearson's coefficient, <span class="fsv2-math">r</span>, from their prevalence values across the selected periods.</p><div class="fsv2-correlation-key"><span><b>+1</b> perfect positive</span><span><b>0</b> no linear pattern</span><span><b>−1</b> perfect negative</span></div><p>Pearson correlation measures how closely the prevalences of two items vary together across the selected periods. A positive value means that their prevalences tend to rise and fall together. A negative value means that higher prevalence of one item tends to coincide with lower prevalence of the other. Correlation describes linear association, not causality.</p><p class="fsv2-correlation-note"><i class="ti ti-info-circle" aria-hidden="true"></i> <b>N/A</b> means a coefficient cannot be calculated, usually because one item has no variation across the selected periods or there are too few periods to compare.</p></section></div>`;
+    const anchorButton = event.currentTarget;
+    const host = anchorButton.closest(".fsv2-card");
+    const hostRect = host.getBoundingClientRect();
+    const popoverWidth = Math.min(380, window.innerWidth - 32);
+    popover.style.setProperty("width", `${popoverWidth}px`, "important");
+    popover.style.setProperty("position", "absolute", "important");
+    popover.style.setProperty("transform", "none", "important");
+    const updatePosition = () => {
+        const anchor = anchorButton.getBoundingClientRect();
+        popover.style.setProperty("top", `${anchor.bottom - hostRect.top + 10}px`, "important");
+        popover.style.setProperty("left", `${Math.max(16, anchor.right - hostRect.left - popoverWidth)}px`, "important");
+    };
+    const close = () => { popover.remove(); document.removeEventListener("keydown", onKeyDown); document.removeEventListener("click", onOutsideClick); if (window.fsV2CloseCorrelationInfo === close) window.fsV2CloseCorrelationInfo = null; };
+    window.fsV2CloseCorrelationInfo = close;
+    const onKeyDown = keyEvent => { if (keyEvent.key === "Escape") close(); };
+    const onOutsideClick = clickEvent => { if (!popover.contains(clickEvent.target) && clickEvent.target !== anchorButton) close(); };
+    popover.querySelector("button").addEventListener("click", close);
+    host.style.position = "relative";
+    host.append(popover);
+    updatePosition();
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("click", onOutsideClick);
+}
+
+function formatCorrelationPeriod(period) {
+    if (typeof period !== "number") return String(period || "");
+    const date = new Date(Date.UTC(1, 0, 1)); date.setUTCDate(period - 1); return date.toISOString().slice(0, 10);
+}
+
+function renderRawDomainCorrelation(containerId, payload) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!payload || payload.days < 30) { container.innerHTML = `<strong>Full-corpus domain correlation unavailable</strong><br>Requires at least 30 days.`; return; }
+    container.innerHTML = `<div class="fsv2-temporal-head"><strong>Domain attention correlation</strong><span>Raw daily prevalence · ${payload.days} days</span></div><div class="fsv2-temporal-grid"></div>`;
+    renderTemporalHeatmap(container.querySelector(".fsv2-temporal-grid"), payload, "levels");
+}
+
+function renderUnifiedCorrelation(containerId, mixedPayload, domainPayload, initialAggregation = "daily") {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    let mode = "mixed_levels";
+    let aggregation = initialAggregation;
+    const draw = () => {
+        const isDomain = mode.startsWith("domain");
+        const payload = isDomain ? domainPayload : mixedPayload;
+        const matrixMode = isDomain ? "levels" : "raw_levels";
+        container.innerHTML = `<div class="fsv2-unified-controls"><button data-mode="mixed_levels" class="fsv2-unified-view-button ${mode === "mixed_levels" ? "is-active" : ""}">Human Mobility Indicators and Domains</button><button data-mode="domain_levels" class="fsv2-unified-view-button ${mode === "domain_levels" ? "is-active" : ""}">Domains <span>(full corpus)</span></button><span class="fsv2-unified-period"><i class="ti ti-calendar-event" aria-hidden="true"></i>${aggregation}</span></div><div class="fsv2-temporal-grid"></div>`;
+        renderTemporalHeatmap(container.querySelector(".fsv2-temporal-grid"), payload, matrixMode);
+        container.querySelectorAll("[data-mode]").forEach(button => button.addEventListener("click", () => { mode = button.dataset.mode; draw(); }));
+    };
+    draw();
+    const info = container.closest(".fsv2-card")?.querySelector(".fsv2-correlation-info");
+    if (info) info.onclick = showCorrelationInfo;
+}
+
+async function refreshUnifiedCorrelation(stream, containerId) {
+    const { country, overallRange, interval, conditions } = window.fsV2State;
+    const aggregation = correlationAggregation(interval);
+    const conditionPayload = JSON.stringify(conditions || []);
+    const [mixedPayload, domainPayload] = await Promise.all([
+        fetchJson(`/${country}/domain_temporal_correlation_matrix`, { start_date: overallRange.start, end_date: overallRange.end, stream, conditions: conditionPayload, limit: 50, aggregation }),
+        fetchJson(`/${country}/domain_attention_correlation_matrix`, { start_date: overallRange.start, end_date: overallRange.end, stream, limit: 50, aggregation }),
+    ]);
+    renderUnifiedCorrelation(containerId, mixedPayload, domainPayload, aggregation);
+}
+
+function correlationAggregation(interval) {
+    const range = window.fsV2State?.overallRange;
+    const resolved = range
+        ? resolveIntervalForRange(range.start, range.end, interval)
+        : interval;
+    return { day: "daily", week: "weekly", month: "monthly" }[String(resolved || "day").toLowerCase()] || "daily";
 }
 
 function renderTfidfPills(containerId, rows) {
@@ -3758,11 +3993,13 @@ async function loadSocialListening(intervalOnly = false) {
         ? [
             "fsv2-social-domain-chart",
             "fsv2-social-talking-points",
+            "fsv2-social-unified-correlation",
             "fsv2-social-attention-chart",
             "fsv2-social-sentiment-chart",
             "fsv2-social-messages",
         ]
         : [
+            "fsv2-social-unified-correlation",
             "fsv2-social-attention-chart",
             "fsv2-social-sentiment-chart",
         ];
@@ -3777,6 +4014,8 @@ async function loadSocialListening(intervalOnly = false) {
             socialSummary,
             domainRanking,
             talkingPoints,
+            temporalCorrelation,
+            domainAttentionCorrelation,
         ] = await Promise.all([
             fetchJson(`/${country}/social_listening_summary`, {
                 start_date: overallRange.start,
@@ -3796,11 +4035,14 @@ async function loadSocialListening(intervalOnly = false) {
                 stream: "tg",
                 conditions: conditionPayload,
             }),
+            fetchJson(`/${country}/domain_temporal_correlation_matrix`, { start_date: overallRange.start, end_date: overallRange.end, stream: "tg", conditions: conditionPayload, limit: 50, aggregation: correlationAggregation(interval) }),
+            fetchJson(`/${country}/domain_attention_correlation_matrix`, { start_date: overallRange.start, end_date: overallRange.end, stream: "tg", limit: 50, aggregation: correlationAggregation(interval) }),
         ]);
         window.fsV2State.socialStaticData = { socialSummary, domainRanking, talkingPoints };
         renderSocialSummaryKpis(socialSummary);
         renderDomainComparisonChart("fsv2-social-domain-chart", domainRanking, "tg");
         renderTalkingPoints("fsv2-social-talking-points", talkingPoints, true);
+        renderUnifiedCorrelation("fsv2-social-unified-correlation", temporalCorrelation, domainAttentionCorrelation, correlationAggregation(interval));
     }
 
     if (needTfidf) {
@@ -3854,6 +4096,7 @@ async function loadSocialListening(intervalOnly = false) {
     ]);
     renderIndicatorAttentionChart("fsv2-social-attention-chart", attentionSeries);
     renderSentimentTrendChart("fsv2-social-sentiment-chart", filterSeriesByName(sentimentSeries, "Social"));
+    if (intervalOnly) await refreshUnifiedCorrelation("tg", "fsv2-social-unified-correlation");
     if (needStatic) {
         window.fsV2State.socialMessagesOffset = 0;
         await loadMoreSocialMessages();
@@ -3875,11 +4118,13 @@ async function loadMediaMonitoring(intervalOnly = false) {
         ? [
             "fsv2-media-domain-chart",
             "fsv2-media-talking-points",
+            "fsv2-media-unified-correlation",
             "fsv2-media-attention-chart",
             "fsv2-media-sentiment-chart",
             "fsv2-media-stories",
         ]
         : [
+            "fsv2-media-unified-correlation",
             "fsv2-media-attention-chart",
             "fsv2-media-sentiment-chart",
         ];
@@ -3890,6 +4135,8 @@ async function loadMediaMonitoring(intervalOnly = false) {
             mediaSummary,
             domainRanking,
             talkingPoints,
+            temporalCorrelation,
+            domainAttentionCorrelation,
         ] = await Promise.all([
             fetchJson(`/${country}/media_monitoring_summary`, {
                 start_date: overallRange.start,
@@ -3909,11 +4156,14 @@ async function loadMediaMonitoring(intervalOnly = false) {
                 stream: "mc",
                 conditions: conditionPayload,
             }),
+            fetchJson(`/${country}/domain_temporal_correlation_matrix`, { start_date: overallRange.start, end_date: overallRange.end, stream: "mc", conditions: conditionPayload, limit: 50, aggregation: correlationAggregation(interval) }),
+            fetchJson(`/${country}/domain_attention_correlation_matrix`, { start_date: overallRange.start, end_date: overallRange.end, stream: "mc", limit: 50, aggregation: correlationAggregation(interval) }),
         ]);
         window.fsV2State.mediaStaticData = { mediaSummary, domainRanking, talkingPoints };
         renderMediaSummaryKpis(mediaSummary);
         renderDomainComparisonChart("fsv2-media-domain-chart", domainRanking, "mc");
         renderTalkingPoints("fsv2-media-talking-points", talkingPoints, true);
+        renderUnifiedCorrelation("fsv2-media-unified-correlation", temporalCorrelation, domainAttentionCorrelation, correlationAggregation(interval));
         syncMediaTopRow();
     }
 
@@ -3936,6 +4186,7 @@ async function loadMediaMonitoring(intervalOnly = false) {
     ]);
     renderIndicatorAttentionChart("fsv2-media-attention-chart", attentionSeries);
     renderSentimentTrendChart("fsv2-media-sentiment-chart", filterSeriesByName(sentimentSeries, "Media"));
+    if (intervalOnly) await refreshUnifiedCorrelation("mc", "fsv2-media-unified-correlation");
     if (needStatic) {
         window.fsV2State.mediaStoriesOffset = 0;
         await loadMoreMediaStories();
@@ -4081,6 +4332,7 @@ async function initV2() {
     });
     try {
         await refreshActiveTab();
+        scheduleChartResizePasses(document);
     } catch (error) {
         console.error(error);
         setUnavailable("fsv2-tg", "Human mobility messages");

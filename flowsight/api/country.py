@@ -134,6 +134,90 @@ async def get_media_monitoring_summary(
     )
 
 
+@router.get("/{alpha_2}/domain_correlation_matrix")
+async def get_domain_correlation_matrix(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    conditions: str = "",
+    limit: int = 18,
+):
+    """Return same-record domain correlation for the selected stream/period."""
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in {"tg", "mc"}:
+        raise fastapi.HTTPException(
+            status_code=400, detail=f"Stream {stream} not allowed"
+        )
+    conditions = json.loads(conditions) if conditions else None
+    try:
+        return await human_mobility_utils.domain_correlation_matrix(
+            request.app.async_pool,
+            conditions,
+            alpha_2,
+            country_id,
+            start_date,
+            end_date,
+            stream,
+            limit,
+            10,
+        )
+    except ValueError as exc:
+        raise fastapi.HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/{alpha_2}/domain_temporal_correlation_matrix")
+async def get_domain_temporal_correlation_matrix(
+    request: fastapi.Request,
+    alpha_2: str,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    conditions: str = "",
+    limit: int = 50,
+    aggregation: str = "daily",
+):
+    """Return daily prevalence and daily-change correlations."""
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in {"tg", "mc"}:
+        raise fastapi.HTTPException(status_code=400, detail=f"Stream {stream} not allowed")
+    conditions = json.loads(conditions) if conditions else None
+    try:
+        return await human_mobility_utils.domain_temporal_correlation_matrix(
+            request.app.async_pool, conditions, alpha_2, country_id,
+            start_date, end_date, stream, limit,
+            aggregation=aggregation,
+        )
+    except ValueError as exc:
+        raise fastapi.HTTPException(status_code=400, detail=str(exc)) from exc
+
+@router.get("/{alpha_2}/domain_attention_correlation_matrix")
+async def get_domain_attention_correlation_matrix(request: fastapi.Request, alpha_2: str, start_date: int, end_date: int, stream: str, limit: int = 50):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in {"tg", "mc"}:
+        raise fastapi.HTTPException(status_code=400, detail=f"Stream {stream} not allowed")
+    aggregation = request.query_params.get("aggregation", "daily")
+    return await human_mobility_utils.domain_attention_correlation_matrix(
+        request.app.async_pool, alpha_2, country_id, start_date, end_date, stream, limit, aggregation
+    )
+
+
+@router.get("/{alpha_2}/indicator_attention_correlation_matrix")
+async def get_indicator_attention_correlation_matrix(request: fastapi.Request, alpha_2: str, start_date: int, end_date: int, stream: str, limit: int = 50):
+    country_id = _resolve_country_id(request, alpha_2)
+    alpha_2 = _resolve_country_code(request, alpha_2)
+    if stream not in {"tg", "mc"}:
+        raise fastapi.HTTPException(status_code=400, detail=f"Stream {stream} not allowed")
+    aggregation = request.query_params.get("aggregation", "daily")
+    return await human_mobility_utils.indicator_attention_correlation_matrix(
+        request.app.async_pool, alpha_2, country_id, start_date, end_date, stream, limit, aggregation
+    )
+
+
 @router.get("/{alpha_2}/corpus_coverage_series")
 async def get_corpus_coverage_series(
     request: fastapi.Request,

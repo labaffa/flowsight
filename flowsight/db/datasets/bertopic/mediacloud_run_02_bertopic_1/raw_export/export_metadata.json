@@ -1,0 +1,10 @@
+{
+  "source_run_dir": "/home/gio/projects/flowsight-workspace/flowsight-etl/outputs/mediacloud_bertopic/run_02/bertopic_1",
+  "source_assignments": "/home/gio/projects/flowsight-workspace/flowsight-etl/outputs/mediacloud_bertopic/run_02/bertopic_1/chunk_topic_assignments.tsv",
+  "text_col": "chunk_text",
+  "timestamp_col": "publish_date",
+  "class_col": "media_url",
+  "class_threshold": 0.95,
+  "time_bins": 23,
+  "skipped_hierarchy": false
+}

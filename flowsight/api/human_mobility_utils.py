@@ -1,5 +1,6 @@
 import datetime as dt
 import csv
+import math
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -41,6 +42,604 @@ def stream_models(stream: str, alpha_2: str) -> HumanMobilityStreamModels:
             record_id_col="story_id",
         )
     raise ValueError(f"Stream {stream} not allowed")
+
+
+async def domain_correlation_matrix(
+    pool,
+    conditions,
+    alpha_2: str,
+    country_id: int,
+    start_date: int,
+    end_date: int,
+    stream: str,
+    limit: int = 50,
+    min_record_count: int = 10,
+):
+    """Return a period-level phi correlation matrix for analytical domains."""
+    if stream not in {"tg", "mc"}:
+        raise ValueError(f"{stream} stream not allowed")
+    limit = max(2, min(int(limit), 50))
+    min_record_count = max(1, int(min_record_count))
+    stream_ctx = stream_models(stream, alpha_2)
+    hm_table = tablename(stream_ctx.hm_model)
+    topic_table = tablename(stream_ctx.topic_model)
+    sentiment_table = tablename(stream_ctx.sentiment_model)
+    record_id_col = stream_ctx.record_id_col
+    domain_table = tablename(models.Domain)
+    indicator_table = f"{models.Topic.__table__.schema}.indicator"
+    if stream == "tg":
+        domain_positive_table = f"{models.Topic.__table__.schema}.tg_domain_id_positive"
+    else:
+        domain_positive_table = f"{models.Topic.__table__.schema}.mc_domain_id_positive"
+    domain_record_id_col = "message_unique_id" if stream == "tg" else "story_id"
+
+    if conditions:
+        topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(
+            conditions, topic_table, record_id_col
+        )
+        qualified_records_q = f"""
+            SELECT DISTINCT
+                hm.{record_id_col} AS record_id,
+                hm.country_id,
+                hm.date_id
+            FROM {hm_table} hm
+            JOIN {topic_table} ttip
+              ON ttip.{record_id_col} = hm.{record_id_col}
+             AND ttip.country_id = hm.country_id
+             AND ttip.date_id = hm.date_id
+            JOIN {sentiment_table} ts
+              ON ts.{record_id_col} = hm.{record_id_col}
+             AND ts.country_id = hm.country_id
+            WHERE hm.country_id = {country_id}
+              AND hm.date_id BETWEEN {start_date} AND {end_date}
+              {topic_clause}
+              {sentiment_clause}
+              {emotion_clause}
+        """
+        domain_scope_join = f"""
+            JOIN qualified_records qr
+              ON qr.record_id = dp.{domain_record_id_col}
+             AND qr.country_id = dp.country_id
+             AND qr.date_id = dp.date_id
+        """
+    else:
+        qualified_records_q = f"""
+            SELECT DISTINCT
+                hm.{record_id_col} AS record_id,
+                hm.country_id,
+                hm.date_id
+            FROM {hm_table} hm
+            WHERE hm.country_id = {country_id}
+              AND hm.date_id BETWEEN {start_date} AND {end_date}
+        """
+        domain_scope_join = f"""
+            JOIN qualified_records qr
+              ON qr.record_id = dp.{domain_record_id_col}
+             AND qr.country_id = dp.country_id
+             AND qr.date_id = dp.date_id
+        """
+
+    q = f"""
+        WITH qualified_records AS (
+            {qualified_records_q}
+        ),
+        qualified_stats AS (
+            SELECT count(*) AS total_records
+            FROM qualified_records
+        ),
+        domain_assignments AS MATERIALIZED (
+            SELECT DISTINCT
+                dp.{domain_record_id_col} AS record_id,
+                dp.domain_unique_id AS domain_id
+            FROM {domain_positive_table} dp
+            {domain_scope_join}
+            WHERE dp.country_id = {country_id}
+              AND dp.date_id BETWEEN {start_date} AND {end_date}
+        ),
+        indicator_assignments AS MATERIALIZED (
+            SELECT DISTINCT
+                tp.{record_id_col} AS record_id,
+                i.id AS indicator_id
+            FROM {topic_table} tp
+            {domain_scope_join.replace('dp.', 'tp.').replace('domain_record_id_col', record_id_col)}
+            JOIN {models.Topic.__table__.schema}.topic t
+              ON t.id = tp.topic_unique_id
+            JOIN {domain_table} hm_domain
+              ON hm_domain.id = t.domain_id
+            JOIN {indicator_table} i
+              ON i.id = t.indicator_id
+            WHERE tp.country_id = {country_id}
+              AND tp.date_id BETWEEN {start_date} AND {end_date}
+              AND lower(trim(hm_domain.name)) = 'human mobility'
+        ),
+        scoped_assignments AS MATERIALIZED (
+            SELECT record_id, 'domain' AS node_type, domain_id AS node_id
+            FROM domain_assignments
+            UNION ALL
+            SELECT record_id, 'indicator' AS node_type, indicator_id AS node_id
+            FROM indicator_assignments
+        ),
+        domain_node_counts AS (
+            SELECT
+                'domain' AS node_type,
+                sa.domain_id AS node_id,
+                dom.name AS node_name,
+                count(*) AS record_count
+            FROM domain_assignments sa
+            JOIN {domain_table} dom
+              ON dom.id = sa.domain_id
+            WHERE lower(trim(dom.name)) <> 'human mobility'
+            GROUP BY sa.domain_id, dom.name
+            HAVING count(*) >= {min_record_count}
+        ),
+        human_mobility_indicators AS (
+            SELECT DISTINCT
+                i.id AS node_id,
+                i.name AS node_name
+            FROM {models.Topic.__table__.schema}.topic t
+            JOIN {domain_table} hm_domain
+              ON hm_domain.id = t.domain_id
+            JOIN {indicator_table} i
+              ON i.id = t.indicator_id
+            WHERE lower(trim(hm_domain.name)) = 'human mobility'
+        ),
+        indicator_node_counts AS (
+            SELECT
+                'indicator' AS node_type,
+                hmi.node_id,
+                hmi.node_name,
+                count(DISTINCT ia.record_id) AS record_count
+            FROM human_mobility_indicators hmi
+            LEFT JOIN indicator_assignments ia
+              ON ia.indicator_id = hmi.node_id
+            GROUP BY hmi.node_id, hmi.node_name
+        ),
+        node_counts AS (
+            SELECT * FROM domain_node_counts
+            UNION ALL
+            SELECT * FROM indicator_node_counts
+        ),
+        selected_nodes AS (
+            SELECT node_type, node_id, node_name, record_count
+            FROM node_counts
+            ORDER BY CASE WHEN node_type = 'indicator' THEN 0 ELSE 1 END,
+                     record_count DESC, node_name
+            LIMIT {limit}
+        ),
+        assignments AS MATERIALIZED (
+            SELECT
+                sa.record_id,
+                sa.node_type,
+                sa.node_id
+            FROM scoped_assignments sa
+            JOIN selected_nodes sn
+              ON sn.node_type = sa.node_type
+             AND sn.node_id = sa.node_id
+        ),
+        record_domains AS (
+            SELECT
+                record_id,
+                array_agg(node_type || ':' || node_id ORDER BY node_type, node_id) AS node_keys
+            FROM assignments
+            GROUP BY record_id
+        ),
+        pair_counts AS (
+            SELECT
+                pairs.node_a,
+                pairs.node_b,
+                count(*) AS both_count
+            FROM record_domains rd
+            CROSS JOIN LATERAL (
+                SELECT rd.node_keys[i.pos_i] AS node_a, rd.node_keys[j.pos_j] AS node_b
+                FROM generate_subscripts(rd.node_keys, 1) AS i(pos_i)
+                CROSS JOIN generate_subscripts(rd.node_keys, 1) AS j(pos_j)
+                WHERE i.pos_i < j.pos_j
+            ) pairs
+            GROUP BY pairs.node_a, pairs.node_b
+        )
+        SELECT
+            sn.node_type,
+            sn.node_id,
+            sn.node_name,
+            sn.record_count,
+            qs.total_records,
+            pc.node_a,
+            pc.node_b,
+            pc.both_count
+        FROM selected_nodes sn
+        CROSS JOIN qualified_stats qs
+        LEFT JOIN pair_counts pc
+          ON pc.node_a = sn.node_type || ':' || sn.node_id
+          OR pc.node_b = sn.node_type || ':' || sn.node_id
+        ORDER BY CASE WHEN sn.node_type = 'indicator' THEN 0 ELSE 1 END,
+                 sn.record_count DESC, sn.node_name, pc.node_a, pc.node_b;
+    """
+
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            rows = await cur.fetchall()
+
+    nodes_by_key = {}
+    pair_counts = {}
+    total_records = 0
+    node_key_sort = lambda value: (value.split(":", 1)[0], int(value.split(":", 1)[1]))
+    for row in rows:
+        node_type = row["node_type"]
+        node_id = int(row["node_id"])
+        node_key = (node_type, node_id)
+        nodes_by_key[node_key] = {
+            "id": node_id,
+            "type": node_type,
+            "name": row["node_name"],
+            "record_count": int(row["record_count"] or 0),
+        }
+        total_records = int(row["total_records"] or 0)
+        if row["node_a"] is not None and row["node_b"] is not None:
+            pair_key = tuple(sorted((row["node_a"], row["node_b"]), key=node_key_sort))
+            pair_counts[pair_key] = int(row["both_count"] or 0)
+
+    nodes = list(nodes_by_key.values())
+    matrix = []
+    for x, node_a in enumerate(nodes):
+        for y, node_b in enumerate(nodes):
+            if x == y:
+                both_count = node_a["record_count"]
+            else:
+                key_a = f"{node_a['type']}:{node_a['id']}"
+                key_b = f"{node_b['type']}:{node_b['id']}"
+                pair_key = tuple(sorted((key_a, key_b), key=node_key_sort))
+                both_count = pair_counts.get(pair_key, 0)
+            a = both_count
+            b = node_a["record_count"] - both_count
+            c = node_b["record_count"] - both_count
+            d = total_records - a - b - c
+            denominator = ((a + b) * (a + c) * (b + d) * (c + d)) ** 0.5
+            value = round(((a * d) - (b * c)) / denominator, 6) if denominator else None
+            matrix.append({
+                "x": x,
+                "y": y,
+                "value": value,
+                "both_count": both_count,
+                "total_records": total_records,
+            })
+
+    for node in nodes:
+        node["prevalence"] = (
+            node["record_count"] / total_records if total_records else 0
+        )
+
+    return {
+        "metric": "phi",
+        "metric_label": "Phi coefficient",
+        "total_records": total_records,
+        "domains": nodes,
+        "matrix": matrix,
+    }
+
+
+async def domain_temporal_correlation_matrix(
+    pool, conditions, alpha_2, country_id, start_date, end_date, stream,
+    limit=50, min_days=30, aggregation="daily",
+):
+    """Correlate daily smoothed prevalence for the mixed HM/domain nodes."""
+    start = dt.datetime.strptime(str(start_date), "%Y%m%d").date()
+    end = dt.datetime.strptime(str(end_date), "%Y%m%d").date()
+    if (end - start).days + 1 < min_days:
+        raise ValueError(f"Temporal correlation requires at least {min_days} days")
+    stream_ctx = stream_models(stream, alpha_2)
+    hm_table = tablename(stream_ctx.hm_model)
+    topic_table = tablename(stream_ctx.topic_model)
+    sentiment_table = tablename(stream_ctx.sentiment_model)
+    rid = stream_ctx.record_id_col
+    schema = models.Topic.__table__.schema
+    domain_table = tablename(models.Domain)
+    indicator_table = f"{schema}.indicator"
+    positive_table = f"{schema}.{'tg' if stream == 'tg' else 'mc'}_domain_id_positive"
+    domain_rid = "message_unique_id" if stream == "tg" else "story_id"
+    topic_clause = sentiment_clause = emotion_clause = ""
+    if conditions:
+        topic_clause, sentiment_clause, emotion_clause = _record_filter_clauses(conditions, topic_table, rid)
+    scope_join = f"JOIN qualified_records qr ON qr.record_id = dp.{domain_rid} AND qr.country_id = dp.country_id AND qr.date_id = dp.date_id"
+    topic_scope_join = scope_join.replace("dp.", "tp.")
+    q = f"""
+    WITH qualified_records AS (
+      SELECT DISTINCT hm.{rid} AS record_id, hm.country_id, hm.date_id
+      FROM {hm_table} hm
+      {('JOIN ' + topic_table + ' ttip ON ttip.' + rid + ' = hm.' + rid + ' AND ttip.country_id = hm.country_id AND ttip.date_id = hm.date_id JOIN ' + sentiment_table + ' ts ON ts.' + rid + ' = hm.' + rid + ' AND ts.country_id = hm.country_id') if conditions else ''}
+      WHERE hm.country_id = {country_id} AND hm.date_id BETWEEN {start_date} AND {end_date}
+      {topic_clause} {sentiment_clause} {emotion_clause}
+    ),
+    daily_totals AS (SELECT date_id, count(*)::float AS total_count FROM qualified_records GROUP BY date_id),
+    assignments AS (
+      SELECT DISTINCT qr.record_id, qr.date_id, 'domain' AS node_type, dp.domain_unique_id AS node_id
+      FROM qualified_records qr JOIN {positive_table} dp ON dp.{domain_rid}=qr.record_id AND dp.country_id=qr.country_id AND dp.date_id=qr.date_id
+      JOIN {domain_table} d ON d.id=dp.domain_unique_id WHERE lower(trim(d.name)) <> 'human mobility'
+      UNION
+      SELECT DISTINCT qr.record_id, qr.date_id, 'indicator', i.id
+      FROM qualified_records qr JOIN {topic_table} tp ON tp.{rid}=qr.record_id AND tp.country_id=qr.country_id AND tp.date_id=qr.date_id
+      JOIN {schema}.topic t ON t.id=tp.topic_unique_id JOIN {domain_table} d ON d.id=t.domain_id
+      JOIN {indicator_table} i ON i.id=t.indicator_id WHERE lower(trim(d.name))='human mobility'
+    ),
+    nodes AS (
+      SELECT a.node_type,a.node_id,
+             max(CASE WHEN a.node_type='domain' THEN concat_ws(' · ', d.name, p.name) ELSE i.name END) AS node_name,
+             count(DISTINCT a.record_id) AS record_count
+      FROM assignments a
+      LEFT JOIN {domain_table} d ON a.node_type='domain' AND d.id=a.node_id
+      LEFT JOIN {schema}.pillar p ON a.node_type='domain' AND p.id=d.pillar_id
+      LEFT JOIN {indicator_table} i ON a.node_type='indicator' AND i.id=a.node_id
+      GROUP BY a.node_type,a.node_id
+      UNION ALL
+      SELECT 'indicator',i.id,i.name,0 FROM {indicator_table} i
+      WHERE i.id IN (SELECT DISTINCT t.indicator_id FROM {schema}.topic t JOIN {domain_table} d ON d.id=t.domain_id WHERE lower(trim(d.name))='human mobility')
+    ), selected AS (SELECT node_type,node_id,max(node_name) AS node_name,max(record_count) AS record_count FROM nodes GROUP BY node_type,node_id ORDER BY CASE WHEN node_type='indicator' THEN 0 ELSE 1 END, max(record_count) DESC LIMIT {max(2, min(int(limit), 50))}),
+    daily_nodes AS (SELECT a.date_id,a.node_type,a.node_id,count(DISTINCT a.record_id)::float AS count FROM assignments a JOIN selected s USING(node_type,node_id) GROUP BY a.date_id,a.node_type,a.node_id)
+    SELECT s.node_type,s.node_id,s.node_name,coalesce(s.record_count,0) AS record_count,d.date_id,d.total_count,coalesce(dn.count,0) AS node_count
+    FROM selected s CROSS JOIN daily_totals d LEFT JOIN daily_nodes dn ON dn.date_id=d.date_id AND dn.node_type=s.node_type AND dn.node_id=s.node_id
+    LEFT JOIN nodes n ON n.node_type=s.node_type AND n.node_id=s.node_id ORDER BY d.date_id,s.node_type,s.node_id
+    """
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            rows = await cur.fetchall()
+    aggregation = str(aggregation or "daily").strip().lower()
+    if aggregation not in {"daily", "weekly", "monthly"}:
+        aggregation = "daily"
+    names = {}
+    series = {}
+    dates = sorted({int(r["date_id"]) for r in rows})
+    for r in rows:
+        key=(r["node_type"],int(r["node_id"]))
+        names[key]={"id":key[1],"type":key[0],"name":r["node_name"],"label_type":"indicator" if key[0] == "indicator" else ("human_mobility_domain" if str(r["node_name"]).lower().startswith("human mobility") else "domain"),"record_count":int(r["record_count"] or 0)}
+        series.setdefault(key,{})[int(r["date_id"])] = (float(r["node_count"] or 0), float(r["total_count"] or 0))
+    def bucket(date_id):
+        date = dt.datetime.strptime(str(date_id), "%Y%m%d").date()
+        if aggregation == "weekly": date -= dt.timedelta(days=date.weekday())
+        if aggregation == "monthly": date = date.replace(day=1)
+        return date.toordinal()
+    grouped_dates = sorted({bucket(d) for d in dates})
+    if aggregation != "daily":
+        for key, daily in series.items():
+            grouped = {}
+            for date_id, (count, total) in daily.items():
+                b = bucket(date_id); old = grouped.get(b, (0.0, 0.0)); grouped[b] = (old[0] + count, old[1] + total)
+            series[key] = grouped
+        dates = grouped_dates
+    def corr(a,b):
+        if len(a) < 2: return None
+        ma=sum(a)/len(a); mb=sum(b)/len(b)
+        da=[x-ma for x in a]; db=[x-mb for x in b]
+        den=(sum(x*x for x in da)*sum(x*x for x in db))**0.5
+        return round(sum(x*y for x,y in zip(da,db))/den,6) if den else None
+    keys=list(names)
+    def matrix(transform):
+        node_series = {}
+        for key in keys:
+            values=[]
+            for d in dates:
+                c,n=series[key].get(d,(0,0)); p=(c+0.5)/(n+1); values.append(math.log(p/(1-p)))
+            node_series[key] = ([b-a for a,b in zip(values,values[1:])] if transform == "changes" else values)
+        pair_values = {}
+        for y in range(len(keys)):
+            for x in range(y, len(keys)):
+                pair_values[(y,x)] = corr(node_series[keys[x]], node_series[keys[y]])
+        out=[]
+        for y in range(len(keys)):
+            for x in range(len(keys)):
+                pair = (min(x,y), max(x,y))
+                out.append({"x":x,"y":y,"value":pair_values[pair]})
+        return out
+    daily_volume = [series[keys[0]].get(d, (0, 0))[1] for d in dates]
+    def residuals(values, volume):
+        covariates = [[1.0, index / max(1, len(values) - 1), math.log1p(volume[index])] for index in range(len(values))]
+        xtx = [[sum(row[i] * row[j] for row in covariates) for j in range(3)] for i in range(3)]
+        xty = [sum(covariates[k][i] * values[k] for k in range(len(values))) for i in range(3)]
+        for pivot in range(3):
+            divisor = xtx[pivot][pivot] or 1.0
+            for col in range(pivot, 3): xtx[pivot][col] /= divisor
+            xty[pivot] /= divisor
+            for row in range(3):
+                if row == pivot: continue
+                factor = xtx[row][pivot]
+                for col in range(pivot, 3): xtx[row][col] -= factor * xtx[pivot][col]
+                xty[row] -= factor * xty[pivot]
+        coefficients = xty
+        return [values[i] - sum(coefficients[j] * covariates[i][j] for j in range(3)) for i in range(len(values))]
+    def adjusted_matrix(transform):
+        node_values = {}
+        volume = daily_volume
+        if transform == "changes": volume = daily_volume[1:]
+        for key in keys:
+            values=[]
+            for d in dates:
+                c,n=series[key].get(d,(0,0)); p=(c+0.5)/(n+1); values.append(math.log(p/(1-p)))
+            if transform == "changes": values=[b-a for a,b in zip(values,values[1:])]
+            node_values[key] = residuals(values, volume)
+        return [{"x":x,"y":y,"value":corr(node_values[keys[x]],node_values[keys[y]])} for y in range(len(keys)) for x in range(len(keys))]
+    total_records = sum({int(r["date_id"]): int(r["total_count"] or 0) for r in rows}.values())
+    def raw_matrix(transform):
+        node_values={}
+        for key in keys:
+            values=[(series[key].get(d,(0,0))[0] / series[key].get(d,(0,0))[1] if series[key].get(d,(0,0))[1] else 0.0) for d in dates]
+            node_values[key] = [b-a for a,b in zip(values,values[1:])] if transform == "changes" else values
+        pair_values={(y,x):corr(node_values[keys[x]],node_values[keys[y]]) for y in range(len(keys)) for x in range(y,len(keys))}
+        return [{"x":x,"y":y,"value":pair_values[(min(x,y),max(x,y))]} for y in range(len(keys)) for x in range(len(keys))]
+    raw_series = {"levels": [[(series[key].get(d,(0,0))[0] / series[key].get(d,(0,0))[1] if series[key].get(d,(0,0))[1] else 0.0) for d in dates] for key in keys]}
+    raw_series["changes"] = [[b-a for a,b in zip(values, values[1:])] for values in raw_series["levels"]]
+    period_labels = [dt.datetime.strptime(str(d), "%Y%m%d").date().isoformat() if aggregation == "daily" else dt.date.fromordinal(d).isoformat() for d in dates]
+    return {"nodes":list(names.values()),"raw_levels":raw_matrix("levels"),"raw_changes":raw_matrix("changes"),"series":raw_series,"periods":dates,"period_labels":period_labels,"days":len(dates),"total_records":total_records,"aggregation":aggregation}
+
+
+async def domain_attention_correlation_matrix(pool, alpha_2, country_id, start_date, end_date, stream, limit=50, aggregation="daily"):
+    """Correlate raw daily domain shares across the full stream corpus."""
+    aggregation = str(aggregation or "daily").strip().lower()
+    if aggregation not in {"daily", "weekly", "monthly"}:
+        aggregation = "daily"
+    ctx = stream_models(stream, alpha_2)
+    raw_table = tablename(models.TgMessageCountry[alpha_2] if stream == "tg" else models.MCStoryCountry[alpha_2])
+    rid = "unique_id" if stream == "tg" else "id"
+    positive = f"{models.Topic.__table__.schema}.{'tg' if stream == 'tg' else 'mc'}_domain_id_positive"
+    prid = "message_unique_id" if stream == "tg" else "story_id"
+    domain_table = tablename(models.Domain)
+    date_expr = "to_char(timestamp::date, 'YYYYMMDD')::integer" if stream == "tg" else "to_char(publish_date::date, 'YYYYMMDD')::integer"
+    q = f"""
+    WITH corpus AS (SELECT {rid} AS record_id, {date_expr} AS date_id FROM {raw_table} WHERE country_id={country_id} AND {date_expr} BETWEEN {start_date} AND {end_date}),
+    totals AS (SELECT date_id,count(DISTINCT record_id)::float AS total_count FROM corpus GROUP BY date_id),
+    assignments AS (SELECT DISTINCT c.record_id,c.date_id,dp.domain_unique_id AS domain_id FROM corpus c JOIN {positive} dp ON dp.{prid}=c.record_id AND dp.country_id={country_id} AND dp.date_id=c.date_id),
+    nodes AS (SELECT d.id AS domain_id,concat_ws(' · ', d.name, p.name) AS name,count(DISTINCT a.record_id) AS record_count FROM {domain_table} d JOIN {models.Topic.__table__.schema}.pillar p ON p.id=d.pillar_id LEFT JOIN assignments a ON a.domain_id=d.id GROUP BY d.id,d.name,p.name ORDER BY record_count DESC LIMIT {max(2,min(int(limit),50))}),
+    daily AS (SELECT n.domain_id,n.name,n.record_count,t.date_id,t.total_count,count(DISTINCT a.record_id)::float AS domain_count FROM nodes n CROSS JOIN totals t LEFT JOIN assignments a ON a.domain_id=n.domain_id AND a.date_id=t.date_id GROUP BY n.domain_id,n.name,n.record_count,t.date_id,t.total_count)
+    SELECT * FROM daily ORDER BY date_id,domain_id
+    """
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q); rows=await cur.fetchall()
+    nodes={}; series={}; dates=sorted({int(r["date_id"]) for r in rows})
+    for r in rows:
+        key=int(r["domain_id"]); nodes[key]={"id":key,"type":"domain","name":r["name"],"label_type":"human_mobility_domain" if str(r["name"]).lower().startswith("human mobility") else "domain","record_count":int(r["record_count"] or 0)}
+        series.setdefault(key,{})[int(r["date_id"])] = (float(r["domain_count"] or 0), float(r["total_count"] or 0))
+    def bucket(date_id):
+        date=dt.datetime.strptime(str(date_id), "%Y%m%d").date()
+        if aggregation == "weekly": date -= dt.timedelta(days=date.weekday())
+        if aggregation == "monthly": date=date.replace(day=1)
+        return date.toordinal()
+    if aggregation != "daily":
+        for key,daily in series.items():
+            grouped={}
+            for date_id,(count,total) in daily.items():
+                b=bucket(date_id); old=grouped.get(b,(0.0,0.0)); grouped[b]=(old[0]+count,old[1]+total)
+            series[key]=grouped
+        dates=sorted({bucket(d) for d in dates})
+    keys=list(nodes); values={k:[series[k].get(d,(0.0,0.0))[0]/series[k].get(d,(0.0,0.0))[1] if series[k].get(d,(0.0,0.0))[1] else 0.0 for d in dates] for k in keys}
+    def corr(a,b):
+        ma=sum(a)/len(a); mb=sum(b)/len(b); da=[x-ma for x in a]; db=[x-mb for x in b]; den=(sum(x*x for x in da)*sum(x*x for x in db))**0.5
+        return round(sum(x*y for x,y in zip(da,db))/den,6) if den else None
+    matrix=[{"x":x,"y":y,"value":corr(values[keys[x]],values[keys[y]])} for y in range(len(keys)) for x in range(len(keys))]
+    changes={k:[b-a for a,b in zip(v,v[1:])] for k,v in values.items()}
+    change_matrix=[{"x":x,"y":y,"value":corr(changes[keys[x]],changes[keys[y]])} for y in range(len(keys)) for x in range(len(keys))]
+    period_labels = [dt.datetime.strptime(str(d), "%Y%m%d").date().isoformat() if aggregation == "daily" else dt.date.fromordinal(d).isoformat() for d in dates]
+    return {"nodes":list(nodes.values()),"levels":matrix,"changes":change_matrix,"series":{"levels":list(values.values()),"changes":list(changes.values())},"periods":dates,"period_labels":period_labels,"days":len(dates),"total_records":sum({int(r["date_id"]):int(r["total_count"]) for r in rows}.values()),"metric":"raw_daily_prevalence","aggregation":aggregation}
+
+
+async def indicator_attention_correlation_matrix(pool, alpha_2, country_id, start_date, end_date, stream, limit=50, aggregation="daily"):
+    """Correlate Human Mobility indicators and analytical domains across the full source corpus."""
+    aggregation = str(aggregation or "daily").strip().lower()
+    if aggregation not in {"daily", "weekly", "monthly"}:
+        aggregation = "daily"
+    ctx = stream_models(stream, alpha_2)
+    raw_table = tablename(models.TgMessageCountry[alpha_2] if stream == "tg" else models.MCStoryCountry[alpha_2])
+    topic_table = tablename(ctx.topic_model)
+    rid = "unique_id" if stream == "tg" else "id"
+    topic_rid = ctx.record_id_col
+    schema = models.Topic.__table__.schema
+    indicator_table = f"{schema}.indicator"
+    domain_table = tablename(models.Domain)
+    pillar_table = f"{schema}.pillar"
+    positive_table = f"{schema}.{'tg' if stream == 'tg' else 'mc'}_domain_id_positive"
+    domain_rid = "message_unique_id" if stream == "tg" else "story_id"
+    date_expr = "to_char(timestamp::date, 'YYYYMMDD')::integer" if stream == "tg" else "to_char(publish_date::date, 'YYYYMMDD')::integer"
+    q = f"""
+    WITH corpus AS (
+      SELECT {rid} AS record_id, {date_expr} AS date_id
+      FROM {raw_table}
+      WHERE country_id={country_id} AND {date_expr} BETWEEN {start_date} AND {end_date}
+    ),
+    totals AS (
+      SELECT date_id, count(DISTINCT record_id)::float AS total_count
+      FROM corpus GROUP BY date_id
+    ),
+    assignments AS (
+      SELECT DISTINCT c.record_id, c.date_id, 'indicator' AS node_type, t.indicator_id AS node_id
+      FROM corpus c
+      JOIN {topic_table} tp
+        ON tp.{topic_rid}=c.record_id AND tp.country_id={country_id} AND tp.date_id=c.date_id
+      JOIN {schema}.topic t ON t.id=tp.topic_unique_id
+      JOIN {domain_table} d ON d.id=t.domain_id
+      WHERE lower(trim(d.name))='human mobility'
+      UNION
+      SELECT DISTINCT c.record_id, c.date_id, 'domain' AS node_type, dp.domain_unique_id AS node_id
+      FROM corpus c
+      JOIN {positive_table} dp
+        ON dp.{domain_rid}=c.record_id AND dp.country_id={country_id} AND dp.date_id=c.date_id
+      JOIN {domain_table} d ON d.id=dp.domain_unique_id
+      WHERE lower(trim(d.name)) <> 'human mobility'
+    ),
+    nodes AS (
+      SELECT 'indicator' AS node_type, i.id AS node_id, i.name, count(DISTINCT a.record_id) AS record_count
+      FROM {indicator_table} i
+      JOIN {schema}.topic t ON t.indicator_id=i.id
+      JOIN {domain_table} d ON d.id=t.domain_id
+      LEFT JOIN assignments a ON a.node_type='indicator' AND a.node_id=i.id
+      WHERE lower(trim(d.name))='human mobility'
+      GROUP BY i.id,i.name
+      UNION ALL
+      SELECT 'domain' AS node_type, d.id AS node_id, concat_ws(' · ', d.name, p.name) AS name,
+             count(DISTINCT a.record_id) AS record_count
+      FROM {domain_table} d
+      JOIN {pillar_table} p ON p.id=d.pillar_id
+      LEFT JOIN assignments a ON a.node_type='domain' AND a.node_id=d.id
+      WHERE lower(trim(d.name)) <> 'human mobility'
+      GROUP BY d.id,d.name,p.name
+    ),
+    selected AS (
+      SELECT * FROM nodes
+      ORDER BY CASE WHEN node_type='indicator' THEN 0 ELSE 1 END, record_count DESC, name
+      LIMIT {max(2, min(int(limit), 50))}
+    ),
+    daily AS (
+      SELECT n.node_type,n.node_id,n.name,n.record_count,t.date_id,t.total_count,
+             count(DISTINCT a.record_id)::float AS node_count
+      FROM selected n CROSS JOIN totals t
+      LEFT JOIN assignments a ON a.node_type=n.node_type AND a.node_id=n.node_id AND a.date_id=t.date_id
+      GROUP BY n.node_type,n.node_id,n.name,n.record_count,t.date_id,t.total_count
+    )
+    SELECT * FROM daily ORDER BY date_id,CASE WHEN node_type='indicator' THEN 0 ELSE 1 END,node_id
+    """
+    async with pool.connection() as conn:
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(q)
+            rows = await cur.fetchall()
+    nodes = {}
+    series = {}
+    dates = sorted({int(row["date_id"]) for row in rows})
+    for row in rows:
+        key = (row["node_type"], int(row["node_id"]))
+        nodes[key] = {"id": key[1], "type": key[0], "name": row["name"], "label_type": "indicator" if key[0] == "indicator" else "domain", "record_count": int(row["record_count"] or 0)}
+        series.setdefault(key, {})[int(row["date_id"])] = (float(row["node_count"] or 0), float(row["total_count"] or 0))
+    def bucket(date_id):
+        date = dt.datetime.strptime(str(date_id), "%Y%m%d").date()
+        if aggregation == "weekly":
+            date -= dt.timedelta(days=date.weekday())
+        if aggregation == "monthly":
+            date = date.replace(day=1)
+        return date.toordinal()
+    if aggregation != "daily":
+        for key, daily in series.items():
+            grouped = {}
+            for date_id, (count, total) in daily.items():
+                current = grouped.get(bucket(date_id), (0.0, 0.0))
+                grouped[bucket(date_id)] = (current[0] + count, current[1] + total)
+            series[key] = grouped
+        dates = sorted({bucket(date_id) for date_id in dates})
+    keys = list(nodes)
+    values = {
+        key: [series[key].get(date_id, (0.0, 0.0))[0] / series[key].get(date_id, (0.0, 0.0))[1] if series[key].get(date_id, (0.0, 0.0))[1] else 0.0 for date_id in dates]
+        for key in keys
+    }
+    def corr(left, right):
+        if len(left) < 2:
+            return None
+        left_mean = sum(left) / len(left)
+        right_mean = sum(right) / len(right)
+        left_delta = [value - left_mean for value in left]
+        right_delta = [value - right_mean for value in right]
+        denominator = (sum(value * value for value in left_delta) * sum(value * value for value in right_delta)) ** 0.5
+        return round(sum(x * y for x, y in zip(left_delta, right_delta)) / denominator, 6) if denominator else None
+    matrix = [{"x": x, "y": y, "value": corr(values[keys[x]], values[keys[y]])} for y in range(len(keys)) for x in range(len(keys))]
+    changes = {key: [later - earlier for earlier, later in zip(value, value[1:])] for key, value in values.items()}
+    change_matrix = [{"x": x, "y": y, "value": corr(changes[keys[x]], changes[keys[y]])} for y in range(len(keys)) for x in range(len(keys))]
+    period_labels = [dt.datetime.strptime(str(date_id), "%Y%m%d").date().isoformat() if aggregation == "daily" else dt.date.fromordinal(date_id).isoformat() for date_id in dates]
+    return {"nodes": list(nodes.values()), "levels": matrix, "changes": change_matrix, "series": {"levels": list(values.values()), "changes": list(changes.values())}, "periods": dates, "period_labels": period_labels, "days": len(dates), "total_records": sum({int(row["date_id"]): int(row["total_count"]) for row in rows}.values()), "metric": "raw_full_corpus_attention_prevalence", "aggregation": aggregation}
 
 
 def _previous_period(start_date: int, end_date: int) -> tuple[int, int]:

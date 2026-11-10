@@ -1,20 +1,17 @@
 from __future__ import annotations
 
-import csv
 import json
 from bisect import bisect_left
 from collections import Counter, defaultdict
 from datetime import date, datetime
-from pathlib import Path
 
 import fastapi
+from psycopg.rows import dict_row
+
+from flowsight import config
 
 router = fastapi.APIRouter()
-DATA_ROOT = Path(__file__).resolve().parents[1] / "db" / "datasets" / "bertopic"
-BUNDLES = {
-    "telegram": ("sudan_hm_min4", "telegram_topics.tsv", "telegram_topics_3d.tsv", "telegram_messages.tsv", "telegram_message_topic_presence.tsv"),
-    "mediacloud": ("mediacloud_run_02_bertopic_1", "mediacloud_topics.tsv", "mediacloud_topics_3d.tsv", "mediacloud_stories.tsv", None),
-}
+SCHEMA = config.PG_SCHEMA_NAME
 MOBILITY_THEME_LABELS = {
     "refugees_displacement": "Refugees and displacement",
     "immigration_documents": "Immigration, borders and documents",
@@ -24,43 +21,107 @@ MOBILITY_THEME_LABELS = {
     "diaspora": "Diaspora",
 }
 
-def _rows(path: Path) -> list[dict[str, str]]:
-    with path.open(encoding="utf-8", newline="") as handle:
-        return list(csv.DictReader(handle, delimiter="\t"))
+
+def _parse_datetime(value: str) -> datetime:
+    """Parse PostgreSQL timestamp text without depending on its fraction precision."""
+    return datetime.fromisoformat(value[:19])
+
+async def _query(request: fastapi.Request, statement: str, params: tuple = ()) -> list[dict]:
+    """Read BERTopic results from the currently active versioned DB run."""
+    async with request.app.async_pool.connection() as connection:
+        async with connection.cursor(row_factory=dict_row) as cursor:
+            await cursor.execute(statement, params)
+            return await cursor.fetchall()
+
+
+async def _active_run(request: fastapi.Request, source: str) -> str:
+    rows = await _query(
+        request,
+        f"SELECT id FROM {SCHEMA}.bertopic_model_run WHERE source = %s AND is_active",
+        (source,),
+    )
+    if not rows:
+        raise fastapi.HTTPException(status_code=503, detail=f"No active BERTopic {source} model run is loaded.")
+    return rows[0]["id"]
+
+
+async def _dataset(request: fastapi.Request, source: str) -> dict[str, object]:
+    run_id = await _active_run(request, source)
+    topics = await _query(request, f"""
+        SELECT topic_id::text, display_label, raw_name, keywords,
+               unit_count::text AS chunk_count, label_status
+        FROM {SCHEMA}.bertopic_topic WHERE run_id = %s ORDER BY topic_id
+    """, (run_id,))
+    documents = await _query(request, f"""
+        SELECT document_key, source_record_id, channel_id::text, channel_url,
+               message_id::text, media_name, media_url, url, language,
+               published_at::text AS published_at, title_en, title_original, body_en,
+               modeled_text, source_translation_en, original_text
+        FROM {SCHEMA}.bertopic_document WHERE run_id = %s ORDER BY published_at
+    """, (run_id,))
+    assignments = await _query(request, f"""
+        SELECT document_key, topic_id::text, evidence_chunk_count::text, spans::text AS spans
+        FROM {SCHEMA}.bertopic_document_topic WHERE run_id = %s
+    """, (run_id,))
+    coordinates = await _query(request, f"""
+        SELECT topic_id::text, x_2d, y_2d, x_3d AS x, y_3d AS y, z_3d AS z
+        FROM {SCHEMA}.bertopic_topic_coordinate WHERE run_id = %s
+    """, (run_id,))
+    family_rows = await _query(request, f"""
+        SELECT member.topic_id::text, member.family_id, family.family_label
+        FROM {SCHEMA}.bertopic_topic_family_member member
+        JOIN {SCHEMA}.bertopic_topic_family family
+          ON family.run_id = member.run_id AND family.family_id = member.family_id
+        WHERE member.run_id = %s
+    """, (run_id,))
+    neighborhoods = await _query(request, f"""
+        SELECT topic_id::text, neighborhood_id AS family_id, neighborhood_label AS family_label,
+               supercluster_id, supercluster_label
+        FROM {SCHEMA}.bertopic_topic_neighborhood WHERE run_id = %s
+    """, (run_id,))
+    timeline = await _query(request, f"""
+        SELECT topic_id::text AS "Topic", representative_words AS "Words",
+               frequency::text AS "Frequency", bin_start::text AS "Timestamp",
+               bin_end::text AS "Bin_End"
+        FROM {SCHEMA}.bertopic_topic_time_bin WHERE run_id = %s ORDER BY bin_start, topic_id
+    """, (run_id,))
+
+    if source == "telegram":
+        docs = [{
+            "message_key": row["document_key"], "channel_id": row["channel_id"],
+            "channel_url": row["channel_url"], "message_id": row["message_id"],
+            "timestamp": row["published_at"], "modeled_text": row["modeled_text"],
+            "source_translation_en": row["source_translation_en"], "original_text": row["original_text"],
+        } for row in documents]
+        presence = [{
+            "message_key": row["document_key"], "topic_id": row["topic_id"],
+            "evidence_chunk_count": row["evidence_chunk_count"], "spans": row["spans"],
+        } for row in assignments]
+    else:
+        assignment_by_document = {row["document_key"]: row["topic_id"] for row in assignments}
+        docs = [{
+            "story_id": row["document_key"], "topic_id": assignment_by_document.get(row["document_key"], "-1"),
+            "title_en": row["title_en"], "title_original": row["title_original"], "body_en": row["body_en"],
+            "media_name": row["media_name"], "media_url": row["media_url"], "url": row["url"],
+            "language": row["language"], "publish_date": row["published_at"],
+        } for row in documents]
+        presence = []
+    return {"run_id": run_id, "topics": topics, "documents": docs, "presence": presence,
+            "coordinates": coordinates, "families": family_rows, "neighborhoods": neighborhoods,
+            "timeline": timeline}
 
 
 @router.get("/{alpha_2}/bertopic/explorer")
-async def explorer(alpha_2: str, source: str = "telegram", start: str | None = None, end: str | None = None):
-    if alpha_2.lower() != "sd" or source not in BUNDLES:
+async def explorer(request: fastapi.Request, alpha_2: str, source: str = "telegram", start: str | None = None, end: str | None = None):
+    if alpha_2.lower() != "sd" or source not in {"telegram", "mediacloud"}:
         raise fastapi.HTTPException(status_code=404, detail="BERTopic data is available only for Sudan.")
-    bundle, topics_file, coords_file, docs_file, presence_file = BUNDLES[source]
-    root = DATA_ROOT / bundle
-    topics = _rows(root / topics_file)
-    metadata = json.loads((root / "dataset_metadata.json").read_text(encoding="utf-8"))
-    coordinates = {row["topic_id"]: row for row in _rows(root / coords_file)}
-    # Keep the original BERTopic two-dimensional topic map separate from the
-    # FlowSight 3D projection. Taking x/y from a 3D UMAP projection is not a
-    # meaningful 2D projection and produces visibly distorted layouts.
-    coordinates_2d = {row["Topic"]: row for row in _rows(root / "raw_export" / "topics_map.tsv")}
-    # These neighbourhoods are calculated from the coordinates used by the 3D
-    # map. They colour the map only; the sunburst uses the separate curated
-    # dashboard hierarchy.
-    families = {row["topic_id"]: row for row in _rows(root / "topic_map_neighborhoods.tsv")}
-    taxonomy_labels = {row["family_id"]: row["family_label"] for row in _rows(root / "topic_family_labels.tsv")}
-    taxonomy_families = {
-        row["topic_id"]: {**row, "family_label": taxonomy_labels[row["family_id"]]}
-        for row in _rows(root / "topic_families.tsv")
-    }
+    dataset = await _dataset(request, source)
+    topics = dataset["topics"]
+    coordinates = {row["topic_id"]: row for row in dataset["coordinates"]}
+    families = {row["topic_id"]: row for row in dataset["neighborhoods"]}
+    taxonomy_families = {row["topic_id"]: row for row in dataset["families"]}
     mobility_tags: dict[str, list[dict[str, str]]] = defaultdict(list)
-    mobility_tags_file = root / "human_mobility_topic_tags.tsv"
-    if mobility_tags_file.exists():
-        for row in _rows(mobility_tags_file):
-            theme_id = row["mobility_theme"]
-            mobility_tags[row["topic_id"]].append({
-                "id": theme_id,
-                "label": MOBILITY_THEME_LABELS.get(theme_id, theme_id.replace("_", " ").title()),
-            })
-    documents = _rows(root / docs_file)
+    documents = dataset["documents"]
     start_date, end_date = date.fromisoformat(start) if start else None, date.fromisoformat(end) if end else None
     def in_range(value: str) -> bool:
         current = date.fromisoformat(value[:10])
@@ -68,7 +129,7 @@ async def explorer(alpha_2: str, source: str = "telegram", start: str | None = N
     documents = [row for row in documents if in_range(row["timestamp"] if source == "telegram" else row["publish_date"])]
     if source == "telegram":
         allowed = {row["message_key"] for row in documents}
-        presence = [row for row in _rows(root / presence_file) if row["message_key"] in allowed]
+        presence = [row for row in dataset["presence"] if row["message_key"] in allowed]
         counts = Counter(row["topic_id"] for row in presence)
     else:
         counts = Counter(row["topic_id"] for row in documents if row["topic_id"] != "-1")
@@ -80,8 +141,8 @@ async def explorer(alpha_2: str, source: str = "telegram", start: str | None = N
         "x": float(coordinates[topic["topic_id"]]["x"]),
         "y": float(coordinates[topic["topic_id"]]["y"]),
         "z": float(coordinates[topic["topic_id"]]["z"]),
-        "x_2d": float(coordinates_2d[topic["topic_id"]]["x"]),
-        "y_2d": float(coordinates_2d[topic["topic_id"]]["y"]),
+        "x_2d": float(coordinates[topic["topic_id"]]["x_2d"]),
+        "y_2d": float(coordinates[topic["topic_id"]]["y_2d"]),
         "mobility_tags": mobility_tags[topic["topic_id"]],
         "document_count": counts.get(topic["topic_id"], 0),
     } for topic in topics]
@@ -91,7 +152,7 @@ async def explorer(alpha_2: str, source: str = "telegram", start: str | None = N
         assigned_unit_count = sum(int(row["evidence_chunk_count"]) for row in presence)
         assigned_label = "Assigned messages"
         assigned_detail = f"{assigned_unit_count:,} assigned chunks"
-        total_chunk_count = sum(int(topic["chunk_count"]) for topic in topics) + int(metadata.get("outlier_chunk_count", 0))
+        total_chunk_count = sum(int(topic["chunk_count"]) for topic in topics)
         record_detail = f"{total_chunk_count:,} modelled chunks"
     else:
         assigned_record_count = sum(1 for row in documents if row["topic_id"] != "-1")
@@ -118,18 +179,17 @@ async def explorer(alpha_2: str, source: str = "telegram", start: str | None = N
 
 
 @router.get("/{alpha_2}/bertopic/charts")
-async def charts(alpha_2: str, source: str = "telegram"):
-    if alpha_2.lower() != "sd" or source not in BUNDLES:
+async def charts(request: fastapi.Request, alpha_2: str, source: str = "telegram"):
+    if alpha_2.lower() != "sd" or source not in {"telegram", "mediacloud"}:
         raise fastapi.HTTPException(status_code=404, detail="BERTopic data is available only for Sudan.")
-    bundle, topics_file, _, docs_file, presence_file = BUNDLES[source]
-    root = DATA_ROOT / bundle
-    topics = {row["topic_id"]: row for row in _rows(root / topics_file)}
-    labels = {row["family_id"]: row["family_label"] for row in _rows(root / "topic_family_labels.tsv")}
-    families = {row["topic_id"]: {**row, "family_label": labels.get(row["family_id"], row["family_label"])} for row in _rows(root / "topic_families.tsv")}
-    documents = _rows(root / docs_file)
+    dataset = await _dataset(request, source)
+    topics = {row["topic_id"]: row for row in dataset["topics"]}
+    families = {row["topic_id"]: row for row in dataset["families"]}
+    labels = {row["family_id"]: row["family_label"] for row in families.values()}
+    documents = dataset["documents"]
     if source == "telegram":
         documents_by_key = {row["message_key"]: row for row in documents}
-        assignments = [(row["topic_id"], documents_by_key[row["message_key"]]) for row in _rows(root / presence_file) if row["message_key"] in documents_by_key]
+        assignments = [(row["topic_id"], documents_by_key[row["message_key"]]) for row in dataset["presence"] if row["message_key"] in documents_by_key]
         source_key, date_key = "channel_url", "timestamp"
     else:
         assignments = [(row["topic_id"], row) for row in documents if row["topic_id"] != "-1"]
@@ -139,16 +199,17 @@ async def charts(alpha_2: str, source: str = "telegram"):
     # period-specific representative words. This is the same source used by
     # BERTIP's Topics over Time figure; other FlowSight charts retain their
     # message-presence calculations below.
-    topics_over_time_export = _rows(root / "raw_export" / "topics_over_time.tsv")
+    topics_over_time_export = dataset["timeline"]
     topics_over_time = [
         row for row in topics_over_time_export
         if row["Topic"] != "-1" and row["Topic"] in topics
     ]
     selected_topics = sorted({row["Topic"] for row in topics_over_time}, key=int)
     bin_timestamps = sorted({row["Timestamp"] for row in topics_over_time_export})
-    bin_datetimes = [datetime.fromisoformat(value[:26]) for value in bin_timestamps]
+    bin_datetimes = [_parse_datetime(value) for value in bin_timestamps]
+    bin_display_timestamps = {row["Timestamp"]: row["Bin_End"] for row in topics_over_time_export}
     def bin_for(value: str) -> str | None:
-        index = bisect_left(bin_datetimes, datetime.fromisoformat(value[:26])) - 1
+        index = bisect_left(bin_datetimes, _parse_datetime(value)) - 1
         return bin_timestamps[index] if 0 <= index < len(bin_timestamps) else None
     message_bin = {
         row["message_key"]: bin_for(row["timestamp"])
@@ -197,7 +258,7 @@ async def charts(alpha_2: str, source: str = "telegram"):
     heatmap = Counter((family_id, source_name) for family_id, source_name, _ in family_presence)
     family_presence_counts = Counter(family_id for family_id, _, _ in family_presence)
     scope_total = sum(source_counts[source_name] for source_name in selected_sources)
-    map_clusters = {row["topic_id"]: row for row in _rows(root / "topic_map_neighborhoods.tsv")}
+    map_clusters = {row["topic_id"]: row for row in dataset["neighborhoods"]}
     cluster_labels = {row["family_id"]: row["family_label"] for row in map_clusters.values()}
     cluster_counts = Counter()
     for topic_id, count in topic_counts.items():
@@ -238,14 +299,17 @@ async def charts(alpha_2: str, source: str = "telegram"):
     return {
         "metric_label": "Messages" if source == "telegram" else "Stories",
         "timeline": [{
-            "timestamp": row["Timestamp"],
+            # The BERTopic export labels its final equal-width bin at its
+            # internal start.  The dashboard displays the explicit bin end so
+            # August data is not presented as a July observation.
+            "timestamp": row["Bin_End"],
             "topic_id": row["Topic"],
             "value": int(row["Frequency"]),
             "words": row["Words"],
         } for row in topics_over_time],
-        "share_bins": [{"timestamp": timestamp, "total": bin_totals[timestamp]} for timestamp in bin_timestamps],
+        "share_bins": [{"timestamp": bin_display_timestamps[timestamp], "total": bin_totals[timestamp]} for timestamp in bin_timestamps],
         "timeline_share": [{
-            "timestamp": timestamp,
+            "timestamp": bin_display_timestamps[timestamp],
             "topic_id": topic_id,
             "value": count,
             "share": count / max(bin_totals[timestamp], 1),
@@ -267,6 +331,7 @@ async def charts(alpha_2: str, source: str = "telegram"):
 
 @router.get("/{alpha_2}/bertopic/records")
 async def records(
+    request: fastapi.Request,
     alpha_2: str,
     source: str,
     topic_id: int | None = None,
@@ -277,13 +342,12 @@ async def records(
     limit: int = 20,
     offset: int = 0,
 ):
-    if alpha_2.lower() != "sd" or source not in BUNDLES:
+    if alpha_2.lower() != "sd" or source not in {"telegram", "mediacloud"}:
         raise fastapi.HTTPException(status_code=404, detail="BERTopic data is available only for Sudan.")
     limit = max(1, min(limit, 100))
     offset = max(0, offset)
-    bundle, _, _, docs_file, presence_file = BUNDLES[source]
-    root = DATA_ROOT / bundle
-    documents = _rows(root / docs_file)
+    dataset = await _dataset(request, source)
+    documents = dataset["documents"]
     targets = {str(topic_id)} if topic_id is not None else set()
     if topic_ids:
         targets.update(item.strip() for item in topic_ids.split(",") if item.strip())
@@ -293,7 +357,7 @@ async def records(
     end_time = datetime.fromisoformat(end.replace("Z", "")) if end else None
     end_exclusive_time = datetime.fromisoformat(end_exclusive.replace("Z", "")) if end_exclusive else None
     def in_range(value: str) -> bool:
-        current = datetime.fromisoformat(value[:26])
+        current = _parse_datetime(value)
         return (
             (start_time is None or current >= start_time)
             and (end_time is None or current <= end_time)
@@ -302,9 +366,9 @@ async def records(
     if source == "mediacloud":
         matching = [row for row in documents if row["topic_id"] in targets and in_range(row["publish_date"])]
         return {"records": matching[offset : offset + limit], "total": len(matching), "has_more": offset + limit < len(matching)}
-    topics = {row["topic_id"]: row["display_label"] for row in _rows(root / BUNDLES[source][1])}
+    topics = {row["topic_id"]: row["display_label"] for row in dataset["topics"]}
     evidence = defaultdict(list)
-    for row in _rows(root / presence_file):
+    for row in dataset["presence"]:
         evidence[row["message_key"]].append({"topic_id": row["topic_id"], "topic_label": topics.get(row["topic_id"], f"Topic {row['topic_id']}"), "spans": json.loads(row["spans"])})
     matching = [
         row for row in documents

@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: ${PG_DATABASE:?Set PG_DATABASE}
+      POSTGRES_USER: ${PG_USER:?Set PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Set PG_PASSWORD}
+    volumes:
+      - flowsight_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_HOST: db
+      PG_PORT: "5432"
+      PG_DATABASE: ${PG_DATABASE:?Set PG_DATABASE}
+      PG_SCHEMA_NAME: ${PG_SCHEMA_NAME:-flowsight}
+      PG_USER: ${PG_USER:?Set PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD:?Set PG_PASSWORD}
+    ports:
+      - "127.0.0.1:8000:8000"
+volumes:
+  flowsight_db:

@@ -82,3 +82,8 @@ coverage.xml
 
 .git/
 .venv*/
+.env*
+dumps/
+flowsight/db/datasets/bertopic/mediacloud_retrain_20260818/
+flowsight/db/datasets/bertopic/telegram_retrain_20260818/
+flowsight/db/datasets/bertopic/telegram_retrain_20260821_bge/

@@ -1,88 +1,102 @@
 # FlowSight
 
-FlowSight is a Sudan-only fork of the original dashboard, focused on the country-specific experience and a Sudan-only chart studio.
+FlowSight helps users explore human mobility in Sudan using Telegram messages,
+news stories and Google Trends data, including the Synthetic Search Interest Index (SSI).
+Its dashboard brings together trends, topic classifications and sentiment to
+support exploration of the available data.
 
-## What It Exposes
+## Features
 
-- `/` renders the Sudan dashboard
-- `/studio` renders the Sudan-only chart studio
-- the original landing page is intentionally not part of this fork
+- Explore human mobility trends across Telegram messages and news stories.
+- Examine topic and sentiment patterns in social and news coverage.
+- Explore Google Trends search interest using the Synthetic Search Interest Index.
+- Use the experimental Topic Explorer to explore machine-discovered themes,
+  their evolution and supporting messages or stories.
+- Filter dashboard views by topic and time period.
 
-## Environment Variables
+FlowSight uses FastAPI and PostgreSQL. It needs a database with the compatible
+FlowSight schema and data. The database can be populated by running the
+[FlowSight ETL](https://github.com/labaffa/fews2etl) or by restoring a snapshot
+of an existing populated database. This repository does not include a complete
+database. A snapshot provides a fixed view without running the update pipeline.
 
-The app needs these mandatory environment variables:
-* **PG_HOST**: postgres host, or `host:port`
-* **PG_PORT**: postgres port if not embedded in `PG_HOST`
-* **PG_DATABASE**: the name of the database
-* **PG_SCHEMA_NAME**: the name of the postgres schema inside the **PG_DATABASE**
-* **PG_USER** and **PG_PASSWORD**: user's credentials
+## Docker Compose
 
-Optional app theming:
-* **FLOWSIGHT_COLOR_SCHEME**: select one of `atlas`, `nile`, `clay`
+Docker Compose can run the app and a PostgreSQL 14 database together. A fresh
+database is empty: populate it using the ETL or restore a compatible snapshot
+before starting the app. Follow the ETL repository's instructions for its data
+sources, credentials and database setup.
 
-Startup now fails fast with explicit database diagnostics. FlowSight distinguishes:
-- missing or invalid DB env configuration
-- unreachable postgres host or port
-- rejected credentials
-- invalid database name
-- invalid schema or missing required bootstrap tables (`country`, `domain`)
+Copy `.env.compose.example` to `.env.compose` and set the database name, user,
+and a strong password. Keep this file private. From the repository root:
 
-Two lightweight operational endpoints are available:
-- `/health` for process liveness
-- `/ready` for live database readiness
+```bash
+cp .env.compose.example .env.compose
+# Edit .env.compose before starting the database.
+docker compose --env-file .env.compose up -d db
+```
 
-Highcharts assets for `/` and `/studio` are vendored under `flowsight/static/vendor/highcharts/` so the app does not depend on the public Highcharts CDN at runtime.
+The database is not published to a host port by this configuration. To run the
+ETL against it, connect the ETL container to the Compose network and use `db`
+as its database host, or configure access to the database explicitly.
 
-## Local Development
+Once PostgreSQL is ready, populate it with the ETL or restore a snapshot. For
+example, to restore a PostgreSQL custom-format backup into the empty database,
+replace the database name and user below with the values in `.env.compose`:
 
-This repo should be worked on with `uv` and the repo-local virtual environment in `.venv/`.
+```bash
+docker compose --env-file .env.compose exec -T db \
+  pg_restore -U flowsight -d flowsight --no-owner --no-acl --exit-on-error \
+  < /path/to/backup.dump
+```
 
-Create the virtual environment if it is missing:
+After the database is populated, start the app:
+
+```bash
+docker compose --env-file .env.compose up -d --build app
+```
+
+Open `http://localhost:8000`. PostgreSQL data persists in a Docker volume.
+Restore only into an empty database; a failed restore can leave partial data.
+The app port is bound to localhost by default. Configure an HTTPS reverse proxy
+for public access; deployment under a URL subpath has not been validated.
+
+## Configuration
+
+Configure the database connection using these environment variables:
+
+| Variable | Description |
+| --- | --- |
+| `PG_HOST` | PostgreSQL host name or IP address; it can include a port. |
+| `PG_PORT` | PostgreSQL port, required if not included in `PG_HOST`. |
+| `PG_DATABASE` | Name of the PostgreSQL database. |
+| `PG_SCHEMA_NAME` | Schema containing the FlowSight tables. |
+| `PG_USER` | Database user with access to the schema and its tables. |
+| `PG_PASSWORD` | Password for that database user. |
+
+See `.env.example` for a configuration template. Supply credentials securely
+and do not commit them. In the Compose setup, `PG_HOST` and `PG_PORT` are set
+for the app automatically; the remaining values come from `.env.compose`.
+
+## Local development
+
+Use `uv` and the repository-local environment:
 
 ```bash
 uv venv .venv
-```
-
-Install dependencies into `.venv`:
-
-```bash
 uv pip install -r requirements.txt
-```
-
-Run the app locally:
-
-```bash
 uv run uvicorn flowsight.app:app --reload
 ```
 
-Launch with a specific color scheme:
+Configure the database variables above in the environment before starting.
+Highcharts assets are provided locally.
 
-```bash
-FLOWSIGHT_COLOR_SCHEME=nile uv run uvicorn flowsight.app:app --reload
-```
+## Verify the deployment
 
-## Project Notes
+Open the dashboard and check that its charts and topic explorer load with the
+expected data. `/health` checks process liveness; `/ready` checks database
+readiness.
 
-- Branding defaults live in `flowsight/config/__init__.py`
-- Shared page chrome lives in `flowsight/templates/base/`
-- FlowSight-specific visual overrides live in `flowsight/static/css/flowsight.css`
-- The app is intentionally constrained to Sudan unless a task explicitly changes product scope
-
-## Agent and Developer Docs
-
-- `AGENTS.md` contains mandatory rules for agents working in this repo
-- `DEVELOPMENT.md` contains the local workflow, structure notes, and common commands
-
-### Docker
-
-Open a terminal in the root directory of the repository and build the Docker image:
-
-```bash
-docker build -t <image-name> .
-```
-
-If you place env variables on an `.env` file, start the application using the following command:
-
-```bash
-docker run --env-file .env -p 8000:8000 -it <image-name>
-```
+For development, shared page templates are in `flowsight/templates/base/`,
+styling in `flowsight/static/css/flowsight.css`, UI routes in `flowsight/ui/`,
+and API routes in `flowsight/api/`. Agent instructions are in `AGENTS.md`.

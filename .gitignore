@@ -163,6 +163,7 @@ cython_debug/
 # env
 .env*
 !.env.example
+!.env.compose.example
 
 # org files
 *.org
